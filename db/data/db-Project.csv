@@ -1,0 +1,10 @@
+sapPId,sfdcPId,projectName,startDate,endDate,gpm,projectType,oppId,status,requiredResources,allocatedResources,toBeAllocated,SOWReceived,POReceived
+P-0001,91697538,BAAN Transformation and Modernisation to Pmax,2024-12-01,2026-04-15,Sridhar Rao,FixedPrice,GE Grid SAP Programs,Planned,7,3,4,No,No
+P-0002,91697416,BAAN Transformation and Modernisation to Pmax - Contingency,2024-12-01,2026-04-15,Sridhar Rao,FixedPrice,GE Grid SAP Programs,Planned,11,9,2,No,No
+P-0003,91697415,BAAN Transformation and Modernisation to Pmax - Smartshop,2024-12-01,2026-04-15,Sridhar Rao,FixedPrice,GE Grid SAP Programs,Planned,5,4,1,No,No
+P-0004,91674805,GE Vernova AMS - Megatech Data &amp;amp;amp; Analytics,2024-01-01,2028-12-31,PVVenkat,TransactionBased,China Archived AWS Server migration,Planned,11,0,11,No,No
+P-0005,91674804,GE Vernova AMS - Megatech ERP,2024-01-01,2028-12-31,PVVenkat,TransactionBased,China Archived AWS Server migration,Planned,8,1,7,No,No
+P-0006,91684853,912866-Gas Power - ERP Program Services - Fixed Monthly,2024-06-01,2029-05-31,K N Sathisha,TransactionBased,GEHC_Global_NGP_Kinaxis_SAP Configuration RFP,Planned,14,2,12,No,No
+P-0007,91702243,924018 -Steam ERP Program - CI,2025-02-01,2025-12-31,Anil Tarmani,TransactionBased,Steam ERP Program - CI,Planned,15,7,8,No,No
+P-0008,91679364,910160-BW HANA Finance Analytics,2024-02-01,2025-12-31,Shiva Koneru,FixedMonthly,PIPO - Functionality Extensions,Planned,15,4,11,No,No
+P-0009,91690930,Steam BW Carve Out - Pass Thru,2024-12-15,2025-11-14,Shiva Koneru,PassThru,PIPO - Functionality Extensions,Planned,9,0,9,No,No

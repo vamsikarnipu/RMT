@@ -1,0 +1,14 @@
+{
+  "features": {
+    "cdsc": {
+      "excludes": [
+        "**/*_FIXED.cds",
+        "**/*_FIXED.csv",
+        "**/*_OLD.cds",
+        "backup/**"
+      ]
+    }
+  }
+}
+
+

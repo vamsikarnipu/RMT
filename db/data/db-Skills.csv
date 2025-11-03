@@ -1,0 +1,11 @@
+id,name,category
+c272f867-3f85-4d72-94ee-b9d077b697aa,SAP FICO,Finance
+9a319d8e-59c5-4916-88bb-d88c9199cb6c,SAP MM,Logistics
+095ebe5c-b040-49ef-b810-0737de7eabdf,SAP HR,HR
+10540916-405b-4b8d-b842-ab1357902f57,SAP ABAP,Technical
+8abf195d-a04d-4433-bc01-54f4ddf2f9ae,SAP SD,Sales
+224e122b-a46a-4e2f-86d1-0a3630be95ec,SAP BW,Analytics
+b8391436-6e3f-4d3d-9454-b84a084218d9,SAP Basis,Technical
+d97f5d41-d5f6-4653-946e-c83480a6a0b4,SAP CRM,Customer Relations
+ebd422ef-778e-4223-b2d4-e37f138c708f,SAP HANA,Database
+10853e55-ec40-4000-ab11-a052a74df6f2,SAP SuccessFactors,HR

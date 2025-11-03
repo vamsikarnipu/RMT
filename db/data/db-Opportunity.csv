@@ -1,0 +1,8 @@
+sapOpportunityId,sfdcOpportunityId,opportunityName,businessUnit,probability,salesSPOC,deliverySPOC,expectedStart,expectedEnd,tcv,Stage,customerId
+O-0001,Opp-236882,GE Grid SAP Programs,GEV Electirifcation-Grid,PurchaseOrderReceived,Neehit Mittal,Mithilesh Methuku,2024-04-01,2027-03-30,0.00,Signed Deal,Penske
+O-0002,Opp-251522,Steam ERP Program - CI,GEV Gas Power-Projects,PurchaseOrderReceived,Neehit Mittal,Radhika Tanikella,2025-02-01,2025-12-31,0.00,Signed Deal,GE Vernova
+O-0003,Opp-250075,GEHC_Global_NGP_Kinaxis_SAP Configuration RFP,GE HealthCare,PurchaseOrderReceived,Neehit Mittal,Ravi Kolachina,2025-02-03,2025-12-31,0.00,Signed Deal,ABB
+O-0004,Opp-271687,China Archived AWS Server migration,GE Power Conversion,SoWSent,Neehit Mittal,Naveen Chiluveru,2025-09-15,2025-10-15,0.00,Down Select,ABB
+O-0005,Opp ID yet to be created,PIPO - Functionality Extensions,GEV Electirifcation-Grid,SoWSent,Neehit Mittal,Mithilesh Methuku,2025-01-10,2025-11-30,0.00,Discover,GE Vernova
+O-0006,Opp-272930,SAP Solution Architect FICO,GE Power Conversion,SoWSent,Neehit Mittal,Naveen Chiluveru,2025-01-10,2026-09-30,0.00,On Bid,ABB
+O-0007,Opp ID yet to be created,GE Power SOW-AP6506-Controls SAP-UAE PS06,GE Power Gas,ProposalStage,Neehit Mittal,Arn K Reddy,2025-10-20,2026-01-19,0.00,Define,Penske

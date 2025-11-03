@@ -1,0 +1,41 @@
+SAPcustId,customerName,state,country,status,vertical
+C-0001,GE Vernova,California,USA,Inactive,BFS
+C-0002,Penske,California,USA,Active,BFS
+C-0003,Cox Enterprises,California,USA,Active,BFS
+C-0004,Ahold Delhaize,California,USA,Active,CapitalMarkets
+C-0005,Rain Bird,California,USA,Active,BFS
+C-0006,ABB,California,USA,Active,BFS
+C-0007,GE Aviation,California,USA,Active,BFS
+C-0008,GE HealthCare,California,USA,Inactive,BFS
+C-0009,Asahi Breweries,California,USA,Inactive,CapitalMarkets
+C-0010,Dentsply Sirona,California,USA,Active,CapitalMarkets
+C-0011,Wabtec,California,USA,Active,BFS
+C-0012,Cytiva,California,USA,Inactive,BFS
+C-0013,SPIRIT AEROSYSTEMS,California,USA,Active,BFS
+C-0014,CSC,California,USA,Active,BFS
+C-0015,OTSUKA PHARMACEUTICAL COMPANY LIMITED,California,USA,Inactive,CapitalMarkets
+C-0016,Entegris,California,USA,Active,BFS
+C-0017,IEH Auto Parts,California,USA,Active,BFS
+C-0018,Viatris,California,USA,Active,CapitalMarkets
+C-0019,LAM Research,California,USA,Active,BFS
+C-0020,REED ELSEVIER,California,USA,Active,BFS
+C-0021,Norgine,California,USA,Inactive,CapitalMarkets
+C-0022,BCG THE BOSTON CONSULTING GROUP,California,USA,Active,BFS
+C-0023,Click Therapeutics,California,USA,Active,CapitalMarkets
+C-0024,HEINEKEN,California,USA,Inactive,CapitalMarkets
+C-0025,HYATT,California,USA,Active,BFS
+C-0026,Reworld,California,USA,Active,BFS
+C-0027,CNH Industrials,California,USA,Inactive,BFS
+C-0028,DOLLAR GENERAL,California,USA,Active,CapitalMarkets
+C-0029,Shutterfly,California,USA,Active,BFS
+C-0030,Coca Cola Bottlers Sales & Services,California,USA,Active,CapitalMarkets
+C-0031,I D SYSTEMS,California,USA,Active,BFS
+C-0032,CDK Global,California,USA,Active,BFS
+C-0033,BAKER HUGHES,California,USA,Active,BFS
+C-0034,TaylorMade Golf,California,USA,Inactive,CapitalMarkets
+C-0035,Amazon,California,USA,Active,BFS
+C-0036,Iveco Group,California,USA,Active,BFS
+C-0037,Meta,California,USA,Inactive,BFS
+C-0038,HUMANA,California,USA,Active,CapitalMarkets
+C-0039,GALDERMA,California,USA,Active,CapitalMarkets
+C-0040,Believer Meats,California,USA,Active,CapitalMarkets

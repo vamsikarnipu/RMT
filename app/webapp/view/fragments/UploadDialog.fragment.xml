@@ -1,0 +1,29 @@
+<core:FragmentDefinition xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+	xmlns:l="sap.ui.layout"
+	xmlns:f="sap.ui.layout.form"
+	xmlns:u="sap.ui.unified">
+
+	<Dialog id="uploadDialog" title="Upload CSV" type="Message" contentWidth="30%" >
+		<f:SimpleForm id="formUpload" editable="true" layout="ResponsiveGridLayout">
+			<f:content>
+				<u:FileUploader
+					id="fileUploader"
+					name="myFileUpload"
+					tooltip="Upload your file"
+					fileType="csv"
+					change="onFileUploadChange"
+					placeholder="Choose a CSV file"
+					style="Emphasized"
+				/>
+				<!-- Optional: Add a label -->
+				<Label text="Click to upload CSV data" />
+			</f:content>
+		</f:SimpleForm>
+		<buttons>
+			<Button text="Upload File" press="onFileUploadSubmit" />
+			<Button id="OnUploadcloseBut" text="Cancel" press="onCloseUpload" />
+			<!-- <Button id="OnTemplateDownloadBut" icon="sap-icon://download" press="exportUploadTemplate" tooltip="Download Template"/> -->
+		</buttons>
+	</Dialog>
+</core:FragmentDefinition>

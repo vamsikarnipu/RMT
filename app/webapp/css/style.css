@@ -1,0 +1,42 @@
+/* Enter your custom styles here */
+.show-less .sapMListTblSubCnt{
+    display: none !important;
+}
+/* Adds vertical lines between columns and horizontal row dividers */
+/* .verticalsTable .sapMListTblCell {
+  border-right: 2px solid var(--sapList_BorderColor);
+  
+} */
+
+
+/* Optional: remove the last border on the far right for a cleaner look */
+/* .verticalsTable .sapMListTblCell:last-child {
+  border-right: none;
+} */
+
+.Card {
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    margin:10px;
+    width:33%;
+}
+.myCardTitle {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color:#FFF;
+}
+.myCardValue {
+    font-size: 2rem;
+    color:#fff;
+}
+ 
+.redC { background: linear-gradient(45deg, #e7413c, #b31217) !important; }
+.blueC {background: linear-gradient(45deg, #6d27e5, #2512b3) !important;}
+.greenC { background: linear-gradient(45deg, #27e55d, #12b360) !important;}
+.greayC { background: linear-gradient(45deg, #5f626767, #6c757d) !important;}
+.skyblueC { background: linear-gradient(45deg, #0dcaf0, hsl(190, 90%, 50%)) !important;}
+.mystardC { background: linear-gradient(45deg, #ffc107, hsl(45, 100%, 51%)) !important;}
+ 
+ 
