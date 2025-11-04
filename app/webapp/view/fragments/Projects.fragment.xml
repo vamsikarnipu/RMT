@@ -141,8 +141,17 @@
                                 </items>
                             </Select>
                             
-                            <Label text="Opportunity ID" />
-                            <Input id="inputOppId_proj" value="{projectModel>/oppId}" width="100%" />
+                            <Label text="Opportunity" />
+                            <Input 
+                                id="inputOppId_proj" 
+                                width="100%"
+                                placeholder="Select Opportunity"
+                                showValueHelp="true"
+                                valueHelpRequest="onOpportunityValueHelpRequest">
+                                <layoutData>
+                                    <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
+                                </layoutData>
+                            </Input>
                             
                             <Label text="Required Resources" />
                             <Input id="inputRequiredResources_proj" value="{projectModel>/requiredResources}" width="100%" type="Number" />

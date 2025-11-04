@@ -8,6 +8,25 @@
     <VBox class="sapUiSmallMargin">
         <!-- Panel for Table -->
         <Panel class="sapUiResponsiveMargin" expandable="false">
+            <!-- FilterBar with Go and Adapt Filters -->
+            <mdc:FilterBar
+                id="customerFilterBar"
+                delegate='{
+                    "name": "glassboard/delegate/CustomersFilterBarDelegate",
+                    "payload": {
+                        "collectionPath": "Customers"
+                    }
+                }'
+                search="onFilterSearch"
+                clear="onFilterBarClear"
+                showAdaptFiltersButton="true"
+                showClearButton="true"
+                showGoButton="true"
+                showRestoreButton="true"
+                filterConditions="{filterModel>/conditions}"
+                p13nMode="Item,Value">
+            </mdc:FilterBar>
+            
             <Toolbar>
                 <ToolbarSpacer />
                 <SearchField
@@ -17,7 +36,7 @@
                     liveChange="onCustomerSearch"
                     search="onCustomerSearch" />
             </Toolbar>
-            <ScrollContainer height="380px" vertical="true" horizontal="false">
+            <ScrollContainer height="350px" vertical="true" horizontal="false">
                 <mdc:Table
                     id="Customers"
                     header="Customers"

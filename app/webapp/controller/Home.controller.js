@@ -20,12 +20,13 @@ sap.ui.define([
                 this.getView().setModel(oComponentModel, "default"); // named "default"
             }
 
-            // Then set the filter model
+            // Then set the filter model (both filterModel and $filters for MDC FilterBar compatibility)
             const oFilterModel = new sap.ui.model.json.JSONModel({
                 conditions: {},
                 items: []
             });
             this.getView().setModel(oFilterModel, "filterModel");
+            this.getView().setModel(oFilterModel, "$filters"); // MDC FilterBar expects $filters model
 
             // Optional: Set a separate model for table-specific state (if needed)
             const oTableModel = new sap.ui.model.json.JSONModel();
@@ -109,6 +110,106 @@ sap.ui.define([
                     const oModel = this.getOwnerComponent().getModel();
                     if (oModel) {
                         oTable.setModel(oModel);
+                    }
+
+                    // Ensure FilterBar has the correct models
+                    const oFilterBar = this.byId("customerFilterBar");
+                    if (oFilterBar) {
+                        oFilterBar.setModel(oModel, "default");
+                        const oFilterModel = this.getView().getModel("$filters");
+                        if (oFilterModel) {
+                            oFilterBar.setModel(oFilterModel, "$filters");
+                        }
+                        
+                        // Set default visible filters: CustomerName and Vertical
+                        // Wait for FilterBar to be fully initialized
+                        setTimeout(() => {
+                            const fnSetDefaultFilters = () => {
+                                if (oFilterBar && oFilterBar.initialized && typeof oFilterBar.initialized === "function") {
+                                    oFilterBar.initialized().then(() => {
+                                        // Wait for FilterBar to be ready
+                                        setTimeout(() => {
+                                            // Check if there's existing state
+                                            StateUtil.retrieveExternalState(oFilterBar).then((oExistingState) => {
+                                                // Only set default if no FilterFields state exists
+                                                const bHasFilterState = oExistingState && 
+                                                                       oExistingState.filter && 
+                                                                       oExistingState.filter.FilterFields &&
+                                                                       oExistingState.filter.FilterFields.items &&
+                                                                       oExistingState.filter.FilterFields.items.length > 0;
+                                                
+                                                if (!bHasFilterState) {
+                                                    // Set default visible filters: customerName and vertical
+                                                    const oNewState = {
+                                                        filter: {
+                                                            FilterFields: {
+                                                                items: ["customerName", "vertical"]
+                                                            }
+                                                        }
+                                                    };
+                                                    StateUtil.applyExternalState(oFilterBar, oNewState).then(() => {
+                                                        console.log("✅ Default filters (customerName, vertical) set successfully");
+                                                    }).catch((e) => {
+                                                        console.warn("Could not set default filter state:", e);
+                                                        // Try alternative approach
+                                                        fnSetDefaultFiltersAlternative();
+                                                    });
+                                                } else {
+                                                    console.log("FilterBar already has filter state, keeping existing");
+                                                }
+                                            }).catch(() => {
+                                                // If retrieve fails, set default directly
+                                                const oNewState = {
+                                                    filter: {
+                                                        FilterFields: {
+                                                            items: ["customerName", "vertical"]
+                                                        }
+                                                    }
+                                                };
+                                                StateUtil.applyExternalState(oFilterBar, oNewState).then(() => {
+                                                    console.log("✅ Default filters set (retrieve failed, applied directly)");
+                                                }).catch((e) => {
+                                                    console.warn("Could not set default filter state (fallback):", e);
+                                                    fnSetDefaultFiltersAlternative();
+                                                });
+                                            });
+                                        }, 500);
+                                    }).catch(() => {
+                                        // Retry after delay
+                                        setTimeout(fnSetDefaultFilters, 500);
+                                    });
+                                } else {
+                                    // Retry if FilterBar not ready
+                                    setTimeout(fnSetDefaultFilters, 300);
+                                }
+                            };
+                            
+                            // Alternative approach: directly manipulate FilterFields visibility
+                            const fnSetDefaultFiltersAlternative = () => {
+                                try {
+                                    const aFilterFields = oFilterBar.getFilterFields();
+                                    if (aFilterFields && aFilterFields.length > 0) {
+                                        // Hide all filters first
+                                        aFilterFields.forEach(function(oField) {
+                                            if (oField && oField.setVisible) {
+                                                const sPropertyKey = oField.getPropertyKey();
+                                                // Only show customerName and vertical
+                                                if (sPropertyKey === "customerName" || sPropertyKey === "vertical") {
+                                                    oField.setVisible(true);
+                                                } else {
+                                                    oField.setVisible(false);
+                                                }
+                                            }
+                                        });
+                                        console.log("✅ Default filters set via alternative method");
+                                    }
+                                } catch (e) {
+                                    console.warn("Alternative filter setting failed:", e);
+                                }
+                            };
+                            
+                            fnSetDefaultFilters();
+                        }, 800);
                     }
 
                     // Initialize table-specific functionality
@@ -609,7 +710,7 @@ sap.ui.define([
                 // For update, build entry with existing Customer ID (for verification) and new values
                 const oUpdateEntry = {
                     "country": sCountry || "",
-                    "customerName": sCustName,
+                "customerName": sCustName,
                     "state": sState || "",
                     "status": sStatus || "A", // Default to Active if not set
                     "vertical": sVertical || "BFS" // Default if not set
@@ -705,7 +806,7 @@ sap.ui.define([
                         oModel.submitBatch("changesGroup")
                             .then(() => {
                                 console.log("Customer created successfully!");
-                                MessageToast.show("Customer created successfully!");
+                    MessageToast.show("Customer created successfully!");
                                 this.onCancelForm(); // Clear form after successful create
                                 
                                 // Refresh table to show new entry
@@ -1390,6 +1491,8 @@ sap.ui.define([
                 sRole = this.byId("inputRole_emp").getValue(),
                 sLocation = this.byId("inputLocation_emp").getValue(),
                 sCity = this.byId("inputCity_emp").getValue(),
+                sSupervisor = this.byId("inputSupervisor_emp").getValue(),
+                sSkills = this.byId("inputSkills_emp").getValue(),
                 sStatus = this.byId("inputStatus_emp").getSelectedKey(),
                 sLWD = this.byId("inputLWD_emp").getValue();
 
@@ -1419,6 +1522,8 @@ sap.ui.define([
                     "role": sRole || "",
                     "location": sLocation || "",
                     "city": sCity || "",
+                    "supervisorOHR": sSupervisor || "",
+                    "skills": sSkills || "",
                     "status": sStatus || "Allocated",
                     "lwd": sLWD || ""
                 };
@@ -1484,6 +1589,8 @@ sap.ui.define([
                     "role": sRole || "",
                     "location": sLocation || "",
                     "city": sCity || "",
+                    "supervisorOHR": sSupervisor || "",
+                    "skills": sSkills || "",
                     "status": sStatus || "Allocated",
                     "lwd": sLWD || ""
                 };
@@ -1580,8 +1687,16 @@ sap.ui.define([
                 sDeliverySPOC = this.byId("inputDeliverySPOC_oppr").getValue(),
                 sExpectedStart = this.byId("inputExpectedStart_oppr").getValue(),
                 sExpectedEnd = this.byId("inputExpectedEnd_oppr").getValue(),
-                sTCV = this.byId("inputTCV_oppr").getValue(),
-                sCustomerId = this.byId("inputCustomerId_oppr").getValue();
+                sTCV = this.byId("inputTCV_oppr").getValue();
+            
+            // Get the stored ID from data attribute, or fallback to model
+            const oCustomerInput = this.byId("inputCustomerId_oppr");
+            let sCustomerId = oCustomerInput ? oCustomerInput.data("selectedId") : "";
+            if (!sCustomerId) {
+                // Fallback to model value
+                const oModel = this.getView().getModel("opportunityModel");
+                sCustomerId = oModel ? oModel.getProperty("/customerId") : "";
+            }
 
             // Validation
             if (!sOppName || sOppName.trim() === "") {
@@ -1625,22 +1740,67 @@ sap.ui.define([
                     oModel.submitBatch("changesGroup")
                         .then(() => {
                             MessageToast.show("Opportunity updated successfully!");
-                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                            if (oBinding) {
-                                oBinding.refresh();
-                            }
+                            // ✅ Force refresh table to show updated data immediately
+                            setTimeout(() => {
+                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                
+                                // Use Promise to ensure refresh completes
+                                const fnRefresh = () => {
+                                    if (oRowBinding) {
+                                        return oRowBinding.refresh(true); // Force refresh from server
+                                    } else if (oBinding) {
+                                        return oBinding.refresh(true); // Force refresh from server
+                                    }
+                                    return Promise.resolve();
+                                };
+                                
+                                fnRefresh().then(() => {
+                                    // After refresh, rebind to ensure UI updates
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                }).catch(() => {
+                                    // If refresh fails, try rebind directly
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                });
+                            }, 100); // Small delay to ensure batch is committed
+                            
                             this.onCancelOpportunityForm();
                         })
                         .catch((oError) => {
                             setTimeout(() => {
                                 try {
                                     const oCurrentData = oContext.getObject();
-                                    if (oCurrentData && oCurrentData.opportunityName === oUpdateEntry.opportunityName) {
+                                        if (oCurrentData && oCurrentData.opportunityName === oUpdateEntry.opportunityName) {
                                         MessageToast.show("Opportunity updated successfully!");
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        if (oBinding) {
-                                            oBinding.refresh();
-                                        }
+                                        // ✅ Force refresh table to show updated data immediately
+                                        setTimeout(() => {
+                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                            
+                                            const fnRefresh = () => {
+                                                if (oRowBinding) {
+                                                    return oRowBinding.refresh(true);
+                                                } else if (oBinding) {
+                                                    return oBinding.refresh(true);
+                                                }
+                                                return Promise.resolve();
+                                            };
+                                            
+                                            fnRefresh().then(() => {
+                                                if (oTable.rebind) {
+                                                    oTable.rebind();
+                                                }
+                                            }).catch(() => {
+                                                if (oTable.rebind) {
+                                                    oTable.rebind();
+                                                }
+                                            });
+                                        }, 100);
+                                        
                                         this.onCancelOpportunityForm();
                                     } else {
                                         console.warn("Update may have failed:", oError.message || "Unknown error");
@@ -1689,8 +1849,29 @@ sap.ui.define([
                             .then(() => {
                                 console.log("Opportunity created successfully!");
                                 MessageToast.show("Opportunity created successfully!");
+                                // ✅ Force refresh table to show new data immediately
+                                setTimeout(() => {
+                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                    const fnRefresh = () => {
+                                        if (oRowBinding) {
+                                            return oRowBinding.refresh(true);
+                                        } else {
+                                            return oBinding.refresh(true);
+                                        }
+                                    };
+                                    
+                                    fnRefresh().then(() => {
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    }).catch(() => {
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    });
+                                }, 100);
+                                
                                 this.onCancelOpportunityForm();
-                                oBinding.refresh();
                             })
                             .catch((oError) => {
                                 console.error("Create batch error:", oError);
@@ -1700,7 +1881,28 @@ sap.ui.define([
                                         if (oCreatedData && oCreatedData.opportunityName === oCreateEntry.opportunityName) {
                                             console.log("✅ Create verified successful");
                                             MessageToast.show("Opportunity created successfully!");
-                                            oBinding.refresh();
+                                            // ✅ Force refresh table to show new data immediately
+                                            setTimeout(() => {
+                                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                                const fnRefresh = () => {
+                                                    if (oRowBinding) {
+                                                        return oRowBinding.refresh(true);
+                                                    } else {
+                                                        return oBinding.refresh(true);
+                                                    }
+                                                };
+                                                
+                                                fnRefresh().then(() => {
+                                                    if (oTable.rebind) {
+                                                        oTable.rebind();
+                                                    }
+                                                }).catch(() => {
+                                                    if (oTable.rebind) {
+                                                        oTable.rebind();
+                                                    }
+                                                });
+                                            }, 100);
+                                            
                                             this.onCancelOpportunityForm();
                                         } else {
                                             this._createOpportunityDirect(oModel, oCreateEntry, oTable);
@@ -1875,9 +2077,18 @@ sap.ui.define([
                 sEndDate = this.byId("inputEndDate_proj").getValue(),
                 sGPM = this.byId("inputGPM_proj").getValue(),
                 sProjectType = this.byId("inputProjectType_proj").getSelectedKey(),
-                sStatus = this.byId("inputStatus_proj").getSelectedKey(),
-                sOppId = this.byId("inputOppId_proj").getValue(),
-                sRequiredResources = this.byId("inputRequiredResources_proj").getValue(),
+                sStatus = this.byId("inputStatus_proj").getSelectedKey();
+            
+            // Get the stored ID from data attribute, or fallback to model
+            const oOppInput = this.byId("inputOppId_proj");
+            let sOppId = oOppInput ? oOppInput.data("selectedId") : "";
+            if (!sOppId) {
+                // Fallback to model value
+                const oModel = this.getView().getModel("projectModel");
+                sOppId = oModel ? oModel.getProperty("/oppId") : "";
+            }
+            
+            const sRequiredResources = this.byId("inputRequiredResources_proj").getValue(),
                 sAllocatedResources = this.byId("inputAllocatedResources_proj").getValue(),
                 sToBeAllocated = this.byId("inputToBeAllocated_proj").getValue(),
                 sSOWReceived = this.byId("inputSOWReceived_proj").getSelectedKey(),
@@ -1927,10 +2138,31 @@ sap.ui.define([
                     oModel.submitBatch("changesGroup")
                         .then(() => {
                             MessageToast.show("Project updated successfully!");
-                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                            if (oBinding) {
-                                oBinding.refresh();
-                            }
+                            // ✅ Force refresh table to show updated data immediately
+                            setTimeout(() => {
+                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                
+                                const fnRefresh = () => {
+                                    if (oRowBinding) {
+                                        return oRowBinding.refresh(true);
+                                    } else if (oBinding) {
+                                        return oBinding.refresh(true);
+                                    }
+                                    return Promise.resolve();
+                                };
+                                
+                                fnRefresh().then(() => {
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                }).catch(() => {
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                });
+                            }, 100); // Small delay to ensure batch is committed
+                            
                             this.onCancelProjectForm();
                         })
                         .catch((oError) => {
@@ -1939,10 +2171,31 @@ sap.ui.define([
                                     const oCurrentData = oContext.getObject();
                                     if (oCurrentData && oCurrentData.projectName === oUpdateEntry.projectName) {
                                         MessageToast.show("Project updated successfully!");
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        if (oBinding) {
-                                            oBinding.refresh();
-                                        }
+                                        // ✅ Force refresh table to show updated data immediately
+                                        setTimeout(() => {
+                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                            
+                                            const fnRefresh = () => {
+                                                if (oRowBinding) {
+                                                    return oRowBinding.refresh(true);
+                                                } else if (oBinding) {
+                                                    return oBinding.refresh(true);
+                                                }
+                                                return Promise.resolve();
+                                            };
+                                            
+                                            fnRefresh().then(() => {
+                                                if (oTable.rebind) {
+                                                    oTable.rebind();
+                                                }
+                                            }).catch(() => {
+                                                if (oTable.rebind) {
+                                                    oTable.rebind();
+                                                }
+                                            });
+                                        }, 100);
+                                        
                                         this.onCancelProjectForm();
                                     } else {
                                         console.warn("Update may have failed:", oError.message || "Unknown error");
@@ -1993,8 +2246,29 @@ sap.ui.define([
                             .then(() => {
                                 console.log("Project created successfully!");
                                 MessageToast.show("Project created successfully!");
+                                // ✅ Force refresh table to show new data immediately
+                                setTimeout(() => {
+                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                    const fnRefresh = () => {
+                                        if (oRowBinding) {
+                                            return oRowBinding.refresh(true);
+                                        } else {
+                                            return oBinding.refresh(true);
+                                        }
+                                    };
+                                    
+                                    fnRefresh().then(() => {
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    }).catch(() => {
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    });
+                                }, 100);
+                                
                                 this.onCancelProjectForm();
-                                oBinding.refresh();
                             })
                             .catch((oError) => {
                                 console.error("Create batch error:", oError);
@@ -2004,7 +2278,28 @@ sap.ui.define([
                                         if (oCreatedData && oCreatedData.projectName === oCreateEntry.projectName) {
                                             console.log("✅ Create verified successful");
                                             MessageToast.show("Project created successfully!");
-                                            oBinding.refresh();
+                                            // ✅ Force refresh table to show new data immediately
+                                            setTimeout(() => {
+                                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                                const fnRefresh = () => {
+                                                    if (oRowBinding) {
+                                                        return oRowBinding.refresh(true);
+                                                    } else {
+                                                        return oBinding.refresh(true);
+                                                    }
+                                                };
+                                                
+                                                fnRefresh().then(() => {
+                                                    if (oTable.rebind) {
+                                                        oTable.rebind();
+                                                    }
+                                                }).catch(() => {
+                                                    if (oTable.rebind) {
+                                                        oTable.rebind();
+                                                    }
+                                                });
+                                            }, 100);
+                                            
                                             this.onCancelProjectForm();
                                         } else {
                                             this._createProjectDirect(oModel, oCreateEntry, oTable);
@@ -2079,7 +2374,7 @@ sap.ui.define([
             this.byId("inputGPM_proj")?.setValue("");
             this.byId("inputProjectType_proj")?.setSelectedKey("FixedPrice");
             this.byId("inputStatus_proj")?.setSelectedKey("Planned");
-            this.byId("inputOppId_proj")?.setValue("");
+            this.byId("inputOppId_proj")?.setSelectedKey("");
             this.byId("inputRequiredResources_proj")?.setValue("");
             this.byId("inputAllocatedResources_proj")?.setValue("");
             this.byId("inputToBeAllocated_proj")?.setValue("");
@@ -2186,6 +2481,8 @@ sap.ui.define([
             this.byId("inputRole_emp")?.setValue("");
             this.byId("inputLocation_emp")?.setValue("");
             this.byId("inputCity_emp")?.setValue("");
+            this.byId("inputSupervisor_emp")?.setSelectedKey("");
+            this.byId("inputSkills_emp")?.setValue("");
             this.byId("inputStatus_emp")?.setSelectedKey("");
             this.byId("inputLWD_emp")?.setValue("");
             
@@ -2242,6 +2539,49 @@ sap.ui.define([
         onToggleRowDetail: CustomUtility.prototype.onToggleRowDetail,
         _generateNextIdFromBinding: CustomUtility.prototype._generateNextIdFromBinding,
         onFilterSearch: CustomUtility.prototype.onFilterSearch,
+        
+        // ✅ NEW: Clear FilterBar handler
+        onFilterBarClear: function (oEvent) {
+            const oFilterBar = oEvent.getSource();
+            const oFilterModel = this.getView().getModel("filterModel");
+            const oFiltersModel = this.getView().getModel("$filters");
+            
+            // Clear all filter conditions from both models
+            if (oFilterModel) {
+                oFilterModel.setProperty("/conditions", {});
+                oFilterModel.checkUpdate(true);
+            }
+            if (oFiltersModel) {
+                oFiltersModel.setProperty("/conditions", {});
+                oFiltersModel.checkUpdate(true);
+            }
+            
+            // Clear all FilterField values by getting all filter fields and resetting them
+            if (oFilterBar) {
+                const aFilterFields = oFilterBar.getFilterFields();
+                if (aFilterFields && aFilterFields.length > 0) {
+                    aFilterFields.forEach(function(oFilterField) {
+                        if (oFilterField && oFilterField.setValue) {
+                            oFilterField.setValue("");
+                        } else if (oFilterField && oFilterField.setSelectedKey) {
+                            oFilterField.setSelectedKey("");
+                        } else if (oFilterField && oFilterField.clear) {
+                            oFilterField.clear();
+                        }
+                    });
+                }
+            }
+            
+            // Rebind the table to show all data
+            const oTable = this.byId("Customers");
+            if (oTable) {
+                if (typeof oTable.rebind === "function") {
+                    oTable.rebind();
+                } else if (typeof oTable.bindRows === "function") {
+                    oTable.bindRows();
+                }
+            }
+        },
 
         // For upload functionality function
         onUpload: CustomUtility.prototype._onUploadPress,
@@ -2257,6 +2597,308 @@ sap.ui.define([
         OnTemplateDownloadBtn: CustomUtility.prototype._OnTemplateDownloadBtn,
         onSplitButtonArrowPress: CustomUtility.prototype._onSplitButtonArrowPress,
         exportUploadTemplate: CustomUtility.prototype._exportUploadTemplate,
+
+        // ✅ Value Help Dialog Handlers
+        onCustomerValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const oView = this.getView();
+            
+            // Create dialog if not exists
+            if (!this._oCustomerValueHelpDialog) {
+                this._oCustomerValueHelpDialog = sap.ui.xmlfragment(
+                    "glassboard.view.dialogs.CustomerValueHelp",
+                    this
+                );
+                oView.addDependent(this._oCustomerValueHelpDialog);
+            }
+            
+            // Store reference to input field
+            this._oCustomerValueHelpDialog._oInputField = oInput;
+            
+            // Open dialog
+            this._oCustomerValueHelpDialog.open();
+        },
+
+        onOpportunityValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const oView = this.getView();
+            
+            if (!this._oOpportunityValueHelpDialog) {
+                this._oOpportunityValueHelpDialog = sap.ui.xmlfragment(
+                    "glassboard.view.dialogs.OpportunityValueHelp",
+                    this
+                );
+                oView.addDependent(this._oOpportunityValueHelpDialog);
+            }
+            
+            this._oOpportunityValueHelpDialog._oInputField = oInput;
+            this._oOpportunityValueHelpDialog.open();
+        },
+
+        onEmployeeValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const oView = this.getView();
+            
+            if (!this._oEmployeeValueHelpDialog) {
+                this._oEmployeeValueHelpDialog = sap.ui.xmlfragment(
+                    "glassboard.view.dialogs.EmployeeValueHelp",
+                    this
+                );
+                oView.addDependent(this._oEmployeeValueHelpDialog);
+            }
+            
+            this._oEmployeeValueHelpDialog._oInputField = oInput;
+            this._oEmployeeValueHelpDialog.open();
+        },
+
+        // ✅ Value Help Dialog: Cancel handler
+        onCustomerValueHelpCancel: function (oEvent) {
+            const oDialog = this._oCustomerValueHelpDialog;
+            if (oDialog) {
+                oDialog.close();
+            }
+        },
+
+        onOpportunityValueHelpCancel: function (oEvent) {
+            const oDialog = this._oOpportunityValueHelpDialog;
+            if (oDialog) {
+                oDialog.close();
+            }
+        },
+
+        onEmployeeValueHelpCancel: function (oEvent) {
+            const oDialog = this._oEmployeeValueHelpDialog;
+            if (oDialog) {
+                oDialog.close();
+            }
+        },
+
+        // ✅ Value Help Dialog: Customer selection handler
+        onCustomerValueHelpConfirm: function (oEvent) {
+            const oDialog = this._oCustomerValueHelpDialog;
+            if (!oDialog) {
+                return;
+            }
+            
+            // Get table from within the dialog
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("customerValueHelpTable"));
+            
+            if (!oTable || !oTable.getSelectedItem) {
+                sap.m.MessageToast.show("Please select a customer");
+                return;
+            }
+            
+            const oSelectedItem = oTable.getSelectedItem();
+            if (!oSelectedItem) {
+                sap.m.MessageToast.show("Please select a customer");
+                return;
+            }
+            
+            const oContext = oSelectedItem.getBindingContext();
+            if (oContext) {
+                const oCustomer = oContext.getObject();
+                if (oDialog._oInputField) {
+                    // Display customer name, but store ID in data attribute
+                    oDialog._oInputField.setValue(oCustomer.customerName || "");
+                    oDialog._oInputField.data("selectedId", oCustomer.SAPcustId);
+                    
+                    // Also update/create the model with the ID (for backend submission)
+                    let oModel = this.getView().getModel("opportunityModel");
+                    if (!oModel) {
+                        oModel = new sap.ui.model.json.JSONModel({ customerId: oCustomer.SAPcustId });
+                        this.getView().setModel(oModel, "opportunityModel");
+                    } else {
+                        oModel.setProperty("/customerId", oCustomer.SAPcustId);
+                    }
+                }
+            }
+            oDialog.close();
+        },
+
+        // ✅ Value Help Dialog: Opportunity selection handler
+        onOpportunityValueHelpConfirm: function (oEvent) {
+            const oDialog = this._oOpportunityValueHelpDialog;
+            if (!oDialog) {
+                return;
+            }
+            
+            // Get table from within the dialog
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("opportunityValueHelpTable"));
+            
+            if (!oTable || !oTable.getSelectedItem) {
+                sap.m.MessageToast.show("Please select an opportunity");
+                return;
+            }
+            
+            const oSelectedItem = oTable.getSelectedItem();
+            if (!oSelectedItem) {
+                sap.m.MessageToast.show("Please select an opportunity");
+                return;
+            }
+            
+            const oContext = oSelectedItem.getBindingContext();
+            if (oContext) {
+                const oOpportunity = oContext.getObject();
+                if (oDialog._oInputField) {
+                    // Display opportunity name, but store ID in data attribute
+                    oDialog._oInputField.setValue(oOpportunity.opportunityName || "");
+                    oDialog._oInputField.data("selectedId", oOpportunity.sapOpportunityId);
+                    
+                    // Also update/create the model with the ID (for backend submission)
+                    let oModel = this.getView().getModel("projectModel");
+                    if (!oModel) {
+                        oModel = new sap.ui.model.json.JSONModel({ oppId: oOpportunity.sapOpportunityId });
+                        this.getView().setModel(oModel, "projectModel");
+                    } else {
+                        oModel.setProperty("/oppId", oOpportunity.sapOpportunityId);
+                    }
+                }
+            }
+            oDialog.close();
+        },
+
+        // ✅ Value Help Dialog: Employee selection handler
+        onEmployeeValueHelpConfirm: function (oEvent) {
+            const oDialog = this._oEmployeeValueHelpDialog;
+            if (!oDialog) {
+                return;
+            }
+            
+            // Get table from within the dialog
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpTable"));
+            
+            if (!oTable || !oTable.getSelectedItem) {
+                sap.m.MessageToast.show("Please select a supervisor");
+                return;
+            }
+            
+            const oSelectedItem = oTable.getSelectedItem();
+            if (!oSelectedItem) {
+                sap.m.MessageToast.show("Please select a supervisor");
+                return;
+            }
+            
+            const oContext = oSelectedItem.getBindingContext();
+            if (oContext) {
+                const oEmployee = oContext.getObject();
+                if (oDialog._oInputField) {
+                    oDialog._oInputField.setValue(oEmployee.ohrId);
+                }
+            }
+            oDialog.close();
+        },
+
+        // ✅ Value Help Dialog: Search handlers
+        onCustomerValueHelpSearch: function (oEvent) {
+            const sValue = oEvent.getParameter("value") || oEvent.getSource().getValue() || "";
+            const oDialog = this._oCustomerValueHelpDialog;
+            if (!oDialog) {
+                return;
+            }
+            
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("customerValueHelpTable"));
+            
+            if (!oTable) {
+                return;
+            }
+            
+            const oBinding = oTable.getBinding("items");
+            if (!oBinding) {
+                console.warn("Customer value help table binding not available");
+                return;
+            }
+            
+            if (sValue && sValue.trim()) {
+                const aFilters = [
+                    new sap.ui.model.Filter({
+                        path: "customerName",
+                        operator: sap.ui.model.FilterOperator.Contains,
+                        value1: sValue.trim()
+                    })
+                ];
+                oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
+            } else {
+                oBinding.filter([], sap.ui.model.FilterType.Application);
+            }
+        },
+
+        onOpportunityValueHelpSearch: function (oEvent) {
+            const sValue = oEvent.getParameter("value") || oEvent.getSource().getValue() || "";
+            const oDialog = this._oOpportunityValueHelpDialog;
+            if (!oDialog) {
+                return;
+            }
+            
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("opportunityValueHelpTable"));
+            
+            if (!oTable) {
+                return;
+            }
+            
+            const oBinding = oTable.getBinding("items");
+            if (!oBinding) {
+                console.warn("Opportunity value help table binding not available");
+                return;
+            }
+            
+            if (sValue && sValue.trim()) {
+                const aFilters = [
+                    new sap.ui.model.Filter({
+                        path: "opportunityName",
+                        operator: sap.ui.model.FilterOperator.Contains,
+                        value1: sValue.trim()
+                    })
+                ];
+                oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
+            } else {
+                oBinding.filter([], sap.ui.model.FilterType.Application);
+            }
+        },
+
+        onEmployeeValueHelpSearch: function (oEvent) {
+            const sValue = oEvent.getParameter("value") || oEvent.getSource().getValue() || "";
+            const oDialog = this._oEmployeeValueHelpDialog;
+            if (!oDialog) {
+                return;
+            }
+            
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpTable"));
+            
+            if (!oTable) {
+                return;
+            }
+            
+            const oBinding = oTable.getBinding("items");
+            if (!oBinding) {
+                console.warn("Employee value help table binding not available");
+                return;
+            }
+            
+            if (sValue && sValue.trim()) {
+                const aFilters = [
+                    new sap.ui.model.Filter({
+                        path: "fullName",
+                        operator: sap.ui.model.FilterOperator.Contains,
+                        value1: sValue.trim()
+                    })
+                ];
+                oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
+            } else {
+                oBinding.filter([], sap.ui.model.FilterType.Application);
+            }
+        },
 
     });
 });

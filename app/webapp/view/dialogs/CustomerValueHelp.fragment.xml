@@ -1,0 +1,52 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog 
+        id="customerValueHelpDialog"
+        title="Select Customer"
+        contentWidth="600px"
+        contentHeight="500px">
+        <content>
+            <VBox class="sapUiSmallMargin">
+                <SearchField 
+                    id="customerValueHelpSearch"
+                    width="100%"
+                    placeholder="Search by Customer Name..."
+                    liveChange="onCustomerValueHelpSearch"
+                    search="onCustomerValueHelpSearch" />
+                <Table 
+                    id="customerValueHelpTable"
+                    mode="SingleSelectLeft"
+                    items="{
+                        path: '/Customers',
+                        sorter: { path: 'customerName', descending: false }
+                    }"
+                    growing="true"
+                    growingThreshold="50"
+                    growingScrollToLoad="true">
+                    <columns>
+                        <Column width="30%">
+                            <Text text="Customer ID" />
+                        </Column>
+                        <Column width="70%">
+                            <Text text="Customer Name" />
+                        </Column>
+                    </columns>
+                    <items>
+                        <ColumnListItem>
+                            <cells>
+                                <Text text="{SAPcustId}" />
+                                <Text text="{customerName}" />
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                </Table>
+            </VBox>
+        </content>
+        <beginButton>
+            <Button text="Select" type="Emphasized" press="onCustomerValueHelpConfirm" />
+        </beginButton>
+        <endButton>
+            <Button text="Cancel" press="onCustomerValueHelpCancel" />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>
+

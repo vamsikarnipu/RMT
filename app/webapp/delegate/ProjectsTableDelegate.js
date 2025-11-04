@@ -215,6 +215,13 @@ sap.ui.define([
         oBindingInfo.parameters = Object.assign(oBindingInfo.parameters || {}, {
             $count: true
         });
+        
+        // ✅ Expand associations to load related entity names
+        const sCollectionPath = sPath.replace(/^\//, "");
+        if (sCollectionPath === "Projects") {
+            // Expand Opportunity association for Project table
+            oBindingInfo.parameters.$expand = "to_Opportunity";
+        }
 
         console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
         console.log("[GenericDelegate] Table payload:", oTable.getPayload());
@@ -338,7 +345,29 @@ sap.ui.define([
                             });
                             console.log("[GenericDelegate] Enum field detected:", sPropertyName, "→ ComboBox");
                         } else if (bIsAssoc) {
-                            // ✅ ASSOCIATION: Use ComboBox bound to OData (compatible with UI5 1.141.1)
+                            // ✅ ASSOCIATION: Display name from association, but store ID for editing
+                            // Determine association path based on property
+                            let sAssocPath = "";
+                            if (sPropertyName === "customerId") {
+                                sAssocPath = "to_Customer/customerName"; // Display customer name
+                            } else if (sPropertyName === "supervisorOHR") {
+                                sAssocPath = "to_Supervisor/fullName"; // Display supervisor name
+                            } else if (sPropertyName === "oppId") {
+                                sAssocPath = "to_Opportunity/opportunityName"; // Display opportunity name
+                            } else {
+                                // Fallback: try to construct association path
+                                sAssocPath = sPropertyName.replace("Id", "").replace("OHR", "");
+                                if (sAssocPath === "customer") {
+                                    sAssocPath = "to_Customer/customerName";
+                                } else if (sAssocPath === "opp") {
+                                    sAssocPath = "to_Opportunity/opportunityName";
+                                } else if (sAssocPath === "supervisor") {
+                                    sAssocPath = "to_Supervisor/fullName";
+                                } else {
+                                    sAssocPath = sPropertyName; // Fallback to ID
+                                }
+                            }
+                            
                             const oModel = oTable.getModel();
                             const sCollectionPath = "/" + oAssocConfig.targetEntity;
                             
@@ -361,8 +390,37 @@ sap.ui.define([
                             // Bind to the same model as the table
                             oComboBox.setModel(oModel);
 
+                            // Create a formatter to resolve association name with fallback
+                            const fnAssocNameFormatter = function(sId) {
+                                if (!sId) return "";
+                                // Try to get from expanded association first
+                                const oContext = this.getBindingContext();
+                                if (oContext) {
+                                    try {
+                                        const oRowData = oContext.getObject();
+                                        const sAssocEntity = sAssocPath.split("/")[0]; // e.g., "to_Opportunity"
+                                        const sAssocField = sAssocPath.split("/")[1]; // e.g., "opportunityName"
+                                        
+                                        // Check if association is expanded
+                                        if (oRowData[sAssocEntity] && oRowData[sAssocEntity][sAssocField]) {
+                                            return oRowData[sAssocEntity][sAssocField];
+                                        }
+                                    } catch (e) {
+                                        // Association not expanded, will use fallback
+                                    }
+                                }
+                                // Fallback: return ID if name not available
+                                return sId;
+                            };
+                            
+                            // Display the name from association path with formatter fallback
                             oField = new Field({
-                                value: "{" + sPropertyName + "}",
+                                value: {
+                                    path: sPropertyName,
+                                    formatter: fnAssocNameFormatter
+                                },
+                                // Also try direct association path binding as primary source
+                                additionalValue: "{" + sAssocPath + "}", // Try association path
                                 contentEdit: oComboBox,
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],
@@ -370,7 +428,7 @@ sap.ui.define([
                                     formatter: fnEditModeFormatter
                                 }
                             });
-                            console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ ComboBox bound to", oAssocConfig.targetEntity);
+                            console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ Displaying", sAssocPath, "from association");
                         } else {
                             oField = new Field({
                                 value: "{" + sPropertyName + "}",

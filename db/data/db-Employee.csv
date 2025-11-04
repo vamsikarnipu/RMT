@@ -1,4 +1,11 @@
 ohrId,fullName,mailid,gender,employeeType,doj,band,role,location,supervisorOHR,skills,city,lwd,status
+703431717,Rajesh Kumar,rajesh.kumar@genpact.com,Male,Full Time,2010-05-15,1,Executive Director,Offshore,,Leadership,Hyderabad,,Allocated
+703416950,Anjali Sharma,anjali.sharma@genpact.com,Female,Full Time,2015-08-20,2,Senior Manager,Offshore,703431717,SAP BOA,Hyderabad,,Allocated
+703013588,Prateek Singh,prateek.singh@genpact.com,Male,Full Time,2018-03-10,3,Team Lead,Offshore,703386317,Java,Hyderabad,,Allocated
+703282959,Meera Patel,meera.patel@genpact.com,Female,Full Time,2017-11-05,3,Senior Consultant,Onshore,703386317,SAP Fiori,Newyork,,Allocated
+703387205,Arjun Reddy,arjun.reddy@genpact.com,Male,Full Time,2016-07-22,2,Manager,Offshore,703431717,Project Management,Hyderabad,,Allocated
+703280408,Deepak Verma,deepak.verma@genpact.com,Male,Full Time,2014-09-12,3,Senior Lead,Offshore,703387205,SAP MM,Hyderabad,,Allocated
+703386913,Priya Nair,priya.nair@genpact.com,Female,Full Time,2019-02-18,3,Lead Consultant,Offshore,703386317,SAP PP/QM,Bangalore,,Allocated
 703258477,Kalyani Padala,padala.kalyani@genpact.com,Female,Full Time,2019-11-12,4C,Data Migratio Lead,Offshore,703416950,SAP BOA,Hyderabad,,Allocated
 850074794,Jayachandra Pakanati,Jayachandra.Pakanati@genpact.com,Male,Subcon,2024-03-05,Subcon,Functional 4A_1,Offshore,703258477,SAP FICO,Hyderabad,,Allocated
 850083737,Karthik Vamaraju Venkata,VamarajuVenkata.Karthik@genpact.com,Male,Intern,2025-09-25,Intern,Technical 4A_1,Offshore,703013588,Java,Hyderabad,2025-12-31,Resigned

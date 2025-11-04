@@ -151,8 +151,17 @@
                             <Label text="TCV" />
                             <Input id="inputTCV_oppr" value="{opportunityModel>/tcv}" width="100%" type="Number" />
                             
-                            <Label text="Customer ID" />
-                            <Input id="inputCustomerId_oppr" value="{opportunityModel>/customerId}" width="100%" />
+                            <Label text="Customer" />
+                            <Input 
+                                id="inputCustomerId_oppr" 
+                                width="100%"
+                                placeholder="Select Customer"
+                                showValueHelp="true"
+                                valueHelpRequest="onCustomerValueHelpRequest">
+                                <layoutData>
+                                    <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
+                                </layoutData>
+                            </Input>
                         </f:SimpleForm>
                     </VBox>
                 </HBox>

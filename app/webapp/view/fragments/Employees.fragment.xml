@@ -118,6 +118,16 @@
                             
                             <Label text="Date of Joining" />
                             <DatePicker id="inputDoJ_emp" value="{employeeModel>/doj}" width="100%" />
+                            
+                            <Label text="Status" />
+                            <Select id="inputStatus_emp" selectedKey="{employeeModel>/status}" width="100%">
+                                <items>
+                                    <core:Item key="PreAllocated" text="Pre Allocated" />
+                                    <core:Item key="Bench" text="Bench" />
+                                    <core:Item key="Resigned" text="Resigned" />
+                                    <core:Item key="Allocated" text="Allocated" />
+                                </items>
+                            </Select>
                         </f:SimpleForm>
                     </VBox>
                     
@@ -151,7 +161,7 @@
                                 </items>
                             </Select>
                             
-                            <Label text="Role" />
+                            <Label text="Designation" />
                             <Input id="inputRole_emp" value="{employeeModel>/role}" width="100%" />
                             
                             <Label text="Location" />
@@ -160,15 +170,21 @@
                             <Label text="City" />
                             <Input id="inputCity_emp" value="{employeeModel>/city}" width="100%" />
                             
-                            <Label text="Status" />
-                            <Select id="inputStatus_emp" selectedKey="{employeeModel>/status}" width="100%">
-                                <items>
-                                    <core:Item key="PreAllocated" text="Pre Allocated" />
-                                    <core:Item key="Bench" text="Bench" />
-                                    <core:Item key="Resigned" text="Resigned" />
-                                    <core:Item key="Allocated" text="Allocated" />
-                                </items>
-                            </Select>
+                            <Label text="Supervisor" />
+                            <Input 
+                                id="inputSupervisor_emp" 
+                                value="{employeeModel>/supervisorOHR}" 
+                                width="100%"
+                                placeholder="Select Supervisor"
+                                showValueHelp="true"
+                                valueHelpRequest="onEmployeeValueHelpRequest">
+                                <layoutData>
+                                    <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
+                                </layoutData>
+                            </Input>
+                            
+                            <Label text="Skills" />
+                            <Input id="inputSkills_emp" value="{employeeModel>/skills}" width="100%" placeholder="Enter skills (comma-separated)" />
                             
                             <Label text="Last Working Date" />
                             <DatePicker id="inputLWD_emp" value="{employeeModel>/lwd}" width="100%" />
