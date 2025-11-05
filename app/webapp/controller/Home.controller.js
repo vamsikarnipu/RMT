@@ -37,7 +37,6 @@ sap.ui.define([
             const oSideNavigation = this.byId("sideNavigation"),
                 bExpanded = oSideNavigation.getExpanded();
 
-
             oSideNavigation.setExpanded(!bExpanded);
         },
 
@@ -52,7 +51,7 @@ sap.ui.define([
                 projects: "projectsPage",
                 sapid: "sapidPage",
                 employees: "employeesPage",
-                // ✅ REMOVED: verticals: "verticalsPage", (Vertical is now an enum, not an entity)
+                
                 overview: "allocationPage",
                 requirements: "requirementsPage",
                 bench: "benchPage",
@@ -62,12 +61,10 @@ sap.ui.define([
 
             const sPageId = pageMap[sKey];
 
-
             if (!sPageId) {
-                console.warn("No page mapped for key:", sKey);
                 return;
             }
-            // ✅ FIXED: Check for unsaved changes before navigating
+            
             this._clearPreviousTableEditState(sKey).then((bAllowNavigation) => {
                 if (!bAllowNavigation) {
                     // User chose "Stay" - don't navigate
@@ -83,7 +80,7 @@ sap.ui.define([
             });
         },
 
-        // ✅ NEW: Extract fragment loading logic
+        
         _loadFragmentIfNeeded: function (sKey, sPageId) {
             var oLogButton = this.byId("uploadLogButton");
             if (sKey === "customers") {
@@ -148,15 +145,13 @@ sap.ui.define([
                                                         }
                                                     };
                                                     StateUtil.applyExternalState(oFilterBar, oNewState).then(() => {
-                                                        console.log("✅ Default filters (customerName, vertical) set successfully");
+                                                        set successfully");
                                                     }).catch((e) => {
-                                                        console.warn("Could not set default filter state:", e);
                                                         // Try alternative approach
                                                         fnSetDefaultFiltersAlternative();
                                                     });
                                                 } else {
-                                                    console.log("FilterBar already has filter state, keeping existing");
-                                                }
+                                                    }
                                             }).catch(() => {
                                                 // If retrieve fails, set default directly
                                                 const oNewState = {
@@ -167,9 +162,9 @@ sap.ui.define([
                                                     }
                                                 };
                                                 StateUtil.applyExternalState(oFilterBar, oNewState).then(() => {
-                                                    console.log("✅ Default filters set (retrieve failed, applied directly)");
+                                                    ");
                                                 }).catch((e) => {
-                                                    console.warn("Could not set default filter state (fallback):", e);
+                                                    :", e);
                                                     fnSetDefaultFiltersAlternative();
                                                 });
                                             });
@@ -201,11 +196,9 @@ sap.ui.define([
                                                 }
                                             }
                                         });
-                                        console.log("✅ Default filters set via alternative method");
-                                    }
+                                        }
                                 } catch (e) {
-                                    console.warn("Alternative filter setting failed:", e);
-                                }
+                                    }
                             };
                             
                             fnSetDefaultFilters();
@@ -218,7 +211,7 @@ sap.ui.define([
                     // Reset segmented button to "less" state for this fragment
                     this._resetSegmentedButtonForFragment("Customers");
 
-                    // ✅ Initialize Customer ID field with next ID preview (for create mode)
+                    
                     // Wait for table to be fully initialized and data loaded
                     setTimeout(() => {
                         // Wait for table binding to be ready
@@ -272,7 +265,7 @@ sap.ui.define([
                     // Reset segmented button to "less" state for this fragment
                     this._resetSegmentedButtonForFragment("Opportunities");
 
-                    // ✅ Initialize Opportunity ID field and form
+                    
                     setTimeout(() => {
                         oTable.initialized().then(() => {
                             setTimeout(() => {
@@ -319,7 +312,7 @@ sap.ui.define([
                     // Reset segmented button to "less" state for this fragment
                     this._resetSegmentedButtonForFragment("Projects");
 
-                    // ✅ Initialize Project ID field and form
+                    
                     setTimeout(() => {
                         oTable.initialized().then(() => {
                             setTimeout(() => {
@@ -397,7 +390,7 @@ sap.ui.define([
                     // Reset segmented button to "less" state for this fragment
                     this._resetSegmentedButtonForFragment("Employees");
 
-                    // ✅ Initialize Employee form (no ID preview needed - manual OHR ID entry)
+                    
                     setTimeout(() => {
                         oTable.initialized().then(() => {
                             setTimeout(() => {
@@ -415,11 +408,11 @@ sap.ui.define([
                     }, 300);
                 }.bind(this));
             }
-            // ✅ REMOVED: Verticals fragment loading (Vertical is now an enum, not an entity)
+            
         },
         // Reset all tables to "show-less" state
         _resetAllTablesToShowLess: function () {
-            const aTableIds = ["Customers", "Opportunities", "Projects", "SAPIdStatuses", "Employees"]; // ✅ REMOVED: "Verticals"
+            const aTableIds = ["Customers", "Opportunities", "Projects", "SAPIdStatuses", "Employees"]; 
 
             aTableIds.forEach((sTableId) => {
                 const oTable = this.byId(sTableId);
@@ -427,8 +420,7 @@ sap.ui.define([
                     // Remove "show-more" class and add "show-less" class
                     oTable.removeStyleClass("show-more");
                     oTable.addStyleClass("show-less");
-                    console.log(`[Navigation] Reset table ${sTableId} to show-less state`);
-                }
+                    }
             });
 
             // Reset all segmented buttons to "less" state
@@ -445,8 +437,7 @@ sap.ui.define([
             aSegmentedButtons.forEach((oSegmentedButton) => {
                 if (oSegmentedButton) {
                     oSegmentedButton.setSelectedKey("less");
-                    console.log(`[Navigation] Reset segmented button to "less" state`);
-                }
+                    }
             });
         },
         // Reset segmented button for a specific fragment
@@ -463,14 +454,13 @@ sap.ui.define([
                     aSegmentedButtons.forEach((oSegmentedButton) => {
                         if (oSegmentedButton) {
                             oSegmentedButton.setSelectedKey("less");
-                            console.log(`[Fragment] Reset segmented button for ${sTableId} to "less" state`);
-                        }
+                            }
                     });
                 }
             }
         },
 
-        // ✅ NEW: Handle navigation with unsaved changes - Show confirmation dialog
+        
         _clearPreviousTableEditState: function (sNewPageKey) {
             const oEditModel = this.getView().getModel("edit");
             if (!oEditModel) {
@@ -483,7 +473,7 @@ sap.ui.define([
                 opportunities: "Opportunities",
                 projects: "Projects",
                 employees: "Employees",
-                // ✅ REMOVED: verticals: "Verticals", (Vertical is now an enum)
+                
                 sapid: "SAPIdStatuses"
             };
 
@@ -506,9 +496,9 @@ sap.ui.define([
                 return Promise.resolve(true); // No unsaved changes, allow navigation
             }
 
-            // ✅ Show confirmation dialog with Save, Cancel, and Stay options
+            
             return new Promise((resolve) => {
-                // ✅ FIXED: Use custom action strings to ensure button text displays correctly
+                
                 const SAVE_ACTION = "Save";
                 const CANCEL_ACTION = "Cancel";
                 const STAY_ACTION = "Stay";
@@ -537,18 +527,16 @@ sap.ui.define([
                                     this._discardTableEditState(sCurrentTable);
                                     resolve(true); // Allow navigation after save
                                 }).catch((err) => {
-                                    console.error("[Navigation] Error saving changes:", err);
                                     sap.m.MessageBox.error("Error saving changes. Please try again.");
                                     resolve(false); // Prevent navigation on error
                                 });
                             } else if (sAction === CANCEL_ACTION) {
                                 // Discard changes and navigate
-                                // ✅ FIXED: Call the actual cancel logic from CustomUtility to properly cancel OData changes
+                                
                                 this._cancelCurrentTableChanges(sCurrentTable).then(() => {
                                     this._discardTableEditState(sCurrentTable);
                                     resolve(true); // Allow navigation after discard
                                 }).catch((err) => {
-                                    console.error("[Navigation] Error canceling changes:", err);
                                     // Even if cancel fails, clear edit state and allow navigation
                                     this._discardTableEditState(sCurrentTable);
                                     resolve(true);
@@ -560,7 +548,7 @@ sap.ui.define([
             });
         },
 
-        // ✅ NEW: Save changes for a specific table
+        
         _saveCurrentTableChanges: async function (sTableId) {
             // Reuse the save logic from CustomUtility
             const buttonMap = {
@@ -569,7 +557,7 @@ sap.ui.define([
                 "Opportunities": { save: "saveButton_oppr" },
                 "Projects": { save: "saveButton_proj" },
                 "SAPIdStatuses": { save: "saveButton_sap" }
-                // ✅ REMOVED: "Verticals": { save: "saveButton_vert" }
+                
             };
 
             // Create a mock event object to trigger save
@@ -586,7 +574,7 @@ sap.ui.define([
             await CustomUtility.prototype.onSaveButtonPress.call(this, oMockEvent);
         },
 
-        // ✅ NEW: Cancel changes for a specific table (for navigation dialog)
+        
         // This bypasses the confirmation dialog since user already confirmed in navigation dialog
         _cancelCurrentTableChanges: function (sTableId) {
             // Call the internal cancel operation directly (without confirmation dialog)
@@ -602,15 +590,12 @@ sap.ui.define([
                         resolve();
                     }, 100);
                 } catch (error) {
-                    console.error("[Navigation] Error canceling changes:", error);
                     resolve(); // Still allow navigation even if cancel fails
                 }
             });
         },
 
-
-
-        // ✅ NEW: Discard edit state for a specific table
+        
         _discardTableEditState: function (sTableId) {
             const oEditModel = this.getView().getModel("edit");
             if (!oEditModel) return;
@@ -633,7 +618,7 @@ sap.ui.define([
                 "Opportunities": { save: "saveButton_oppr", cancel: "cancelButton_oppr", edit: "btnEdit_oppr", delete: "btnDelete_oppr", add: "btnAdd_oppr" },
                 "Projects": { save: "saveButton_proj", cancel: "cancelButton_proj", edit: "btnEdit_proj", delete: "btnDelete_proj", add: "btnAdd_proj" },
                 "SAPIdStatuses": { save: "saveButton_sap", cancel: "cancelButton_sap", edit: "btnEdit_sap", delete: "btnDelete_sap", add: "btnAdd_sap" }
-                // ✅ REMOVED: "Verticals": { save: "saveButton_vert", cancel: "cancelButton_vert", edit: "btnEdit_vert", delete: "btnDelete_vert", add: "btnAdd_vert" }
+                
             };
 
             const config = buttonMap[sTableId];
@@ -672,16 +657,14 @@ sap.ui.define([
                                 }
                             }
                         } catch (e) {
-                            console.warn(`[Navigation] Could not reset context ${sPath}:`, e);
-                        }
+                            }
                     });
                 }
             } catch (e) {
-                console.warn("[Navigation] Error discarding pending changes:", e);
-            }
+                }
         },
 
-        // ✅ NEW: Submit function that handles both Create and Update
+        
         onSubmitCustomer: function () {
             const sCustId = this.byId("inputCustomerId").getValue(),
                 sCustName = this.byId("inputCustomerName").getValue(),
@@ -759,16 +742,13 @@ sap.ui.define([
                                             this.onCancelForm();
                                         } else {
                                             // Actual failure - only log to console, don't show error if data updated
-                                            console.warn("Update may have failed:", oError.message || "Unknown error");
-                                        }
+                                            }
                                     } catch (e) {
                                         // Ignore verification errors - update likely succeeded
-                                        console.log("Update completed");
-                                    }
+                                        }
                                 }, 150);
                             });
                     } catch (oSetError) {
-                        console.error("Error setting properties:", oSetError);
                         sap.m.MessageBox.error("Failed to update customer. Please try again.");
                     }
             } else {
@@ -781,8 +761,6 @@ sap.ui.define([
                     "status": sStatus || "A", // Default to Active if not set
                     "vertical": sVertical || "BFS" // Default to BFS if not set
                 };
-                
-                console.log("Creating customer with data:", oCreateEntry);
                 
                 // Try to get binding using multiple methods (MDC table pattern)
                 let oBinding = (oTable.getRowBinding && oTable.getRowBinding())
@@ -800,28 +778,24 @@ sap.ui.define([
                             return;
                         }
                         
-                        console.log("Customer context created:", oNewContext.getPath());
+                        );
                         
                         // Submit the batch to send to backend
                         oModel.submitBatch("changesGroup")
                             .then(() => {
-                                console.log("Customer created successfully!");
-                    MessageToast.show("Customer created successfully!");
+                                MessageToast.show("Customer created successfully!");
                                 this.onCancelForm(); // Clear form after successful create
                                 
                                 // Refresh table to show new entry
                                 oBinding.refresh();
                             })
                             .catch((oError) => {
-                                console.error("Create batch error:", oError);
-                                
                                 // Check if create actually succeeded (false positive error)
                                 setTimeout(() => {
                                     try {
                                         const oCreatedData = oNewContext.getObject();
                                         if (oCreatedData && oCreatedData.customerName === oCreateEntry.customerName) {
                                             // Create succeeded despite error
-                                            console.log("✅ Create verified successful");
                                             MessageToast.show("Customer created successfully!");
                                             oBinding.refresh();
                                             this.onCancelForm();
@@ -836,13 +810,11 @@ sap.ui.define([
                                 }, 150);
                             });
                     } catch (oCreateError) {
-                        console.error("Error creating via binding:", oCreateError);
                         // Fallback to direct model create
                         this._createCustomerDirect(oModel, oCreateEntry, oTable);
                     }
                 } else {
                     // No binding available - use direct model create (fallback)
-                    console.log("Table binding not available, using direct model create");
                     this._createCustomerDirect(oModel, oCreateEntry, oTable);
                 }
             }
@@ -852,7 +824,7 @@ sap.ui.define([
         _createCustomerDirect: function (oModel, oCreateEntry, oTable) {
             oModel.create("/Customers", oCreateEntry, {
                 success: (oData) => {
-                    console.log("Customer created successfully (direct):", oData);
+                    :", oData);
                     MessageToast.show("Customer created successfully!");
                     this.onCancelForm();
                     // Refresh table to show new entry
@@ -862,7 +834,6 @@ sap.ui.define([
                     }
                 },
                 error: (oError) => {
-                    console.error("Create error:", oError);
                     let sErrorMessage = "Failed to create customer. Please check the input or try again.";
                     try {
                         if (oError.responseText) {
@@ -877,7 +848,7 @@ sap.ui.define([
             });
         },
 
-        // ✅ NEW: Initialize Customer ID field with next ID preview
+        
         _initializeCustomerIdField: function (iRetryCount = 0) {
             const MAX_RETRIES = 5;
             const oCustomerIdInput = this.byId("inputCustomerId");
@@ -899,7 +870,7 @@ sap.ui.define([
                 if (oTable) {
                     // Method 1: Try from binding contexts
                     sNextId = this._generateNextIdFromBinding(oTable, "Customers", "SAPcustId", "C");
-                    console.log("[ID Generation] Method 1 (binding):", sNextId);
+                    :", sNextId);
                     
                     // Method 2: If that failed, query backend directly
                     if (!sNextId || sNextId === "C-0001") {
@@ -912,7 +883,6 @@ sap.ui.define([
                                     "$top": "1"
                                 },
                                 success: (oData) => {
-                                    console.log("[ID Generation] Backend query result:", oData);
                                     let sBackendId = "C-0001";
                                     if (oData && oData.results && oData.results.length > 0) {
                                         const sMaxId = oData.results[0].SAPcustId || "";
@@ -922,11 +892,10 @@ sap.ui.define([
                                             sBackendId = `C-${String(iNextNum).padStart(4, "0")}`;
                                         }
                                     }
-                                    console.log("[ID Generation] Method 2 (backend):", sBackendId);
+                                    :", sBackendId);
                                     oCustomerIdInput.setValue(sBackendId);
                                 },
                                 error: (oError) => {
-                                    console.warn("[ID Generation] Backend query failed:", oError);
                                     // Keep the default or binding result
                                     if (!sNextId || sNextId === "C-0001") {
                                         oCustomerIdInput.setValue(sNextId);
@@ -955,7 +924,6 @@ sap.ui.define([
                     oCustomerIdInput.setValue(sNextId);
                 }
             } catch (e) {
-                console.error("[ID Generation] Error:", e);
                 // Set default on error
                 oCustomerIdInput.setValue(sNextId);
             }
@@ -965,14 +933,13 @@ sap.ui.define([
             oCustomerIdInput.setPlaceholder("Auto-generated");
         },
 
-        // ✅ NEW: Search function for Customer table
+        
         onCustomerSearch: function (oEvent) {
             // Get search query - liveChange uses "newValue", search event uses "query"
             const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
             const oTable = this.byId("Customers");
             
             if (!oTable) {
-                console.warn("Customer table not available");
                 return;
             }
             
@@ -982,7 +949,6 @@ sap.ui.define([
             
             const fnApplySearch = () => {
                 if (iRetryCount >= MAX_RETRIES) {
-                    console.warn("Max retries reached for customer search");
                     return;
                 }
                 
@@ -1066,15 +1032,13 @@ sap.ui.define([
                         
                         // Apply filter
                         oBinding.filter([oCombinedFilter]);
-                        console.log("✅ Search filter applied (case-insensitive):", sQueryTrimmed);
+                        :", sQueryTrimmed);
                     } else {
                         // Clear filter when search is empty
                         oBinding.filter([]);
-                        console.log("✅ Search filter cleared");
-                    }
+                        }
                 } catch (e) {
-                    console.error("Error applying search filter:", e);
-                }
+                    }
             };
             
             // Wait for table to be ready, then apply search
@@ -1097,13 +1061,12 @@ sap.ui.define([
             }
         },
 
-        // ✅ NEW: Search function for Employee table
+        
         onEmployeeSearch: function (oEvent) {
             const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
             const oTable = this.byId("Employees");
             
             if (!oTable) {
-                console.warn("Employee table not available");
                 return;
             }
             
@@ -1112,7 +1075,6 @@ sap.ui.define([
             
             const fnApplySearch = () => {
                 if (iRetryCount >= MAX_RETRIES) {
-                    console.warn("Max retries reached for employee search");
                     return;
                 }
                 
@@ -1186,14 +1148,12 @@ sap.ui.define([
                         });
                         
                         oBinding.filter([oCombinedFilter]);
-                        console.log("✅ Employee search filter applied (case-insensitive):", sQueryTrimmed);
+                        :", sQueryTrimmed);
                     } else {
                         oBinding.filter([]);
-                        console.log("✅ Employee search filter cleared");
-                    }
+                        }
                 } catch (e) {
-                    console.error("Error applying employee search filter:", e);
-                }
+                    }
             };
             
             if (oTable.initialized && typeof oTable.initialized === "function") {
@@ -1213,13 +1173,12 @@ sap.ui.define([
             }
         },
 
-        // ✅ NEW: Search function for Opportunity table
+        
         onOpportunitySearch: function (oEvent) {
             const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
             const oTable = this.byId("Opportunities");
             
             if (!oTable) {
-                console.warn("Opportunity table not available");
                 return;
             }
             
@@ -1228,7 +1187,6 @@ sap.ui.define([
             
             const fnApplySearch = () => {
                 if (iRetryCount >= MAX_RETRIES) {
-                    console.warn("Max retries reached for opportunity search");
                     return;
                 }
                 
@@ -1308,14 +1266,12 @@ sap.ui.define([
                         });
                         
                         oBinding.filter([oCombinedFilter]);
-                        console.log("✅ Opportunity search filter applied (case-insensitive):", sQueryTrimmed);
+                        :", sQueryTrimmed);
                     } else {
                         oBinding.filter([]);
-                        console.log("✅ Opportunity search filter cleared");
-                    }
+                        }
                 } catch (e) {
-                    console.error("Error applying opportunity search filter:", e);
-                }
+                    }
             };
             
             if (oTable.initialized && typeof oTable.initialized === "function") {
@@ -1335,13 +1291,12 @@ sap.ui.define([
             }
         },
 
-        // ✅ NEW: Search function for Project table
+        
         onProjectSearch: function (oEvent) {
             const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
             const oTable = this.byId("Projects");
             
             if (!oTable) {
-                console.warn("Project table not available");
                 return;
             }
             
@@ -1350,7 +1305,6 @@ sap.ui.define([
             
             const fnApplySearch = () => {
                 if (iRetryCount >= MAX_RETRIES) {
-                    console.warn("Max retries reached for project search");
                     return;
                 }
                 
@@ -1418,14 +1372,12 @@ sap.ui.define([
                         });
                         
                         oBinding.filter([oCombinedFilter]);
-                        console.log("✅ Project search filter applied (case-insensitive):", sQueryTrimmed);
+                        :", sQueryTrimmed);
                     } else {
                         oBinding.filter([]);
-                        console.log("✅ Project search filter cleared");
-                    }
+                        }
                 } catch (e) {
-                    console.error("Error applying project search filter:", e);
-                }
+                    }
             };
             
             if (oTable.initialized && typeof oTable.initialized === "function") {
@@ -1445,7 +1397,7 @@ sap.ui.define([
             }
         },
 
-        // ✅ NEW: Cancel function to clear form and deselect table row
+        
         onCancelForm: function () {
             // Get table reference
             const oTable = this.byId("Customers");
@@ -1468,18 +1420,17 @@ sap.ui.define([
                     oTable.clearSelection();
                 } catch (e) {
                     // Ignore if method doesn't exist or fails
-                    console.log("Selection cleared or method not available");
-                }
+                    }
             }
         },
 
-        // ✅ DEPRECATED: Old create function (kept for reference, can be removed)
+        
         onCreateCustomer: function () {
             // Redirect to new submit function
             this.onSubmitCustomer();
         },
 
-        // ✅ NEW: Submit function for Employee (handles both Create and Update)
+        
         onSubmitEmployee: function () {
             const sOHRId = this.byId("inputOHRId_emp").getValue(),
                 sFullName = this.byId("inputFullName_emp").getValue(),
@@ -1560,15 +1511,12 @@ sap.ui.define([
                                         }
                                         this.onCancelEmployeeForm();
                                     } else {
-                                        console.warn("Update may have failed:", oError.message || "Unknown error");
-                                    }
+                                        }
                                 } catch (e) {
-                                    console.log("Update completed");
-                                }
+                                    }
                             }, 150);
                         });
                 } catch (oSetError) {
-                    console.error("Error setting properties:", oSetError);
                     sap.m.MessageBox.error("Failed to update employee. Please try again.");
                 }
             } else {
@@ -1595,8 +1543,6 @@ sap.ui.define([
                     "lwd": sLWD || ""
                 };
                 
-                console.log("Creating employee with data:", oCreateEntry);
-                
                 // Try to get binding using multiple methods
                 let oBinding = (oTable.getRowBinding && oTable.getRowBinding())
                     || oTable.getBinding("items")
@@ -1609,22 +1555,19 @@ sap.ui.define([
                             sap.m.MessageBox.error("Failed to create employee entry.");
                             return;
                         }
-                        console.log("Employee context created:", oNewContext.getPath());
+                        );
                         
                         oModel.submitBatch("changesGroup")
                             .then(() => {
-                                console.log("Employee created successfully!");
                                 MessageToast.show("Employee created successfully!");
                                 this.onCancelEmployeeForm();
                                 oBinding.refresh();
                             })
                             .catch((oError) => {
-                                console.error("Create batch error:", oError);
                                 setTimeout(() => {
                                     try {
                                         const oCreatedData = oNewContext.getObject();
                                         if (oCreatedData && oCreatedData.fullName === oCreateEntry.fullName) {
-                                            console.log("✅ Create verified successful");
                                             MessageToast.show("Employee created successfully!");
                                             oBinding.refresh();
                                             this.onCancelEmployeeForm();
@@ -1637,11 +1580,9 @@ sap.ui.define([
                                 }, 150);
                             });
                     } catch (oCreateError) {
-                        console.error("Error creating via binding:", oCreateError);
                         this._createEmployeeDirect(oModel, oCreateEntry, oTable);
                     }
                 } else {
-                    console.log("Table binding not available, using direct model create");
                     this._createEmployeeDirect(oModel, oCreateEntry, oTable);
                 }
             }
@@ -1651,7 +1592,7 @@ sap.ui.define([
         _createEmployeeDirect: function (oModel, oCreateEntry, oTable) {
             oModel.create("/Employees", oCreateEntry, {
                 success: (oData) => {
-                    console.log("Employee created successfully (direct):", oData);
+                    :", oData);
                     MessageToast.show("Employee created successfully!");
                     this.onCancelEmployeeForm();
                     const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
@@ -1660,7 +1601,6 @@ sap.ui.define([
                     }
                 },
                 error: (oError) => {
-                    console.error("Create error:", oError);
                     let sErrorMessage = "Failed to create employee. Please check the input or try again.";
                     try {
                         if (oError.responseText) {
@@ -1675,7 +1615,7 @@ sap.ui.define([
             });
         },
 
-        // ✅ NEW: Submit function for Opportunity (handles both Create and Update)
+        
         onSubmitOpportunity: function () {
             const sSapOppId = this.byId("inputSapOppId_oppr").getValue(),
                 sSfdcOppId = this.byId("inputSfdcOppId_oppr").getValue(),
@@ -1740,7 +1680,7 @@ sap.ui.define([
                     oModel.submitBatch("changesGroup")
                         .then(() => {
                             MessageToast.show("Opportunity updated successfully!");
-                            // ✅ Force refresh table to show updated data immediately
+                            
                             setTimeout(() => {
                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                 const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
@@ -1776,7 +1716,7 @@ sap.ui.define([
                                     const oCurrentData = oContext.getObject();
                                         if (oCurrentData && oCurrentData.opportunityName === oUpdateEntry.opportunityName) {
                                         MessageToast.show("Opportunity updated successfully!");
-                                        // ✅ Force refresh table to show updated data immediately
+                                        
                                         setTimeout(() => {
                                             const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                             const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
@@ -1803,15 +1743,12 @@ sap.ui.define([
                                         
                                         this.onCancelOpportunityForm();
                                     } else {
-                                        console.warn("Update may have failed:", oError.message || "Unknown error");
-                                    }
+                                        }
                                 } catch (e) {
-                                    console.log("Update completed");
-                                }
+                                    }
                             }, 150);
                         });
                 } catch (oSetError) {
-                    console.error("Error setting properties:", oSetError);
                     sap.m.MessageBox.error("Failed to update opportunity. Please try again.");
                 }
             } else {
@@ -1830,8 +1767,6 @@ sap.ui.define([
                     "customerId": sCustomerId || ""
                 };
                 
-                console.log("Creating opportunity with data:", oCreateEntry);
-                
                 let oBinding = (oTable.getRowBinding && oTable.getRowBinding())
                     || oTable.getBinding("items")
                     || oTable.getBinding("rows");
@@ -1843,13 +1778,12 @@ sap.ui.define([
                             sap.m.MessageBox.error("Failed to create opportunity entry.");
                             return;
                         }
-                        console.log("Opportunity context created:", oNewContext.getPath());
+                        );
                         
                         oModel.submitBatch("changesGroup")
                             .then(() => {
-                                console.log("Opportunity created successfully!");
                                 MessageToast.show("Opportunity created successfully!");
-                                // ✅ Force refresh table to show new data immediately
+                                
                                 setTimeout(() => {
                                     const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                     const fnRefresh = () => {
@@ -1874,14 +1808,12 @@ sap.ui.define([
                                 this.onCancelOpportunityForm();
                             })
                             .catch((oError) => {
-                                console.error("Create batch error:", oError);
                                 setTimeout(() => {
                                     try {
                                         const oCreatedData = oNewContext.getObject();
                                         if (oCreatedData && oCreatedData.opportunityName === oCreateEntry.opportunityName) {
-                                            console.log("✅ Create verified successful");
                                             MessageToast.show("Opportunity created successfully!");
-                                            // ✅ Force refresh table to show new data immediately
+                                            
                                             setTimeout(() => {
                                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                                 const fnRefresh = () => {
@@ -1913,11 +1845,9 @@ sap.ui.define([
                                 }, 150);
                             });
                     } catch (oCreateError) {
-                        console.error("Error creating via binding:", oCreateError);
                         this._createOpportunityDirect(oModel, oCreateEntry, oTable);
                     }
                 } else {
-                    console.log("Table binding not available, using direct model create");
                     this._createOpportunityDirect(oModel, oCreateEntry, oTable);
                 }
             }
@@ -1927,7 +1857,7 @@ sap.ui.define([
         _createOpportunityDirect: function (oModel, oCreateEntry, oTable) {
             oModel.create("/Opportunities", oCreateEntry, {
                 success: (oData) => {
-                    console.log("Opportunity created successfully (direct):", oData);
+                    :", oData);
                     MessageToast.show("Opportunity created successfully!");
                     this.onCancelOpportunityForm();
                     const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
@@ -1936,7 +1866,6 @@ sap.ui.define([
                     }
                 },
                 error: (oError) => {
-                    console.error("Create error:", oError);
                     let sErrorMessage = "Failed to create opportunity. Please check the input or try again.";
                     try {
                         if (oError.responseText) {
@@ -1951,7 +1880,7 @@ sap.ui.define([
             });
         },
 
-        // ✅ NEW: Cancel function for Opportunity form
+        
         onCancelOpportunityForm: function () {
             // Get table reference for ID generation
             const oTable = this.byId("Opportunities");
@@ -1963,8 +1892,7 @@ sap.ui.define([
                     sNextId = this._generateNextIdFromBinding(oTable, "Opportunities", "sapOpportunityId", "O") || sNextId;
                 }
             } catch (e) {
-                console.log("Could not generate next ID, using default:", sNextId);
-            }
+                }
             
             // Clear all form fields
             this.byId("inputSapOppId_oppr")?.setValue(sNextId);
@@ -1987,12 +1915,11 @@ sap.ui.define([
                 try {
                     oTable.clearSelection();
                 } catch (e) {
-                    console.log("Selection cleared or method not available");
-                }
+                    }
             }
         },
 
-        // ✅ NEW: Initialize Opportunity ID field with next ID preview
+        
         _initializeOpportunityIdField: function (iRetryCount = 0) {
             const MAX_RETRIES = 5;
             const oOppIdInput = this.byId("inputSapOppId_oppr");
@@ -2011,7 +1938,7 @@ sap.ui.define([
             try {
                 if (oTable) {
                     sNextId = this._generateNextIdFromBinding(oTable, "Opportunities", "sapOpportunityId", "O");
-                    console.log("[ID Generation] Opportunity Method 1 (binding):", sNextId);
+                    :", sNextId);
                     
                     if (!sNextId || sNextId === "O-0001") {
                         const oModel = this.getOwnerComponent().getModel();
@@ -2022,7 +1949,6 @@ sap.ui.define([
                                     "$top": "1"
                                 },
                                 success: (oData) => {
-                                    console.log("[ID Generation] Opportunity Backend query result:", oData);
                                     let sBackendId = "O-0001";
                                     if (oData && oData.results && oData.results.length > 0) {
                                         const sMaxId = oData.results[0].sapOpportunityId || "";
@@ -2032,11 +1958,10 @@ sap.ui.define([
                                             sBackendId = `O-${String(iNextNum).padStart(4, "0")}`;
                                         }
                                     }
-                                    console.log("[ID Generation] Opportunity Method 2 (backend):", sBackendId);
+                                    :", sBackendId);
                                     oOppIdInput.setValue(sBackendId);
                                 },
                                 error: (oError) => {
-                                    console.warn("[ID Generation] Opportunity Backend query failed:", oError);
                                     if (!sNextId || sNextId === "O-0001") {
                                         oOppIdInput.setValue(sNextId);
                                     }
@@ -2060,7 +1985,6 @@ sap.ui.define([
                     oOppIdInput.setValue(sNextId);
                 }
             } catch (e) {
-                console.error("[ID Generation] Opportunity Error:", e);
                 oOppIdInput.setValue(sNextId);
             }
             
@@ -2068,7 +1992,7 @@ sap.ui.define([
             oOppIdInput.setPlaceholder("Auto-generated");
         },
 
-        // ✅ NEW: Submit function for Project (handles both Create and Update)
+        
         onSubmitProject: function () {
             const sSapProjId = this.byId("inputSapProjId_proj").getValue(),
                 sSfdcProjId = this.byId("inputSfdcProjId_proj").getValue(),
@@ -2138,7 +2062,7 @@ sap.ui.define([
                     oModel.submitBatch("changesGroup")
                         .then(() => {
                             MessageToast.show("Project updated successfully!");
-                            // ✅ Force refresh table to show updated data immediately
+                            
                             setTimeout(() => {
                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                 const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
@@ -2171,7 +2095,7 @@ sap.ui.define([
                                     const oCurrentData = oContext.getObject();
                                     if (oCurrentData && oCurrentData.projectName === oUpdateEntry.projectName) {
                                         MessageToast.show("Project updated successfully!");
-                                        // ✅ Force refresh table to show updated data immediately
+                                        
                                         setTimeout(() => {
                                             const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                             const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
@@ -2198,15 +2122,12 @@ sap.ui.define([
                                         
                                         this.onCancelProjectForm();
                                     } else {
-                                        console.warn("Update may have failed:", oError.message || "Unknown error");
-                                    }
+                                        }
                                 } catch (e) {
-                                    console.log("Update completed");
-                                }
+                                    }
                             }, 150);
                         });
                 } catch (oSetError) {
-                    console.error("Error setting properties:", oSetError);
                     sap.m.MessageBox.error("Failed to update project. Please try again.");
                 }
             } else {
@@ -2227,8 +2148,6 @@ sap.ui.define([
                     "POReceived": sPOReceived || "No"
                 };
                 
-                console.log("Creating project with data:", oCreateEntry);
-                
                 let oBinding = (oTable.getRowBinding && oTable.getRowBinding())
                     || oTable.getBinding("items")
                     || oTable.getBinding("rows");
@@ -2240,13 +2159,12 @@ sap.ui.define([
                             sap.m.MessageBox.error("Failed to create project entry.");
                             return;
                         }
-                        console.log("Project context created:", oNewContext.getPath());
+                        );
                         
                         oModel.submitBatch("changesGroup")
                             .then(() => {
-                                console.log("Project created successfully!");
                                 MessageToast.show("Project created successfully!");
-                                // ✅ Force refresh table to show new data immediately
+                                
                                 setTimeout(() => {
                                     const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                     const fnRefresh = () => {
@@ -2271,14 +2189,12 @@ sap.ui.define([
                                 this.onCancelProjectForm();
                             })
                             .catch((oError) => {
-                                console.error("Create batch error:", oError);
                                 setTimeout(() => {
                                     try {
                                         const oCreatedData = oNewContext.getObject();
                                         if (oCreatedData && oCreatedData.projectName === oCreateEntry.projectName) {
-                                            console.log("✅ Create verified successful");
                                             MessageToast.show("Project created successfully!");
-                                            // ✅ Force refresh table to show new data immediately
+                                            
                                             setTimeout(() => {
                                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                                 const fnRefresh = () => {
@@ -2310,11 +2226,9 @@ sap.ui.define([
                                 }, 150);
                             });
                     } catch (oCreateError) {
-                        console.error("Error creating via binding:", oCreateError);
                         this._createProjectDirect(oModel, oCreateEntry, oTable);
                     }
                 } else {
-                    console.log("Table binding not available, using direct model create");
                     this._createProjectDirect(oModel, oCreateEntry, oTable);
                 }
             }
@@ -2324,7 +2238,7 @@ sap.ui.define([
         _createProjectDirect: function (oModel, oCreateEntry, oTable) {
             oModel.create("/Projects", oCreateEntry, {
                 success: (oData) => {
-                    console.log("Project created successfully (direct):", oData);
+                    :", oData);
                     MessageToast.show("Project created successfully!");
                     this.onCancelProjectForm();
                     const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
@@ -2333,7 +2247,6 @@ sap.ui.define([
                     }
                 },
                 error: (oError) => {
-                    console.error("Create error:", oError);
                     let sErrorMessage = "Failed to create project. Please check the input or try again.";
                     try {
                         if (oError.responseText) {
@@ -2348,7 +2261,7 @@ sap.ui.define([
             });
         },
 
-        // ✅ NEW: Cancel function for Project form
+        
         onCancelProjectForm: function () {
             // Get table reference for ID generation
             const oTable = this.byId("Projects");
@@ -2360,8 +2273,7 @@ sap.ui.define([
                     sNextId = this._generateNextIdFromBinding(oTable, "Projects", "sapPId", "P") || sNextId;
                 }
             } catch (e) {
-                console.log("Could not generate next ID, using default:", sNextId);
-            }
+                }
             
             // Clear all form fields
             this.byId("inputSapProjId_proj")?.setValue(sNextId);
@@ -2386,12 +2298,11 @@ sap.ui.define([
                 try {
                     oTable.clearSelection();
                 } catch (e) {
-                    console.log("Selection cleared or method not available");
-                }
+                    }
             }
         },
 
-        // ✅ NEW: Initialize Project ID field with next ID preview
+        
         _initializeProjectIdField: function (iRetryCount = 0) {
             const MAX_RETRIES = 5;
             const oProjIdInput = this.byId("inputSapProjId_proj");
@@ -2410,7 +2321,7 @@ sap.ui.define([
             try {
                 if (oTable) {
                     sNextId = this._generateNextIdFromBinding(oTable, "Projects", "sapPId", "P");
-                    console.log("[ID Generation] Project Method 1 (binding):", sNextId);
+                    :", sNextId);
                     
                     if (!sNextId || sNextId === "P-0001") {
                         const oModel = this.getOwnerComponent().getModel();
@@ -2421,7 +2332,6 @@ sap.ui.define([
                                     "$top": "1"
                                 },
                                 success: (oData) => {
-                                    console.log("[ID Generation] Project Backend query result:", oData);
                                     let sBackendId = "P-0001";
                                     if (oData && oData.results && oData.results.length > 0) {
                                         const sMaxId = oData.results[0].sapPId || "";
@@ -2431,11 +2341,10 @@ sap.ui.define([
                                             sBackendId = `P-${String(iNextNum).padStart(4, "0")}`;
                                         }
                                     }
-                                    console.log("[ID Generation] Project Method 2 (backend):", sBackendId);
+                                    :", sBackendId);
                                     oProjIdInput.setValue(sBackendId);
                                 },
                                 error: (oError) => {
-                                    console.warn("[ID Generation] Project Backend query failed:", oError);
                                     if (!sNextId || sNextId === "P-0001") {
                                         oProjIdInput.setValue(sNextId);
                                     }
@@ -2459,7 +2368,6 @@ sap.ui.define([
                     oProjIdInput.setValue(sNextId);
                 }
             } catch (e) {
-                console.error("[ID Generation] Project Error:", e);
                 oProjIdInput.setValue(sNextId);
             }
             
@@ -2467,7 +2375,7 @@ sap.ui.define([
             oProjIdInput.setPlaceholder("Auto-generated");
         },
 
-        // ✅ NEW: Cancel function for Employee form
+        
         onCancelEmployeeForm: function () {
             // Clear all form fields
             this.byId("inputOHRId_emp")?.setValue("");
@@ -2492,8 +2400,7 @@ sap.ui.define([
                 try {
                     oTable.clearSelection();
                 } catch (e) {
-                    console.log("Selection cleared or method not available");
-                }
+                    }
             }
         },
 
@@ -2531,7 +2438,7 @@ sap.ui.define([
         onEditPress: CustomUtility.prototype.onEditPress,
         onSaveButtonPress: CustomUtility.prototype.onSaveButtonPress,
         onCancelButtonPress: CustomUtility.prototype.onCancelButtonPress,
-        _performCancelOperation: CustomUtility.prototype._performCancelOperation, // ✅ EXPOSED: For cancel button to work
+        _performCancelOperation: CustomUtility.prototype._performCancelOperation, 
         onAdd: CustomUtility.prototype.onAdd,
         _createEmptyRowData: CustomUtility.prototype._createEmptyRowData,
         _resolveContextByPath: CustomUtility.prototype._resolveContextByPath,
@@ -2540,7 +2447,7 @@ sap.ui.define([
         _generateNextIdFromBinding: CustomUtility.prototype._generateNextIdFromBinding,
         onFilterSearch: CustomUtility.prototype.onFilterSearch,
         
-        // ✅ NEW: Clear FilterBar handler
+        
         onFilterBarClear: function (oEvent) {
             const oFilterBar = oEvent.getSource();
             const oFilterModel = this.getView().getModel("filterModel");
@@ -2598,7 +2505,7 @@ sap.ui.define([
         onSplitButtonArrowPress: CustomUtility.prototype._onSplitButtonArrowPress,
         exportUploadTemplate: CustomUtility.prototype._exportUploadTemplate,
 
-        // ✅ Value Help Dialog Handlers
+        
         onCustomerValueHelpRequest: function (oEvent) {
             const oInput = oEvent.getSource();
             const oView = this.getView();
@@ -2651,7 +2558,7 @@ sap.ui.define([
             this._oEmployeeValueHelpDialog.open();
         },
 
-        // ✅ Value Help Dialog: Cancel handler
+        
         onCustomerValueHelpCancel: function (oEvent) {
             const oDialog = this._oCustomerValueHelpDialog;
             if (oDialog) {
@@ -2673,7 +2580,7 @@ sap.ui.define([
             }
         },
 
-        // ✅ Value Help Dialog: Customer selection handler
+        
         onCustomerValueHelpConfirm: function (oEvent) {
             const oDialog = this._oCustomerValueHelpDialog;
             if (!oDialog) {
@@ -2717,7 +2624,7 @@ sap.ui.define([
             oDialog.close();
         },
 
-        // ✅ Value Help Dialog: Opportunity selection handler
+        
         onOpportunityValueHelpConfirm: function (oEvent) {
             const oDialog = this._oOpportunityValueHelpDialog;
             if (!oDialog) {
@@ -2761,7 +2668,7 @@ sap.ui.define([
             oDialog.close();
         },
 
-        // ✅ Value Help Dialog: Employee selection handler
+        
         onEmployeeValueHelpConfirm: function (oEvent) {
             const oDialog = this._oEmployeeValueHelpDialog;
             if (!oDialog) {
@@ -2794,7 +2701,7 @@ sap.ui.define([
             oDialog.close();
         },
 
-        // ✅ Value Help Dialog: Search handlers
+        
         onCustomerValueHelpSearch: function (oEvent) {
             const sValue = oEvent.getParameter("value") || oEvent.getSource().getValue() || "";
             const oDialog = this._oCustomerValueHelpDialog;
@@ -2812,7 +2719,6 @@ sap.ui.define([
             
             const oBinding = oTable.getBinding("items");
             if (!oBinding) {
-                console.warn("Customer value help table binding not available");
                 return;
             }
             
@@ -2847,7 +2753,6 @@ sap.ui.define([
             
             const oBinding = oTable.getBinding("items");
             if (!oBinding) {
-                console.warn("Opportunity value help table binding not available");
                 return;
             }
             
@@ -2882,7 +2787,6 @@ sap.ui.define([
             
             const oBinding = oTable.getBinding("items");
             if (!oBinding) {
-                console.warn("Employee value help table binding not available");
                 return;
             }
             

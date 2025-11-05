@@ -14,7 +14,7 @@ sap.ui.define([
 
     const GenericTableDelegate = Object.assign({}, ODataTableDelegate);
 
-    // ✅ ENUM CONFIGURATION: Static values for enum fields
+    
     GenericTableDelegate._getEnumConfig = function(sTableId, sPropertyName) {
         const mEnumFields = {
             "Customers": {
@@ -80,7 +80,7 @@ sap.ui.define([
         return mEnumFields[sTableId]?.[sPropertyName] || null;
     };
 
-    // ✅ ASSOCIATION DETECTION: Dynamic detection from OData metadata
+    
     GenericTableDelegate._detectAssociation = function(oTable, sPropertyName) {
         const oModel = oTable.getModel();
         if (!oModel || !oModel.getMetaModel) {
@@ -123,32 +123,21 @@ sap.ui.define([
     };
 
     GenericTableDelegate.fetchProperties = function (oTable) {
-        console.log("=== [GenericDelegate] fetchProperties called ===");
-
         const oModel = oTable.getModel();
         if (!oModel) {
-            console.error("[GenericDelegate] No model found on table");
             return Promise.resolve([]);
         }
 
         const oMetaModel = oModel.getMetaModel();
-        console.log("[GenericDelegate] MetaModel:", oMetaModel);
-
         // Get collection path from payload
         const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
-        console.log("[GenericDelegate] Collection Path:", sCollectionPath);
-
         // Wait for metadata to be loaded
         return oMetaModel.requestObject(`/${sCollectionPath}/$Type`)
             .then(function (sEntityTypePath) {
-                console.log("[GenericDelegate] Entity Type Path:", sEntityTypePath);
-
                 // Request the entity type definition
                 return oMetaModel.requestObject(`/${sEntityTypePath}/`);
             })
             .then(function (oEntityType) {
-                console.log("[GenericDelegate] Entity Type loaded:", oEntityType);
-
                 const aProperties = [];
 
                 // Iterate through entity type properties
@@ -159,8 +148,6 @@ sap.ui.define([
                     }
 
                     const oProperty = oEntityType[sPropertyName];
-                    console.log("[GenericDelegate] Processing property:", sPropertyName, oProperty);
-
                     // Check if it's a property (not a navigation property)
                     if (oProperty.$kind === "Property" || !oProperty.$kind) {
                         const sType = oProperty.$Type || "Edm.String";
@@ -180,13 +167,9 @@ sap.ui.define([
                     }
                 });
 
-                console.log("[GenericDelegate] Final properties array:", aProperties);
                 return aProperties;
             })
             .catch(function (oError) {
-                console.error("[GenericDelegate] Error fetching properties:", oError);
-                console.log("[GenericDelegate] Using fallback properties for", sCollectionPath);
-
                 // Fallback properties for Opportunities
                 const mFallbackProperties = {
                     "Opportunities": [
@@ -216,27 +199,23 @@ sap.ui.define([
             $count: true
         });
         
-        // ✅ Expand associations to load related entity names
+        
         const sCollectionPath = sPath.replace(/^\//, "");
         if (sCollectionPath === "Employees") {
             // Expand Supervisor association for Employee table
             oBindingInfo.parameters.$expand = "to_Supervisor";
         }
 
-        console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
-        console.log("[GenericDelegate] Table payload:", oTable.getPayload());
+        );
     };
 
     GenericTableDelegate.addItem = function (oTable, sPropertyName, mPropertyBag) {
-        console.log("[GenericDelegate] addItem called for property:", sPropertyName);
-
         return this.fetchProperties(oTable).then(function (aProperties) {
             const oProperty = aProperties.find(function (p) {
                 return p.name === sPropertyName || p.path === sPropertyName;
             });
 
             if (!oProperty) {
-                console.error("[GenericDelegate] Property not found:", sPropertyName);
                 return Promise.reject("Property not found: " + sPropertyName);
             }
 
@@ -286,12 +265,10 @@ sap.ui.define([
 
                 sTooltip = `${sLabel} (Field: ${sPropertyName})`;
 
-                console.log(`[EmployeeTableDelegate] New field detected: "${sPropertyName}" → "${sLabel}"`);
-            }
+                }
 
             oProperty.label = sLabel;
             oProperty.tooltip = sTooltip;
-
 
             // Load the Column module and create column
             return new Promise(function (resolve) {
@@ -350,9 +327,8 @@ sap.ui.define([
                                     formatter: fnEditModeFormatter
                                 }
                             });
-                            console.log("[GenericDelegate] Enum field detected:", sPropertyName, "→ ComboBox");
-                        } else if (bIsAssoc) {
-                            // ✅ ASSOCIATION: Display name from association, but store ID for editing
+                            } else if (bIsAssoc) {
+                            
                             // Determine association path based on property
                             let sAssocPath = "";
                             if (sPropertyName === "customerId") {
@@ -409,8 +385,7 @@ sap.ui.define([
                                     formatter: fnEditModeFormatter
                                 }
                             });
-                            console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ Displaying", sAssocPath, "from association");
-                        } else {
+                            } else {
                             oField = new Field({
                                 value: "{" + sPropertyName + "}",
                                 tooltip: "{" + sPropertyName + "}",
@@ -430,10 +405,8 @@ sap.ui.define([
                             template: oField
                         });
 
-                        console.log("[GenericDelegate] Column created via addItem:", sPropertyName);
                         resolve(oColumn);
                     }).catch(function(oError) {
-                        console.warn("[GenericDelegate] Error, using regular field:", oError);
                         const oField = new Field({
                             value: "{" + sPropertyName + "}",
                             tooltip: "{" + sPropertyName + "}",
@@ -458,8 +431,6 @@ sap.ui.define([
     };
 
     GenericTableDelegate.removeItem = function (oTable, oColumn, mPropertyBag) {
-        console.log("[GenericDelegate] removeItem called for column:", oColumn);
-
         if (oColumn) {
             oColumn.destroy();
         }
