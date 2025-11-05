@@ -186,19 +186,9 @@ sap.ui.define([
             const aSelectedContexts = oTable.getSelectedContexts();
             const bHasSelection = aSelectedContexts.length > 0;
 
-            // Populate form based on table type - form handlers will handle context loading
-            if (bHasSelection) {
-                // Directly call form population - let handlers deal with context loading
-                if (sTableId === "Customers") {
-                    this._onCustDialogData(aSelectedContexts);
-                } else if (sTableId === "Employees") {
-                    this._onEmpDialogData(aSelectedContexts);
-                } else if (sTableId === "Opportunities") {
-                    this._onOppDialogData(aSelectedContexts);
-                } else if (sTableId === "Projects") {
-                    this._onProjDialogData(aSelectedContexts);
-                }
-            } else {
+            // ✅ NEW: Don't auto-populate forms on selection - user must click Edit button
+            // Only clear form if no selection
+            if (!bHasSelection) {
                 // No selection - clear form
                 if (sTableId === "Customers") {
                     this._onCustDialogData([]);
@@ -211,7 +201,18 @@ sap.ui.define([
                 }
             }
 
-            // Only enable edit/delete if they exist (some tables might not have them)
+            // Enable Edit button in form (not table toolbar edit button)
+            if (sTableId === "Customers") {
+                this.byId("editButton_cus")?.setEnabled(bHasSelection);
+            } else if (sTableId === "Employees") {
+                this.byId("editButton_emp")?.setEnabled(bHasSelection);
+            } else if (sTableId === "Opportunities") {
+                this.byId("editButton_oppr")?.setEnabled(bHasSelection);
+            } else if (sTableId === "Projects") {
+                this.byId("editButton_proj")?.setEnabled(bHasSelection);
+            }
+
+            // Only enable edit/delete in table toolbar if they exist (some tables might not have them)
             if (config.edit) {
                 this.byId(config.edit)?.setEnabled(bHasSelection);
             }
@@ -322,7 +323,8 @@ sap.ui.define([
             this.byId("inputDeliverySPOC_oppr")?.setValue(oObj.deliverySPOC || "");
             this.byId("inputExpectedStart_oppr")?.setValue(oObj.expectedStart || "");
             this.byId("inputExpectedEnd_oppr")?.setValue(oObj.expectedEnd || "");
-            this.byId("inputTCV_oppr")?.setValue(oObj.tcv || "");
+            // ✅ Convert numeric field to string for Input control
+            this.byId("inputTCV_oppr")?.setValue(oObj.tcv != null ? String(oObj.tcv) : "");
             // For customer field - use same simple approach as Employee supervisor field
             const sCustomerId = oObj.customerId || "";
             if (sCustomerId) {
@@ -481,12 +483,13 @@ sap.ui.define([
             this.byId("inputProjectName_proj")?.setValue(oObj.projectName || "");
             this.byId("inputStartDate_proj")?.setValue(oObj.startDate || "");
             this.byId("inputEndDate_proj")?.setValue(oObj.endDate || "");
-            this.byId("inputGPM_proj")?.setValue(oObj.gpm || "");
+            // ✅ Convert numeric fields to strings for Input controls
+            this.byId("inputGPM_proj")?.setValue(oObj.gpm != null ? String(oObj.gpm) : "");
             this.byId("inputProjectType_proj")?.setSelectedKey(oObj.projectType || "FixedPrice");
             this.byId("inputStatus_proj")?.setSelectedKey(oObj.status || "Planned");
-            this.byId("inputRequiredResources_proj")?.setValue(oObj.requiredResources || "");
-            this.byId("inputAllocatedResources_proj")?.setValue(oObj.allocatedResources || "");
-            this.byId("inputToBeAllocated_proj")?.setValue(oObj.toBeAllocated || "");
+            this.byId("inputRequiredResources_proj")?.setValue(oObj.requiredResources != null ? String(oObj.requiredResources) : "");
+            this.byId("inputAllocatedResources_proj")?.setValue(oObj.allocatedResources != null ? String(oObj.allocatedResources) : "");
+            this.byId("inputToBeAllocated_proj")?.setValue(oObj.toBeAllocated != null ? String(oObj.toBeAllocated) : "");
             this.byId("inputSOWReceived_proj")?.setSelectedKey(oObj.SOWReceived || "No");
             this.byId("inputPOReceived_proj")?.setSelectedKey(oObj.POReceived || "No");
             // For opportunity field - use same simple approach as Employee supervisor field
@@ -792,21 +795,58 @@ sap.ui.define([
                             // All deletions successful
                             sap.m.MessageToast.show(`${sTableId} entries successfully deleted.`);
 
-                            // Refresh table to show updated data
-                            const oBinding = oTable.getBinding("items");
-                            if (oBinding) {
-                                oBinding.refresh();
-                            }
+                            // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                            setTimeout(() => {
+                                // Immediately rebind MDC table (this is the key for MDC tables)
+                                if (oTable.rebind) {
+                                    try {
+                                        oTable.rebind();
+                                    } catch (e) {
+                                        console.log("Rebind error:", e);
+                                    }
+                                }
+                                
+                                // Also try refresh methods as backup
+                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                
+                                if (oRowBinding) {
+                                    oRowBinding.refresh(true).catch(() => {});
+                                } else if (oBinding) {
+                                    oBinding.refresh(true).catch(() => {});
+                                }
+                            }, 150); // Small delay to ensure batch is committed
                         } else {
                             // Some deletions failed
                             console.error("Some deletions failed:", sErrorMessage);
                             sap.m.MessageBox.error("Some entries could not be deleted. Check console for details.");
 
-                            // Refresh table to restore original state
-                            const oBinding = oTable.getBinding("items");
-                            if (oBinding) {
-                                oBinding.refresh();
-                            }
+                            // ✅ Force immediate UI refresh after delete (even if some failed)
+                            setTimeout(() => {
+                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                
+                                const fnRefresh = () => {
+                                    if (oRowBinding) {
+                                        return oRowBinding.refresh(true); // Force refresh from server
+                                    } else if (oBinding) {
+                                        return oBinding.refresh(true); // Force refresh from server
+                                    }
+                                    return Promise.resolve();
+                                };
+                                
+                                fnRefresh().then(() => {
+                                    // After refresh, rebind to ensure UI updates
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                }).catch(() => {
+                                    // If refresh fails, try rebind directly
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                });
+                            }, 100); // Small delay to ensure batch is committed
                         }
 
                     } catch (error) {

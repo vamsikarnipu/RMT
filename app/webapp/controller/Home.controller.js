@@ -734,11 +734,28 @@ sap.ui.define([
                                 // Success - refresh table and show message
                                 MessageToast.show("Customer updated successfully!");
                                 
-                                // Refresh table binding to show updated data
-                                const oBinding = oTable.getBinding("rows");
-                                if (oBinding) {
-                                    oBinding.refresh();
-                                }
+                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                // For MDC tables, rebind() is the most reliable way to refresh
+                                setTimeout(() => {
+                                    // Immediately rebind MDC table (this is the key for MDC tables)
+                                    if (oTable.rebind) {
+                                        try {
+                                            oTable.rebind();
+                                        } catch (e) {
+                                            console.log("Rebind error:", e);
+                                        }
+                                    }
+                                    
+                                    // Also try refresh methods as backup
+                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                    
+                                    if (oRowBinding) {
+                                        oRowBinding.refresh(true).catch(() => {});
+                                    } else if (oBinding) {
+                                        oBinding.refresh(true).catch(() => {});
+                                    }
+                                }, 150); // Small delay to ensure batch is committed
                                 
                                 this.onCancelForm(); // Clear form after successful update
                             })
@@ -806,11 +823,31 @@ sap.ui.define([
                         oModel.submitBatch("changesGroup")
                             .then(() => {
                                 console.log("Customer created successfully!");
-                    MessageToast.show("Customer created successfully!");
-                                this.onCancelForm(); // Clear form after successful create
+                                MessageToast.show("Customer created successfully!");
                                 
-                                // Refresh table to show new entry
-                                oBinding.refresh();
+                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                setTimeout(() => {
+                                    // Immediately rebind MDC table (this is the key for MDC tables)
+                                    if (oTable.rebind) {
+                                        try {
+                                            oTable.rebind();
+                                        } catch (e) {
+                                            console.log("Rebind error:", e);
+                                        }
+                                    }
+                                    
+                                    // Also try refresh methods as backup
+                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                    
+                                    if (oRowBinding) {
+                                        oRowBinding.refresh(true).catch(() => {});
+                                    } else if (oBinding) {
+                                        oBinding.refresh(true).catch(() => {});
+                                    }
+                                }, 150); // Small delay to ensure batch is committed
+                                
+                                this.onCancelForm(); // Clear form after successful create
                             })
                             .catch((oError) => {
                                 console.error("Create batch error:", oError);
@@ -1542,10 +1579,29 @@ sap.ui.define([
                     oModel.submitBatch("changesGroup")
                         .then(() => {
                             MessageToast.show("Employee updated successfully!");
-                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                            if (oBinding) {
-                                oBinding.refresh();
-                            }
+                            
+                            // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                            setTimeout(() => {
+                                // Immediately rebind MDC table (this is the key for MDC tables)
+                                if (oTable.rebind) {
+                                    try {
+                                        oTable.rebind();
+                                    } catch (e) {
+                                        console.log("Rebind error:", e);
+                                    }
+                                }
+                                
+                                // Also try refresh methods as backup
+                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                
+                                if (oRowBinding) {
+                                    oRowBinding.refresh(true).catch(() => {});
+                                } else if (oBinding) {
+                                    oBinding.refresh(true).catch(() => {});
+                                }
+                            }, 150); // Small delay to ensure batch is committed
+                            
                             this.onCancelEmployeeForm();
                         })
                         .catch((oError) => {
@@ -1615,8 +1671,30 @@ sap.ui.define([
                             .then(() => {
                                 console.log("Employee created successfully!");
                                 MessageToast.show("Employee created successfully!");
+                                
+                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                setTimeout(() => {
+                                    // Immediately rebind MDC table (this is the key for MDC tables)
+                                    if (oTable.rebind) {
+                                        try {
+                                            oTable.rebind();
+                                        } catch (e) {
+                                            console.log("Rebind error:", e);
+                                        }
+                                    }
+                                    
+                                    // Also try refresh methods as backup
+                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                    
+                                    if (oRowBinding) {
+                                        oRowBinding.refresh(true).catch(() => {});
+                                    } else if (oBinding) {
+                                        oBinding.refresh(true).catch(() => {});
+                                    }
+                                }, 150); // Small delay to ensure batch is committed
+                                
                                 this.onCancelEmployeeForm();
-                                oBinding.refresh();
                             })
                             .catch((oError) => {
                                 console.error("Create batch error:", oError);
@@ -1653,11 +1731,30 @@ sap.ui.define([
                 success: (oData) => {
                     console.log("Employee created successfully (direct):", oData);
                     MessageToast.show("Employee created successfully!");
+                    
+                    // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                    setTimeout(() => {
+                        // Immediately rebind MDC table (this is the key for MDC tables)
+                        if (oTable.rebind) {
+                            try {
+                                oTable.rebind();
+                            } catch (e) {
+                                console.log("Rebind error:", e);
+                            }
+                        }
+                        
+                        // Also try refresh methods as backup
+                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                        
+                        if (oRowBinding) {
+                            oRowBinding.refresh(true).catch(() => {});
+                        } else if (oBinding) {
+                            oBinding.refresh(true).catch(() => {});
+                        }
+                    }, 150); // Small delay to ensure batch is committed
+                    
                     this.onCancelEmployeeForm();
-                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                    if (oBinding) {
-                        oBinding.refresh();
-                    }
                 },
                 error: (oError) => {
                     console.error("Create error:", oError);
@@ -1740,33 +1837,27 @@ sap.ui.define([
                     oModel.submitBatch("changesGroup")
                         .then(() => {
                             MessageToast.show("Opportunity updated successfully!");
-                            // ✅ Force refresh table to show updated data immediately
+                            // ✅ CRITICAL: Force immediate UI refresh for MDC tables
                             setTimeout(() => {
+                                // Immediately rebind MDC table (this is the key for MDC tables)
+                                if (oTable.rebind) {
+                                    try {
+                                        oTable.rebind();
+                                    } catch (e) {
+                                        console.log("Rebind error:", e);
+                                    }
+                                }
+                                
+                                // Also try refresh methods as backup
                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                 const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                                 
-                                // Use Promise to ensure refresh completes
-                                const fnRefresh = () => {
-                                    if (oRowBinding) {
-                                        return oRowBinding.refresh(true); // Force refresh from server
-                                    } else if (oBinding) {
-                                        return oBinding.refresh(true); // Force refresh from server
-                                    }
-                                    return Promise.resolve();
-                                };
-                                
-                                fnRefresh().then(() => {
-                                    // After refresh, rebind to ensure UI updates
-                                    if (oTable.rebind) {
-                                        oTable.rebind();
-                                    }
-                                }).catch(() => {
-                                    // If refresh fails, try rebind directly
-                                    if (oTable.rebind) {
-                                        oTable.rebind();
-                                    }
-                                });
-                            }, 100); // Small delay to ensure batch is committed
+                                if (oRowBinding) {
+                                    oRowBinding.refresh(true).catch(() => {});
+                                } else if (oBinding) {
+                                    oBinding.refresh(true).catch(() => {});
+                                }
+                            }, 150); // Small delay to ensure batch is committed
                             
                             this.onCancelOpportunityForm();
                         })
@@ -1929,11 +2020,35 @@ sap.ui.define([
                 success: (oData) => {
                     console.log("Opportunity created successfully (direct):", oData);
                     MessageToast.show("Opportunity created successfully!");
+                    
+                    // ✅ Force immediate UI refresh after create
+                    setTimeout(() => {
+                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                        
+                        const fnRefresh = () => {
+                            if (oRowBinding) {
+                                return oRowBinding.refresh(true); // Force refresh from server
+                            } else if (oBinding) {
+                                return oBinding.refresh(true); // Force refresh from server
+                            }
+                            return Promise.resolve();
+                        };
+                        
+                        fnRefresh().then(() => {
+                            // After refresh, rebind to ensure UI updates
+                            if (oTable.rebind) {
+                                oTable.rebind();
+                            }
+                        }).catch(() => {
+                            // If refresh fails, try rebind directly
+                            if (oTable.rebind) {
+                                oTable.rebind();
+                            }
+                        });
+                    }, 100); // Small delay to ensure batch is committed
+                    
                     this.onCancelOpportunityForm();
-                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                    if (oBinding) {
-                        oBinding.refresh();
-                    }
                 },
                 error: (oError) => {
                     console.error("Create error:", oError);
@@ -2326,11 +2441,35 @@ sap.ui.define([
                 success: (oData) => {
                     console.log("Project created successfully (direct):", oData);
                     MessageToast.show("Project created successfully!");
+                    
+                    // ✅ Force immediate UI refresh after create
+                    setTimeout(() => {
+                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                        
+                        const fnRefresh = () => {
+                            if (oRowBinding) {
+                                return oRowBinding.refresh(true); // Force refresh from server
+                            } else if (oBinding) {
+                                return oBinding.refresh(true); // Force refresh from server
+                            }
+                            return Promise.resolve();
+                        };
+                        
+                        fnRefresh().then(() => {
+                            // After refresh, rebind to ensure UI updates
+                            if (oTable.rebind) {
+                                oTable.rebind();
+                            }
+                        }).catch(() => {
+                            // If refresh fails, try rebind directly
+                            if (oTable.rebind) {
+                                oTable.rebind();
+                            }
+                        });
+                    }, 100); // Small delay to ensure batch is committed
+                    
                     this.onCancelProjectForm();
-                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                    if (oBinding) {
-                        oBinding.refresh();
-                    }
                 },
                 error: (oError) => {
                     console.error("Create error:", oError);
@@ -2465,6 +2604,47 @@ sap.ui.define([
             
             oProjIdInput.setEnabled(false);
             oProjIdInput.setPlaceholder("Auto-generated");
+        },
+
+        // ✅ NEW: Edit button handlers - populate forms when Edit is clicked
+        onEditCustomerForm: function () {
+            const oTable = this.byId("Customers");
+            const aSelectedContexts = oTable.getSelectedContexts();
+            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                this._onCustDialogData(aSelectedContexts);
+            } else {
+                sap.m.MessageToast.show("Please select a row to edit.");
+            }
+        },
+
+        onEditEmployeeForm: function () {
+            const oTable = this.byId("Employees");
+            const aSelectedContexts = oTable.getSelectedContexts();
+            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                this._onEmpDialogData(aSelectedContexts);
+            } else {
+                sap.m.MessageToast.show("Please select a row to edit.");
+            }
+        },
+
+        onEditOpportunityForm: function () {
+            const oTable = this.byId("Opportunities");
+            const aSelectedContexts = oTable.getSelectedContexts();
+            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                this._onOppDialogData(aSelectedContexts);
+            } else {
+                sap.m.MessageToast.show("Please select a row to edit.");
+            }
+        },
+
+        onEditProjectForm: function () {
+            const oTable = this.byId("Projects");
+            const aSelectedContexts = oTable.getSelectedContexts();
+            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                this._onProjDialogData(aSelectedContexts);
+            } else {
+                sap.m.MessageToast.show("Please select a row to edit.");
+            }
         },
 
         // ✅ NEW: Cancel function for Employee form

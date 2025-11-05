@@ -168,6 +168,7 @@
                 
                 <!-- Buttons Row -->
                 <HBox class="sapUiMediumMarginTop" justifyContent="Center" width="100%">
+                    <Button id="editButton_oppr" text="Edit" type="Emphasized" press="onEditOpportunityForm" enabled="false" class="sapUiSmallMarginEnd" />
                     <Button id="submitButton_oppr" text="Submit" type="Accept" press="onSubmitOpportunity" />
                     <Button id="cancelFormButton_oppr" text="Cancel" type="Reject" press="onCancelOpportunityForm" class="sapUiSmallMarginBegin" />
                 </HBox>
