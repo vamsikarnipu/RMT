@@ -3,7 +3,7 @@
                          xmlns:f="sap.ui.layout.form"
                          xmlns:mdc="sap.ui.mdc"
                          xmlns:mdct="sap.ui.mdc.table">
-    <VBox class="sapUiSmallMargin">
+            <VBox class="sapUiSmallMargin">
         <!-- Panel for Table -->
         <Panel class="sapUiResponsiveMargin" expandable="false">
             <Toolbar>
@@ -44,24 +44,24 @@
                     </mdc:type>
 
                     <mdc:actions>
-                        <SegmentedButton 
-                            selectedKey="less"
-                            selectionChange="onToggleRowDetail"
-                            tooltip="Toggle Row Details">
-                            <items>
+                            <SegmentedButton 
+                                             selectedKey="less"
+                                             selectionChange="onToggleRowDetail"
+                                             tooltip="Toggle Row Details">
+                                <items>
                                 <SegmentedButtonItem key="more" icon="sap-icon://detail-more" tooltip="Show More"/>
                                 <SegmentedButtonItem key="less" icon="sap-icon://detail-less" tooltip="Show Less"/>
-                            </items>
-                        </SegmentedButton>
-                        <Button icon="sap-icon://delete" id="btnDelete_oppr" tooltip="Delete" press="onDeletePress" enabled="false" />
-                        <SplitButton
-                            id="opportunityUpload"
-                            icon="sap-icon://upload"
-                            tooltip="Upload"
-                            type="Transparent"
-                            press="onUpload"
-                            arrowPress="onSplitButtonArrowPress"
-                        />
+                                </items>
+                            </SegmentedButton>
+                            <Button icon="sap-icon://delete" id="btnDelete_oppr" tooltip="Delete" press="onDeletePress" enabled="false" />
+                              <SplitButton
+                        id="opportunityUpload"
+                        icon="sap-icon://upload"
+                        tooltip="Upload"
+                        type="Transparent"
+                        press="onUpload"
+                        arrowPress="onSplitButtonArrowPress"
+                    />
                     </mdc:actions>
 
                     <mdc:copyProvider>
@@ -103,6 +103,7 @@
                             <Label text="Probability" />
                             <Select id="inputProbability_oppr" selectedKey="{opportunityModel>/probability}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Probability..." />
                                     <core:Item key="ProposalStage" text="0%-ProposalStage" />
                                     <core:Item key="SoWSent" text="33%-SoWSent" />
                                     <core:Item key="SoWSigned" text="85%-SoWSigned" />
@@ -113,6 +114,7 @@
                             <Label text="Stage" />
                             <Select id="inputStage_oppr" selectedKey="{opportunityModel>/Stage}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Stage..." />
                                     <core:Item key="Discover" text="Discover" />
                                     <core:Item key="Define" text="Define" />
                                     <core:Item key="OnBid" text="On Bid" />

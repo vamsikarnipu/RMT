@@ -1,18 +1,18 @@
 ohrId,fullName,mailid,gender,employeeType,doj,band,role,location,supervisorOHR,skills,city,lwd,status
-703431717,Rajesh Kumar,rajesh.kumar@genpact.com,Male,Full Time,2010-05-15,1,Executive Director,Offshore,,Leadership,Hyderabad,,Allocated
-703416950,Anjali Sharma,anjali.sharma@genpact.com,Female,Full Time,2015-08-20,2,Senior Manager,Offshore,703431717,SAP BOA,Hyderabad,,Allocated
-703013588,Prateek Singh,prateek.singh@genpact.com,Male,Full Time,2018-03-10,3,Team Lead,Offshore,703386317,Java,Hyderabad,,Allocated
-703282959,Meera Patel,meera.patel@genpact.com,Female,Full Time,2017-11-05,3,Senior Consultant,Onshore,703386317,SAP Fiori,Newyork,,Allocated
-703387205,Arjun Reddy,arjun.reddy@genpact.com,Male,Full Time,2016-07-22,2,Manager,Offshore,703431717,Project Management,Hyderabad,,Allocated
-703280408,Deepak Verma,deepak.verma@genpact.com,Male,Full Time,2014-09-12,3,Senior Lead,Offshore,703387205,SAP MM,Hyderabad,,Allocated
-703386913,Priya Nair,priya.nair@genpact.com,Female,Full Time,2019-02-18,3,Lead Consultant,Offshore,703386317,SAP PP/QM,Bangalore,,Allocated
-703258477,Kalyani Padala,padala.kalyani@genpact.com,Female,Full Time,2019-11-12,4C,Data Migratio Lead,Offshore,703416950,SAP BOA,Hyderabad,,Allocated
-850074794,Jayachandra Pakanati,Jayachandra.Pakanati@genpact.com,Male,Subcon,2024-03-05,Subcon,Functional 4A_1,Offshore,703258477,SAP FICO,Hyderabad,,Allocated
-850083737,Karthik Vamaraju Venkata,VamarajuVenkata.Karthik@genpact.com,Male,Intern,2025-09-25,Intern,Technical 4A_1,Offshore,703013588,Java,Hyderabad,2025-12-31,Resigned
-850082824,Nageshwar Rao Bhukya,NageshwarRao.Bhukya@genpact.com,Male,Subcon,2025-12-08,Subcon,Functional 4A_1,Onshore,703282959,SAP Fiori,Newyork,,Allocated
-703391253,Pallavi Santhanakrishnan,Pallavi.Santhanakrishnan@genpact.com,Female,Full Time,2024-06-24,3,Portfolio Led,Offshore,703386317,Project Management,Hyderabad,,Allocated
-703386317,Sundara Satish Kumar Suri,Satish.Suri@genpact.com,Male,Full Time,2024-09-04,1,Global Lead,Offshore,703431717,Leadership,Hyderabad,,Allocated
-703116821,P V Venkat Rao,pvvenkat.rao@genpact.com,Male,Full Time,2013-04-29,4D,PMO,Offshore,703387205,Project Management,Hyderabad,,Allocated
-703317633,Potu Reddy,Potu.Reddy@genpact.com,Male,Full Time,2022-02-18,4C,Data Migratio Lead,Offshore,703280408,SAP MM,Bangalore,,Allocated
-703308586,Vikas Kumar,Vikas.Kumar14@genpact.com,Male,Full Time,2021-12-18,4B,Lead 4A_1,Offshore,703386913,SAP PP/QM,Noida,,Allocated
-703387105,Mamidi Sireesha,Mamidi.Sireesha@genpact.com,Female,Full Time,2024-10-04,4B,Tehnical 4A_1,Offshore,703280408,SAP ABAP,Bangalore,,Allocated
+703431717,Rajesh Kumar,rajesh.kumar@genpact.com,Male,FullTime,2010-05-15,1,Senior Vice President,Offshore,,Leadership,Hyderabad,,Allocated
+703416950,Anjali Sharma,anjali.sharma@genpact.com,Female,FullTime,2015-08-20,2,Vice President,Offshore,703431717,SAP BOA,Hyderabad,,Allocated
+703013588,Prateek Singh,prateek.singh@genpact.com,Male,FullTime,2018-03-10,3,Assistant Vice President,Offshore,703386317,Java,Hyderabad,,Allocated
+703282959,Meera Patel,meera.patel@genpact.com,Female,FullTime,2017-11-05,3,Assistant Vice President,Onshore,703386317,SAP Fiori,Newyork,,Allocated
+703387205,Arjun Reddy,arjun.reddy@genpact.com,Male,FullTime,2016-07-22,2,Vice President,Offshore,703431717,Project Management,Hyderabad,,Allocated
+703280408,Deepak Verma,deepak.verma@genpact.com,Male,FullTime,2014-09-12,3,Assistant Vice President,Offshore,703387205,SAP MM,Hyderabad,,Allocated
+703386913,Priya Nair,priya.nair@genpact.com,Female,FullTime,2019-02-18,3,Assistant Vice President,Offshore,703386317,SAP PP/QM,Bangalore,,Allocated
+703258477,Kalyani Padala,padala.kalyani@genpact.com,Female,FullTime,2019-11-12,4C,Manager,Offshore,703416950,SAP BOA,Hyderabad,,Allocated
+850074794,Jayachandra Pakanati,Jayachandra.Pakanati@genpact.com,Male,SubCon,2024-03-05,Subcon,Subcon,Offshore,703258477,SAP FICO,Hyderabad,,Allocated
+850083737,Karthik Vamaraju Venkata,VamarajuVenkata.Karthik@genpact.com,Male,Intern,2025-09-25,5A,Process Associate,Offshore,703013588,Java,Hyderabad,2025-12-31,Resigned
+850082824,Nageshwar Rao Bhukya,NageshwarRao.Bhukya@genpact.com,Male,SubCon,2025-12-08,Subcon,Subcon,Onshore,703282959,SAP Fiori,Newyork,,Allocated
+703391253,Pallavi Santhanakrishnan,Pallavi.Santhanakrishnan@genpact.com,Female,FullTime,2024-06-24,3,Assistant Vice President,Offshore,703386317,Project Management,Hyderabad,,Allocated
+703386317,Sundara Satish Kumar Suri,Satish.Suri@genpact.com,Male,FullTime,2024-09-04,1,Senior Vice President,Offshore,703431717,Leadership,Hyderabad,,Allocated
+703116821,P V Venkat Rao,pvvenkat.rao@genpact.com,Male,FullTime,2013-04-29,4D,Senior Manager,Offshore,703387205,Project Management,Hyderabad,,Allocated
+703317633,Potu Reddy,Potu.Reddy@genpact.com,Male,FullTime,2022-02-18,4C,Manager,Offshore,703280408,SAP MM,Bangalore,,Allocated
+703308586,Vikas Kumar,Vikas.Kumar14@genpact.com,Male,FullTime,2021-12-18,4B-C,Assistant Manager,Offshore,703386913,SAP PP/QM,Noida,,Allocated
+703387105,Mamidi Sireesha,Mamidi.Sireesha@genpact.com,Female,FullTime,2024-10-04,4B-LC,Lead Consultant,Offshore,703280408,SAP ABAP,Bangalore,,Allocated

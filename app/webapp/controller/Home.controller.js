@@ -10,6 +10,40 @@ sap.ui.define([
     return Controller.extend("glassboard.controller.Home", {
         onInit() {
             this._oNavContainer = this.byId("pageContainer");
+            
+            // ✅ Initialize Country-City mapping
+            this._mCountryToCities = {
+                "South Africa": ["Johannesburg (Gauteng)"],
+                "China": ["Dalian", "Foshan (Guangdong)", "Kunshan (Jiangsu)"],
+                "India": ["Bangalore (Karnataka)", "Chennai (Tamil Nadu)", "Gurgaon/Haryana (NCR)", "Hyderabad (Telangana)", "Jaipur (Rajasthan)", "Jodhpur (Rajasthan)", "Kolkata (West Bengal)", "Madurai (Tamil Nadu)", "Mumbai (Maharashtra)", "New Delhi (Delhi)", "Noida (Uttar Pradesh)", "Pune (Maharashtra)", "Warangal (Telangana)"],
+                "Japan": ["Tokyo (Chiyoda-ku)", "Yokohama (Kanagawa)"],
+                "Malaysia": ["Kuala Lumpur / Petaling Jaya (Selangor)"],
+                "Philippines": ["Bataan", "Manila / Quezon City"],
+                "Singapore": ["Singapore"],
+                "Colombia": ["Bogota"],
+                "Costa Rica": ["Heredia"],
+                "Brazil": ["Belo Horizonte (MG)", "Uberlândia (MG)"],
+                "Guatemala": ["Guatemala City"],
+                "Mexico": ["Juárez (Chihuahua)", "Guadalajara (Jalisco)", "Monterrey / San Pedro Garza García (Nuevo León)"],
+                "Egypt": ["Cairo"],
+                "Israel": ["Netanya"],
+                "Turkey": ["Istanbul"],
+                "Canada": ["Toronto (Ontario)"],
+                "USA": ["Atlanta (Georgia)", "Danville (Illinois)", "New York (New York)", "Richardson (Texas)", "Wilkes-Barre (Pennsylvania)"],
+                "Australia": ["Melbourne (Victoria)", "Sydney (New South Wales)"],
+                "Bulgaria": ["Sofia"],
+                "France": ["Paris"],
+                "Hungary": ["Budapest"],
+                "Italy": ["Milano"],
+                "Germany": ["Munich"],
+                "Netherlands": ["Hoofddorp"],
+                "Poland": ["Katowice", "Kraków", "Lublin", "Bielsko-Biała", "Wrocław"],
+                "Portugal": ["Lisbon"],
+                "Republic of Ireland": ["Dublin"],
+                "Romania": ["Bucharest", "Cluj Napoca", "Iași"],
+                "Switzerland": ["Zug"],
+                "United Kingdom": ["London (England)", "Manchester (Greater Manchester)", "Bellshill (Scotland)"]
+            };
             // Call the centralized controller's onInit
             CustomUtility.prototype.onInit.call(this);
             // Make sure the OData model is available both as the default (unnamed) model
@@ -619,7 +653,11 @@ sap.ui.define([
             if (!oPrevTable) return;
 
             const sPrevEditingPath = oEditModel.getProperty(`/${sTableId}/editingPath`);
-            if (!sPrevEditingPath || sPrevEditingPath.length === 0) return;
+            if (!sPrevEditingPath || sPrevEditingPath.length === 0) {
+                // ✅ CRITICAL: Even if no edit path, clear forms and selections when navigating away
+                this._clearFormAndSelection(sTableId);
+                return;
+            }
 
             // Reset edit state
             oEditModel.setProperty(`/${sTableId}/editingPath`, "");
@@ -628,11 +666,11 @@ sap.ui.define([
 
             // Disable Save/Cancel buttons
             const buttonMap = {
-                "Customers": { save: "saveButton", cancel: "cancelButton", edit: "btnEdit_cus", delete: "btnDelete_cus", add: "btnAdd" },
-                "Employees": { save: "saveButton_emp", cancel: "cancelButton_emp", edit: "Edit_emp", delete: "Delete_emp", add: "btnAdd_emp" },
-                "Opportunities": { save: "saveButton_oppr", cancel: "cancelButton_oppr", edit: "btnEdit_oppr", delete: "btnDelete_oppr", add: "btnAdd_oppr" },
-                "Projects": { save: "saveButton_proj", cancel: "cancelButton_proj", edit: "btnEdit_proj", delete: "btnDelete_proj", add: "btnAdd_proj" },
-                "SAPIdStatuses": { save: "saveButton_sap", cancel: "cancelButton_sap", edit: "btnEdit_sap", delete: "btnDelete_sap", add: "btnAdd_sap" }
+                "Customers": { save: "saveButton", cancel: "cancelButton", edit: "btnEdit_cus", delete: "btnDelete_cus", add: "btnAdd", formEdit: "editButton_cus" },
+                "Employees": { save: "saveButton_emp", cancel: "cancelButton_emp", edit: "Edit_emp", delete: "Delete_emp", add: "btnAdd_emp", formEdit: "editButton_emp" },
+                "Opportunities": { save: "saveButton_oppr", cancel: "cancelButton_oppr", edit: "btnEdit_oppr", delete: "btnDelete_oppr", add: "btnAdd_oppr", formEdit: "editButton_oppr" },
+                "Projects": { save: "saveButton_proj", cancel: "cancelButton_proj", edit: "btnEdit_proj", delete: "btnDelete_proj", add: "btnAdd_proj", formEdit: "editButton_proj" },
+                "SAPIdStatuses": { save: "saveButton_sap", cancel: "cancelButton_sap", edit: "btnEdit_sap", delete: "btnDelete_sap", add: "btnAdd_sap", formEdit: null }
                 // ✅ REMOVED: "Verticals": { save: "saveButton_vert", cancel: "cancelButton_vert", edit: "btnEdit_vert", delete: "btnDelete_vert", add: "btnAdd_vert" }
             };
 
@@ -643,7 +681,14 @@ sap.ui.define([
                 this.byId(config.edit)?.setEnabled(false);
                 this.byId(config.delete)?.setEnabled(false);
                 this.byId(config.add)?.setEnabled(true);
+                // ✅ CRITICAL: Disable form Edit button when navigating away
+                if (config.formEdit) {
+                    this.byId(config.formEdit)?.setEnabled(false);
+                }
             }
+
+            // ✅ CRITICAL: Clear forms and table selections when navigating away
+            this._clearFormAndSelection(sTableId);
 
             // Discard pending changes
             try {
@@ -681,19 +726,93 @@ sap.ui.define([
             }
         },
 
+        // ✅ NEW: Clear form and table selection for a specific table
+        _clearFormAndSelection: function (sTableId) {
+            const oTable = this.byId(sTableId);
+            if (!oTable) return;
+
+            // Clear table selection
+            try {
+                if (oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+            } catch (e) {
+                console.warn(`[Navigation] Could not clear selection for ${sTableId}:`, e);
+            }
+
+            // Clear form based on table type
+            try {
+                if (sTableId === "Customers") {
+                    this._onCustDialogData([]);
+                } else if (sTableId === "Employees") {
+                    this._onEmpDialogData([]);
+                } else if (sTableId === "Opportunities") {
+                    this._onOppDialogData([]);
+                } else if (sTableId === "Projects") {
+                    this._onProjDialogData([]);
+                }
+            } catch (e) {
+                console.warn(`[Navigation] Could not clear form for ${sTableId}:`, e);
+            }
+        },
+
         // ✅ NEW: Submit function that handles both Create and Update
         onSubmitCustomer: function () {
             const sCustId = this.byId("inputCustomerId").getValue(),
                 sCustName = this.byId("inputCustomerName").getValue(),
-                sCountry = this.byId("inputCountry").getValue(),
-                sState = this.byId("inputState").getValue(),
+                sCountry = this.byId("inputCountry").getSelectedKey(),
+                sCity = this.byId("inputCity").getSelectedKey(),
                 sStatus = this.byId("inputStatus").getSelectedKey(),
                 sVertical = this.byId("inputVertical").getSelectedKey();
 
-            // Validation - Customer Name is required
+            // ✅ Comprehensive validation - all fields are required
             if (!sCustName || sCustName.trim() === "") {
                 sap.m.MessageBox.error("Customer Name is required!");
                 return;
+            }
+            
+            if (!sCountry || sCountry.trim() === "") {
+                sap.m.MessageBox.error("Country is required!");
+                return;
+            }
+            
+            if (!sCity || sCity.trim() === "") {
+                sap.m.MessageBox.error("City is required! Please select a city based on the selected country.");
+                return;
+            }
+            
+            if (!sStatus || sStatus.trim() === "") {
+                sap.m.MessageBox.error("Status is required!");
+                return;
+            }
+            
+            if (!sVertical || sVertical.trim() === "") {
+                sap.m.MessageBox.error("Vertical is required!");
+                return;
+            }
+            
+            // ✅ Validate City belongs to selected Country
+            if (this._mCountryToCities && sCountry && this._mCountryToCities[sCountry]) {
+                const aValidCities = this._mCountryToCities[sCountry];
+                if (!aValidCities.includes(sCity)) {
+                    sap.m.MessageBox.error(`City "${sCity}" does not belong to Country "${sCountry}". Please select a valid city for this country.`);
+                    return;
+                }
+            }
+            
+            // ✅ Extract state from city selection (format: "City (State)" or just "City")
+            // Example: "Bangalore (Karnataka)" -> state = "Karnataka"
+            // Example: "Singapore" -> state = "Singapore" (if no state in parentheses)
+            let sState = "";
+            if (sCity) {
+                const oStateMatch = sCity.match(/\(([^)]+)\)/);
+                if (oStateMatch && oStateMatch[1]) {
+                    // State found in parentheses
+                    sState = oStateMatch[1].trim();
+                } else {
+                    // No state in parentheses, use city name as state (for countries with single city)
+                    sState = sCity.trim();
+                }
             }
 
             const oTable = this.byId("Customers");
@@ -708,12 +827,13 @@ sap.ui.define([
                 const oExistingData = oContext.getObject();
                 
                 // For update, build entry with existing Customer ID (for verification) and new values
+                // ✅ Save state to database (not city)
                 const oUpdateEntry = {
-                    "country": sCountry || "",
-                "customerName": sCustName,
-                    "state": sState || "",
-                    "status": sStatus || "A", // Default to Active if not set
-                    "vertical": sVertical || "BFS" // Default if not set
+                    "country": sCountry,
+                    "customerName": sCustName,
+                    "state": sState, // ✅ Save state extracted from city selection
+                    "status": sStatus,
+                    "vertical": sVertical
                 };
                 
                 try {
@@ -734,28 +854,32 @@ sap.ui.define([
                                 // Success - refresh table and show message
                                 MessageToast.show("Customer updated successfully!");
                                 
-                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                // For MDC tables, rebind() is the most reliable way to refresh
+                                // ✅ Force refresh table to show updated data immediately
                                 setTimeout(() => {
-                                    // Immediately rebind MDC table (this is the key for MDC tables)
-                                    if (oTable.rebind) {
-                                        try {
-                                            oTable.rebind();
-                                        } catch (e) {
-                                            console.log("Rebind error:", e);
-                                        }
-                                    }
-                                    
-                                    // Also try refresh methods as backup
                                     const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                     const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                                     
-                                    if (oRowBinding) {
-                                        oRowBinding.refresh(true).catch(() => {});
-                                    } else if (oBinding) {
-                                        oBinding.refresh(true).catch(() => {});
-                                    }
-                                }, 150); // Small delay to ensure batch is committed
+                                    const fnRefresh = () => {
+                                        if (oRowBinding) {
+                                            return oRowBinding.refresh(true); // Force refresh from server
+                                        } else if (oBinding) {
+                                            return oBinding.refresh(true); // Force refresh from server
+                                        }
+                                        return Promise.resolve();
+                                    };
+                                    
+                                    fnRefresh().then(() => {
+                                        // After refresh, rebind to ensure UI updates
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    }).catch(() => {
+                                        // If refresh fails, try rebind directly
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    });
+                                }, 100); // Small delay to ensure batch is committed
                                 
                                 this.onCancelForm(); // Clear form after successful update
                             })
@@ -791,12 +915,13 @@ sap.ui.define([
             } else {
                 // CREATE MODE: No row selected, create new customer
                 // Don't send SAPcustId - backend will auto-generate it (C-0001, C-0002, etc.)
+                // ✅ Save state to database (not city)
                 const oCreateEntry = {
-                    "country": sCountry || "",
+                    "country": sCountry,
                     "customerName": sCustName,
-                    "state": sState || "",
-                    "status": sStatus || "A", // Default to Active if not set
-                    "vertical": sVertical || "BFS" // Default to BFS if not set
+                    "state": sState, // ✅ Save state extracted from city selection
+                    "status": sStatus,
+                    "vertical": sVertical
                 };
                 
                 console.log("Creating customer with data:", oCreateEntry);
@@ -825,27 +950,32 @@ sap.ui.define([
                                 console.log("Customer created successfully!");
                                 MessageToast.show("Customer created successfully!");
                                 
-                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                // ✅ Force refresh table to show new entry immediately
                                 setTimeout(() => {
-                                    // Immediately rebind MDC table (this is the key for MDC tables)
-                                    if (oTable.rebind) {
-                                        try {
-                                            oTable.rebind();
-                                        } catch (e) {
-                                            console.log("Rebind error:", e);
-                                        }
-                                    }
-                                    
-                                    // Also try refresh methods as backup
                                     const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                     const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                                     
-                                    if (oRowBinding) {
-                                        oRowBinding.refresh(true).catch(() => {});
-                                    } else if (oBinding) {
-                                        oBinding.refresh(true).catch(() => {});
-                                    }
-                                }, 150); // Small delay to ensure batch is committed
+                                    const fnRefresh = () => {
+                                        if (oRowBinding) {
+                                            return oRowBinding.refresh(true); // Force refresh from server
+                                        } else if (oBinding) {
+                                            return oBinding.refresh(true); // Force refresh from server
+                                        }
+                                        return Promise.resolve();
+                                    };
+                                    
+                                    fnRefresh().then(() => {
+                                        // After refresh, rebind to ensure UI updates
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    }).catch(() => {
+                                        // If refresh fails, try rebind directly
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    });
+                                }, 100); // Small delay to ensure batch is committed
                                 
                                 this.onCancelForm(); // Clear form after successful create
                             })
@@ -1494,8 +1624,14 @@ sap.ui.define([
                 this._initializeCustomerIdField();
             }
             this.byId("inputCustomerName")?.setValue("");
-            this.byId("inputCountry")?.setValue("");
-            this.byId("inputState")?.setValue("");
+            this.byId("inputCountry")?.setSelectedKey("");
+            // ✅ Clear and reset City dropdown
+            const oCitySelect = this.byId("inputCity");
+            if (oCitySelect) {
+                oCitySelect.removeAllItems();
+                oCitySelect.addItem(new sap.ui.core.Item({ key: "", text: "Select City..." }));
+                oCitySelect.setSelectedKey("");
+            }
             this.byId("inputStatus")?.setSelectedKey("");
             this.byId("inputVertical")?.setSelectedKey("");
             
@@ -1508,6 +1644,9 @@ sap.ui.define([
                     console.log("Selection cleared or method not available");
                 }
             }
+            
+            // ✅ Explicitly disable Edit button when canceling
+            this.byId("editButton_cus")?.setEnabled(false);
         },
 
         // ✅ DEPRECATED: Old create function (kept for reference, can be removed)
@@ -1525,19 +1664,111 @@ sap.ui.define([
                 sEmployeeType = this.byId("inputEmployeeType_emp").getSelectedKey(),
                 sDoJ = this.byId("inputDoJ_emp").getValue(),
                 sBand = this.byId("inputBand_emp").getSelectedKey(),
-                sRole = this.byId("inputRole_emp").getValue(),
+                sRole = this.byId("inputRole_emp").getSelectedKey(),
                 sLocation = this.byId("inputLocation_emp").getValue(),
                 sCity = this.byId("inputCity_emp").getValue(),
-                sSupervisor = this.byId("inputSupervisor_emp").getValue(),
                 sSkills = this.byId("inputSkills_emp").getValue(),
                 sStatus = this.byId("inputStatus_emp").getSelectedKey(),
                 sLWD = this.byId("inputLWD_emp").getValue();
+            
+            // ✅ Get supervisor OHR ID from data attribute (not displayed name)
+            const oSupervisorInput = this.byId("inputSupervisor_emp");
+            let sSupervisor = oSupervisorInput ? oSupervisorInput.data("selectedId") : "";
+            if (!sSupervisor) {
+                // Fallback to value if data attribute not set (for backward compatibility)
+                sSupervisor = oSupervisorInput ? oSupervisorInput.getValue() : "";
+            }
 
-            // Validation
+            // ✅ Comprehensive validation - all fields required except LWD
+            if (!sOHRId || sOHRId.trim() === "") {
+                sap.m.MessageBox.error("OHR ID is required!");
+                return;
+            }
+            
             if (!sFullName || sFullName.trim() === "") {
                 sap.m.MessageBox.error("Full Name is required!");
                 return;
             }
+            
+            if (!sMailId || sMailId.trim() === "") {
+                sap.m.MessageBox.error("Email ID is required!");
+                return;
+            }
+            
+            if (!sGender || sGender.trim() === "") {
+                sap.m.MessageBox.error("Gender is required!");
+                return;
+            }
+            
+            if (!sEmployeeType || sEmployeeType.trim() === "") {
+                sap.m.MessageBox.error("Employee Type is required!");
+                return;
+            }
+            
+            if (!sDoJ || sDoJ.trim() === "") {
+                sap.m.MessageBox.error("Date of Joining is required!");
+                return;
+            }
+            
+            if (!sBand || sBand.trim() === "") {
+                sap.m.MessageBox.error("Band is required!");
+                return;
+            }
+            
+            if (!sRole || sRole.trim() === "") {
+                sap.m.MessageBox.error("Designation is required!");
+                return;
+            }
+            
+            if (!sLocation || sLocation.trim() === "") {
+                sap.m.MessageBox.error("Location is required!");
+                return;
+            }
+            
+            if (!sCity || sCity.trim() === "") {
+                sap.m.MessageBox.error("City is required!");
+                return;
+            }
+            
+            if (!sSkills || sSkills.trim() === "") {
+                sap.m.MessageBox.error("Skills is required!");
+                return;
+            }
+            
+            if (!sStatus || sStatus.trim() === "") {
+                sap.m.MessageBox.error("Status is required!");
+                return;
+            }
+            
+            // ✅ Validate that role matches the selected band
+            const mBandToDesignations = {
+                "1": ["Senior Vice President"],
+                "2": ["Vice President"],
+                "3": ["Assistant Vice President"],
+                "4A": ["Consultant", "Management Trainee"],
+                "4B-C": ["Assistant Manager", "Consultant"],
+                "4B-LC": ["Assistant Manager", "Lead Consultant"],
+                "4C": ["Manager", "Principal Consultant", "Project Manager"],
+                "4D": ["Senior Manager", "Senior Principal Consultant", "Senior Project Manager"],
+                "5A": ["Process Associate"],
+                "5B": ["Senior Associate", "Sr Associate", "Technical Associate"],
+                "Subcon": ["Subcon"]
+            };
+            
+            // Also handle legacy band keys
+            mBandToDesignations["4A_1"] = ["Consultant", "Management Trainee"];
+            mBandToDesignations["4A_2"] = ["Consultant", "Management Trainee"];
+            mBandToDesignations["4B_C"] = ["Assistant Manager", "Consultant"];
+            mBandToDesignations["4B_LC"] = ["Assistant Manager", "Lead Consultant"];
+            
+            const aValidDesignations = mBandToDesignations[sBand] || [];
+            if (aValidDesignations.length > 0 && !aValidDesignations.includes(sRole)) {
+                sap.m.MessageBox.error(`Designation "${sRole}" does not match Band "${sBand}". Please select a valid designation for this band.`);
+                return;
+            }
+            
+            // Note: LWD is optional - only required if employee status is "Resigned"
+            // Supervisor is optional (can be empty for top-level employees)
 
             const oTable = this.byId("Employees");
             const oModel = oTable.getModel();
@@ -1552,17 +1783,20 @@ sap.ui.define([
                 const oUpdateEntry = {
                     "fullName": sFullName,
                     "mailid": sMailId || "",
-                    "gender": sGender || "Male",
-                    "employeeType": sEmployeeType || "FullTime",
-                    "doj": sDoJ || "",
-                    "band": sBand || "1",
+                    "gender": sGender || "",
+                    "employeeType": sEmployeeType || "",
+                    // ✅ Normalize date value to YYYY-MM-DD format for consistency
+                    "doj": sDoJ ? this._normalizeDateValue(sDoJ) : "",
+                    "band": sBand || "",
                     "role": sRole || "",
                     "location": sLocation || "",
                     "city": sCity || "",
-                    "supervisorOHR": sSupervisor || "",
+                    "supervisorOHR": sSupervisor || "", // Optional - can be empty for top-level employees
                     "skills": sSkills || "",
-                    "status": sStatus || "Allocated",
-                    "lwd": sLWD || ""
+                    "status": sStatus || "",
+                    // ✅ Normalize date value to YYYY-MM-DD format for consistency
+                    // LWD is optional - only filled if employee is resigned
+                    "lwd": sLWD ? this._normalizeDateValue(sLWD) : ""
                 };
                 
                 try {
@@ -1580,27 +1814,33 @@ sap.ui.define([
                         .then(() => {
                             MessageToast.show("Employee updated successfully!");
                             
-                            // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                            // ✅ Force refresh table to show updated data immediately
                             setTimeout(() => {
-                                // Immediately rebind MDC table (this is the key for MDC tables)
-                                if (oTable.rebind) {
-                                    try {
-                                        oTable.rebind();
-                                    } catch (e) {
-                                        console.log("Rebind error:", e);
-                                    }
-                                }
-                                
-                                // Also try refresh methods as backup
                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                 const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                                 
-                                if (oRowBinding) {
-                                    oRowBinding.refresh(true).catch(() => {});
-                                } else if (oBinding) {
-                                    oBinding.refresh(true).catch(() => {});
-                                }
-                            }, 150); // Small delay to ensure batch is committed
+                                const fnRefresh = () => {
+                                    // ✅ OData V4 doesn't support refresh(true) - use refresh() without parameter
+                                    if (oRowBinding) {
+                                        return oRowBinding.refresh();
+                                    } else if (oBinding) {
+                                        return oBinding.refresh();
+                                    }
+                                    return Promise.resolve();
+                                };
+                                
+                                fnRefresh().then(() => {
+                                    // After refresh, rebind to ensure UI updates
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                }).catch(() => {
+                                    // If refresh fails, try rebind directly
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                });
+                            }, 100); // Small delay to ensure batch is committed
                             
                             this.onCancelEmployeeForm();
                         })
@@ -1638,17 +1878,20 @@ sap.ui.define([
                     "ohrId": sOHRId,
                     "fullName": sFullName,
                     "mailid": sMailId || "",
-                    "gender": sGender || "Male",
-                    "employeeType": sEmployeeType || "FullTime",
-                    "doj": sDoJ || "",
-                    "band": sBand || "1",
+                    "gender": sGender || "",
+                    "employeeType": sEmployeeType || "",
+                    // ✅ Normalize date value to YYYY-MM-DD format for consistency
+                    "doj": sDoJ ? this._normalizeDateValue(sDoJ) : "",
+                    "band": sBand || "",
                     "role": sRole || "",
                     "location": sLocation || "",
                     "city": sCity || "",
-                    "supervisorOHR": sSupervisor || "",
+                    "supervisorOHR": sSupervisor || "", // Optional - can be empty for top-level employees
                     "skills": sSkills || "",
-                    "status": sStatus || "Allocated",
-                    "lwd": sLWD || ""
+                    "status": sStatus || "",
+                    // ✅ Normalize date value to YYYY-MM-DD format for consistency
+                    // LWD is optional - only filled if employee is resigned
+                    "lwd": sLWD ? this._normalizeDateValue(sLWD) : ""
                 };
                 
                 console.log("Creating employee with data:", oCreateEntry);
@@ -1672,27 +1915,32 @@ sap.ui.define([
                                 console.log("Employee created successfully!");
                                 MessageToast.show("Employee created successfully!");
                                 
-                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                // ✅ Force refresh table to show new entry immediately
                                 setTimeout(() => {
-                                    // Immediately rebind MDC table (this is the key for MDC tables)
-                                    if (oTable.rebind) {
-                                        try {
-                                            oTable.rebind();
-                                        } catch (e) {
-                                            console.log("Rebind error:", e);
-                                        }
-                                    }
-                                    
-                                    // Also try refresh methods as backup
                                     const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                     const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                                     
-                                    if (oRowBinding) {
-                                        oRowBinding.refresh(true).catch(() => {});
-                                    } else if (oBinding) {
-                                        oBinding.refresh(true).catch(() => {});
-                                    }
-                                }, 150); // Small delay to ensure batch is committed
+                                    const fnRefresh = () => {
+                                        if (oRowBinding) {
+                                            return oRowBinding.refresh(true); // Force refresh from server
+                                        } else if (oBinding) {
+                                            return oBinding.refresh(true); // Force refresh from server
+                                        }
+                                        return Promise.resolve();
+                                    };
+                                    
+                                    fnRefresh().then(() => {
+                                        // After refresh, rebind to ensure UI updates
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    }).catch(() => {
+                                        // If refresh fails, try rebind directly
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    });
+                                }, 100); // Small delay to ensure batch is committed
                                 
                                 this.onCancelEmployeeForm();
                             })
@@ -1732,27 +1980,32 @@ sap.ui.define([
                     console.log("Employee created successfully (direct):", oData);
                     MessageToast.show("Employee created successfully!");
                     
-                    // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                    // ✅ Force refresh table to show new entry immediately
                     setTimeout(() => {
-                        // Immediately rebind MDC table (this is the key for MDC tables)
-                        if (oTable.rebind) {
-                            try {
-                                oTable.rebind();
-                            } catch (e) {
-                                console.log("Rebind error:", e);
-                            }
-                        }
-                        
-                        // Also try refresh methods as backup
                         const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                         const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                         
-                        if (oRowBinding) {
-                            oRowBinding.refresh(true).catch(() => {});
-                        } else if (oBinding) {
-                            oBinding.refresh(true).catch(() => {});
-                        }
-                    }, 150); // Small delay to ensure batch is committed
+                        const fnRefresh = () => {
+                            if (oRowBinding) {
+                                return oRowBinding.refresh();
+                            } else if (oBinding) {
+                                return oBinding.refresh();
+                            }
+                            return Promise.resolve();
+                        };
+                        
+                        fnRefresh().then(() => {
+                            // After refresh, rebind to ensure UI updates
+                            if (oTable.rebind) {
+                                oTable.rebind();
+                            }
+                        }).catch(() => {
+                            // If refresh fails, try rebind directly
+                            if (oTable.rebind) {
+                                oTable.rebind();
+                            }
+                        });
+                    }, 100); // Small delay to ensure batch is committed
                     
                     this.onCancelEmployeeForm();
                 },
@@ -1815,12 +2068,13 @@ sap.ui.define([
                     "sfdcOpportunityId": sSfdcOppId || "",
                     "opportunityName": sOppName,
                     "businessUnit": sBusinessUnit || "",
-                    "probability": sProbability || "ProposalStage",
-                    "Stage": sStage || "Discover",
+                    "probability": sProbability || "",
+                    "Stage": sStage || "",
                     "salesSPOC": sSalesSPOC || "",
                     "deliverySPOC": sDeliverySPOC || "",
-                    "expectedStart": sExpectedStart || "",
-                    "expectedEnd": sExpectedEnd || "",
+                    // ✅ Normalize date values to YYYY-MM-DD format for consistency
+                    "expectedStart": sExpectedStart ? this._normalizeDateValue(sExpectedStart) : "",
+                    "expectedEnd": sExpectedEnd ? this._normalizeDateValue(sExpectedEnd) : "",
                     "tcv": sTCV ? parseFloat(sTCV) : 0,
                     "customerId": sCustomerId || ""
                 };
@@ -1837,27 +2091,41 @@ sap.ui.define([
                     oModel.submitBatch("changesGroup")
                         .then(() => {
                             MessageToast.show("Opportunity updated successfully!");
-                            // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                            // ✅ Force refresh table to show updated data immediately
                             setTimeout(() => {
-                                // Immediately rebind MDC table (this is the key for MDC tables)
-                                if (oTable.rebind) {
-                                    try {
-                                        oTable.rebind();
-                                    } catch (e) {
-                                        console.log("Rebind error:", e);
-                                    }
-                                }
-                                
-                                // Also try refresh methods as backup
                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                 const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                                 
-                                if (oRowBinding) {
-                                    oRowBinding.refresh(true).catch(() => {});
-                                } else if (oBinding) {
-                                    oBinding.refresh(true).catch(() => {});
-                                }
-                            }, 150); // Small delay to ensure batch is committed
+                                // Use Promise to ensure refresh completes
+                                const fnRefresh = () => {
+                                    // ✅ OData V4 doesn't support refresh(true) - use refresh() without parameter
+                                    if (oRowBinding) {
+                                        return oRowBinding.refresh();
+                                    } else if (oBinding) {
+                                        return oBinding.refresh();
+                                    }
+                                    return Promise.resolve();
+                                };
+                                
+                                fnRefresh().then(() => {
+                                    // ✅ Clear selection to force fresh data load on next edit
+                                    if (oTable.clearSelection) {
+                                        oTable.clearSelection();
+                                    }
+                                    // ✅ Rebind table to ensure UI updates
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                }).catch(() => {
+                                    // ✅ Clear selection even on error
+                                    if (oTable.clearSelection) {
+                                        oTable.clearSelection();
+                                    }
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                });
+                            }, 100); // Small delay to ensure batch is committed
                             
                             this.onCancelOpportunityForm();
                         })
@@ -1874,10 +2142,10 @@ sap.ui.define([
                                             
                                             const fnRefresh = () => {
                                                 if (oRowBinding) {
-                                                    return oRowBinding.refresh(true);
-                                                } else if (oBinding) {
-                                                    return oBinding.refresh(true);
-                                                }
+                                            return oRowBinding.refresh();
+                                        } else if (oBinding) {
+                                            return oBinding.refresh();
+                                        }
                                                 return Promise.resolve();
                                             };
                                             
@@ -1911,12 +2179,13 @@ sap.ui.define([
                     "sfdcOpportunityId": sSfdcOppId || "",
                     "opportunityName": sOppName,
                     "businessUnit": sBusinessUnit || "",
-                    "probability": sProbability || "ProposalStage",
-                    "Stage": sStage || "Discover",
+                    "probability": sProbability || "",
+                    "Stage": sStage || "",
                     "salesSPOC": sSalesSPOC || "",
                     "deliverySPOC": sDeliverySPOC || "",
-                    "expectedStart": sExpectedStart || "",
-                    "expectedEnd": sExpectedEnd || "",
+                    // ✅ Normalize date values to YYYY-MM-DD format for consistency
+                    "expectedStart": sExpectedStart ? this._normalizeDateValue(sExpectedStart) : "",
+                    "expectedEnd": sExpectedEnd ? this._normalizeDateValue(sExpectedEnd) : "",
                     "tcv": sTCV ? parseFloat(sTCV) : 0,
                     "customerId": sCustomerId || ""
                 };
@@ -2021,16 +2290,16 @@ sap.ui.define([
                     console.log("Opportunity created successfully (direct):", oData);
                     MessageToast.show("Opportunity created successfully!");
                     
-                    // ✅ Force immediate UI refresh after create
+                    // ✅ Force refresh table to show new entry immediately
                     setTimeout(() => {
                         const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                         const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                         
                         const fnRefresh = () => {
                             if (oRowBinding) {
-                                return oRowBinding.refresh(true); // Force refresh from server
+                                return oRowBinding.refresh();
                             } else if (oBinding) {
-                                return oBinding.refresh(true); // Force refresh from server
+                                return oBinding.refresh();
                             }
                             return Promise.resolve();
                         };
@@ -2066,6 +2335,98 @@ sap.ui.define([
             });
         },
 
+        // ✅ NEW: Edit button handlers - populate forms when Edit is clicked
+        onEditCustomerForm: function () {
+            const oTable = this.byId("Customers");
+            const aSelectedContexts = oTable.getSelectedContexts();
+            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                // ✅ Always fetch fresh data from backend before populating form
+                const oContext = aSelectedContexts[0];
+                if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                    // ✅ Force refresh from server to get latest data
+                    oContext.requestObject().then(() => {
+                        // Data refreshed from server - now populate form with fresh data
+                        this._onCustDialogData(aSelectedContexts);
+                    }).catch(() => {
+                        // Fallback: use available data
+                        this._onCustDialogData(aSelectedContexts);
+                    });
+                } else {
+                    this._onCustDialogData(aSelectedContexts);
+                }
+            } else {
+                sap.m.MessageToast.show("Please select a row to edit.");
+            }
+        },
+
+        onEditEmployeeForm: function () {
+            const oTable = this.byId("Employees");
+            const aSelectedContexts = oTable.getSelectedContexts();
+            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                // ✅ Ensure full object is loaded before populating
+                const oContext = aSelectedContexts[0];
+                if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                    oContext.requestObject().then(() => {
+                        this._onEmpDialogData(aSelectedContexts);
+                    }).catch(() => {
+                        // Fallback: use available data
+                        this._onEmpDialogData(aSelectedContexts);
+                    });
+                } else {
+                    this._onEmpDialogData(aSelectedContexts);
+                }
+            } else {
+                sap.m.MessageToast.show("Please select a row to edit.");
+            }
+        },
+
+        onEditOpportunityForm: function () {
+            const oTable = this.byId("Opportunities");
+            const aSelectedContexts = oTable.getSelectedContexts();
+            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                // ✅ EXACT same pattern as Customer and Employee (which work perfectly)
+                const oContext = aSelectedContexts[0];
+                if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                    oContext.requestObject().then(() => {
+                        this._onOppDialogData(aSelectedContexts);
+                    }).catch(() => {
+                        // Fallback: use available data
+                        this._onOppDialogData(aSelectedContexts);
+                    });
+                } else {
+                    this._onOppDialogData(aSelectedContexts);
+                }
+            } else {
+                sap.m.MessageToast.show("Please select a row to edit.");
+            }
+        },
+
+        onEditProjectForm: function () {
+            const oTable = this.byId("Projects");
+            const aSelectedContexts = oTable.getSelectedContexts();
+            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                // ✅ EXACT same pattern as Customer and Employee (which work perfectly)
+                const oContext = aSelectedContexts[0];
+                if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                    // ✅ Request object to ensure fresh data with expanded associations
+                    oContext.requestObject().then(() => {
+                        // Association should already be expanded from table delegate
+                        // Add small delay to ensure association data is loaded
+                        setTimeout(() => {
+                            this._onProjDialogData(aSelectedContexts);
+                        }, 50);
+                    }).catch(() => {
+                        // Fallback: use available data
+                        this._onProjDialogData(aSelectedContexts);
+                    });
+                } else {
+                    this._onProjDialogData(aSelectedContexts);
+                }
+            } else {
+                sap.m.MessageToast.show("Please select a row to edit.");
+            }
+        },
+
         // ✅ NEW: Cancel function for Opportunity form
         onCancelOpportunityForm: function () {
             // Get table reference for ID generation
@@ -2088,8 +2449,8 @@ sap.ui.define([
             this.byId("inputSfdcOppId_oppr")?.setValue("");
             this.byId("inputOppName_oppr")?.setValue("");
             this.byId("inputBusinessUnit_oppr")?.setValue("");
-            this.byId("inputProbability_oppr")?.setSelectedKey("ProposalStage");
-            this.byId("inputStage_oppr")?.setSelectedKey("Discover");
+            this.byId("inputProbability_oppr")?.setSelectedKey("");
+            this.byId("inputStage_oppr")?.setSelectedKey("");
             this.byId("inputSalesSPOC_oppr")?.setValue("");
             this.byId("inputDeliverySPOC_oppr")?.setValue("");
             this.byId("inputExpectedStart_oppr")?.setValue("");
@@ -2105,6 +2466,9 @@ sap.ui.define([
                     console.log("Selection cleared or method not available");
                 }
             }
+            
+            // ✅ Explicitly disable Edit button when canceling
+            this.byId("editButton_oppr")?.setEnabled(false);
         },
 
         // ✅ NEW: Initialize Opportunity ID field with next ID preview
@@ -2190,7 +2554,6 @@ sap.ui.define([
                 sProjectName = this.byId("inputProjectName_proj").getValue(),
                 sStartDate = this.byId("inputStartDate_proj").getValue(),
                 sEndDate = this.byId("inputEndDate_proj").getValue(),
-                sGPM = this.byId("inputGPM_proj").getValue(),
                 sProjectType = this.byId("inputProjectType_proj").getSelectedKey(),
                 sStatus = this.byId("inputStatus_proj").getSelectedKey();
             
@@ -2199,8 +2562,17 @@ sap.ui.define([
             let sOppId = oOppInput ? oOppInput.data("selectedId") : "";
             if (!sOppId) {
                 // Fallback to model value
-                const oModel = this.getView().getModel("projectModel");
-                sOppId = oModel ? oModel.getProperty("/oppId") : "";
+                const oProjModel = this.getView().getModel("projectModel");
+                sOppId = oProjModel ? oProjModel.getProperty("/oppId") : "";
+            }
+            
+            // Get GPM OHR ID from data attribute or model (not the displayed name)
+            const oGPMInput = this.byId("inputGPM_proj");
+            let sGPM = oGPMInput ? oGPMInput.data("selectedId") : "";
+            if (!sGPM) {
+                // Fallback to model value
+                const oProjModel = this.getView().getModel("projectModel");
+                sGPM = oProjModel ? oProjModel.getProperty("/gpm") : "";
             }
             
             const sRequiredResources = this.byId("inputRequiredResources_proj").getValue(),
@@ -2228,17 +2600,18 @@ sap.ui.define([
                 const oUpdateEntry = {
                     "sfdcPId": sSfdcProjId || "",
                     "projectName": sProjectName,
-                    "startDate": sStartDate || "",
-                    "endDate": sEndDate || "",
+                    // ✅ Normalize date values to YYYY-MM-DD format for consistency
+                    "startDate": sStartDate ? this._normalizeDateValue(sStartDate) : "",
+                    "endDate": sEndDate ? this._normalizeDateValue(sEndDate) : "",
                     "gpm": sGPM || "",
-                    "projectType": sProjectType || "FixedPrice",
-                    "status": sStatus || "Planned",
+                    "projectType": sProjectType || "",
+                    "status": sStatus || "",
                     "oppId": sOppId || "",
                     "requiredResources": sRequiredResources ? parseInt(sRequiredResources) : 0,
                     "allocatedResources": sAllocatedResources ? parseInt(sAllocatedResources) : 0,
                     "toBeAllocated": sToBeAllocated ? parseInt(sToBeAllocated) : 0,
-                    "SOWReceived": sSOWReceived || "No",
-                    "POReceived": sPOReceived || "No"
+                    "SOWReceived": sSOWReceived || "",
+                    "POReceived": sPOReceived || ""
                 };
                 
                 try {
@@ -2260,18 +2633,27 @@ sap.ui.define([
                                 
                                 const fnRefresh = () => {
                                     if (oRowBinding) {
-                                        return oRowBinding.refresh(true);
-                                    } else if (oBinding) {
-                                        return oBinding.refresh(true);
-                                    }
+                                            return oRowBinding.refresh();
+                                        } else if (oBinding) {
+                                            return oBinding.refresh();
+                                        }
                                     return Promise.resolve();
                                 };
                                 
                                 fnRefresh().then(() => {
+                                    // ✅ Clear selection to force fresh data load on next edit
+                                    if (oTable.clearSelection) {
+                                        oTable.clearSelection();
+                                    }
+                                    // ✅ Rebind table to ensure UI updates
                                     if (oTable.rebind) {
                                         oTable.rebind();
                                     }
                                 }).catch(() => {
+                                    // ✅ Clear selection even on error
+                                    if (oTable.clearSelection) {
+                                        oTable.clearSelection();
+                                    }
                                     if (oTable.rebind) {
                                         oTable.rebind();
                                     }
@@ -2293,10 +2675,10 @@ sap.ui.define([
                                             
                                             const fnRefresh = () => {
                                                 if (oRowBinding) {
-                                                    return oRowBinding.refresh(true);
-                                                } else if (oBinding) {
-                                                    return oBinding.refresh(true);
-                                                }
+                                            return oRowBinding.refresh();
+                                        } else if (oBinding) {
+                                            return oBinding.refresh();
+                                        }
                                                 return Promise.resolve();
                                             };
                                             
@@ -2329,17 +2711,18 @@ sap.ui.define([
                 const oCreateEntry = {
                     "sfdcPId": sSfdcProjId || "",
                     "projectName": sProjectName,
-                    "startDate": sStartDate || "",
-                    "endDate": sEndDate || "",
+                    // ✅ Normalize date values to YYYY-MM-DD format for consistency
+                    "startDate": sStartDate ? this._normalizeDateValue(sStartDate) : "",
+                    "endDate": sEndDate ? this._normalizeDateValue(sEndDate) : "",
                     "gpm": sGPM || "",
-                    "projectType": sProjectType || "FixedPrice",
-                    "status": sStatus || "Planned",
+                    "projectType": sProjectType || "",
+                    "status": sStatus || "",
                     "oppId": sOppId || "",
                     "requiredResources": sRequiredResources ? parseInt(sRequiredResources) : 0,
                     "allocatedResources": sAllocatedResources ? parseInt(sAllocatedResources) : 0,
                     "toBeAllocated": sToBeAllocated ? parseInt(sToBeAllocated) : 0,
-                    "SOWReceived": sSOWReceived || "No",
-                    "POReceived": sPOReceived || "No"
+                    "SOWReceived": sSOWReceived || "",
+                    "POReceived": sPOReceived || ""
                 };
                 
                 console.log("Creating project with data:", oCreateEntry);
@@ -2442,16 +2825,16 @@ sap.ui.define([
                     console.log("Project created successfully (direct):", oData);
                     MessageToast.show("Project created successfully!");
                     
-                    // ✅ Force immediate UI refresh after create
+                    // ✅ Force refresh table to show new entry immediately
                     setTimeout(() => {
                         const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                         const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                         
                         const fnRefresh = () => {
                             if (oRowBinding) {
-                                return oRowBinding.refresh(true); // Force refresh from server
+                                return oRowBinding.refresh();
                             } else if (oBinding) {
-                                return oBinding.refresh(true); // Force refresh from server
+                                return oBinding.refresh();
                             }
                             return Promise.resolve();
                         };
@@ -2511,14 +2894,14 @@ sap.ui.define([
             this.byId("inputStartDate_proj")?.setValue("");
             this.byId("inputEndDate_proj")?.setValue("");
             this.byId("inputGPM_proj")?.setValue("");
-            this.byId("inputProjectType_proj")?.setSelectedKey("FixedPrice");
-            this.byId("inputStatus_proj")?.setSelectedKey("Planned");
+            this.byId("inputProjectType_proj")?.setSelectedKey("");
+            this.byId("inputStatus_proj")?.setSelectedKey("");
             this.byId("inputOppId_proj")?.setSelectedKey("");
             this.byId("inputRequiredResources_proj")?.setValue("");
             this.byId("inputAllocatedResources_proj")?.setValue("");
             this.byId("inputToBeAllocated_proj")?.setValue("");
-            this.byId("inputSOWReceived_proj")?.setSelectedKey("No");
-            this.byId("inputPOReceived_proj")?.setSelectedKey("No");
+            this.byId("inputSOWReceived_proj")?.setSelectedKey("");
+            this.byId("inputPOReceived_proj")?.setSelectedKey("");
             
             // Deselect any selected row
             if (oTable && oTable.clearSelection) {
@@ -2528,6 +2911,9 @@ sap.ui.define([
                     console.log("Selection cleared or method not available");
                 }
             }
+            
+            // ✅ Explicitly disable Edit button when canceling
+            this.byId("editButton_proj")?.setEnabled(false);
         },
 
         // ✅ NEW: Initialize Project ID field with next ID preview
@@ -2554,16 +2940,18 @@ sap.ui.define([
                     if (!sNextId || sNextId === "P-0001") {
                         const oModel = this.getOwnerComponent().getModel();
                         if (oModel) {
-                            oModel.read("/Projects", {
-                                urlParameters: {
-                                    "$orderby": "sapPId desc",
-                                    "$top": "1"
-                                },
-                                success: (oData) => {
-                                    console.log("[ID Generation] Project Backend query result:", oData);
+                            // ✅ Use OData V4 binding instead of read (which doesn't exist in V4)
+                            const oBinding = oModel.bindList("/Projects", null, null, {
+                                "$orderby": "sapPId desc",
+                                "$top": "1"
+                            });
+                            oBinding.attachEventOnce("dataReceived", () => {
+                                try {
+                                    const aContexts = oBinding.getContexts(0, 1);
                                     let sBackendId = "P-0001";
-                                    if (oData && oData.results && oData.results.length > 0) {
-                                        const sMaxId = oData.results[0].sapPId || "";
+                                    if (aContexts && aContexts.length > 0) {
+                                        const oData = aContexts[0].getObject();
+                                        const sMaxId = oData.sapPId || "";
                                         const m = sMaxId.match(/(\d+)$/);
                                         if (m) {
                                             const iNextNum = parseInt(m[1], 10) + 1;
@@ -2572,14 +2960,15 @@ sap.ui.define([
                                     }
                                     console.log("[ID Generation] Project Method 2 (backend):", sBackendId);
                                     oProjIdInput.setValue(sBackendId);
-                                },
-                                error: (oError) => {
+                                } catch (oError) {
                                     console.warn("[ID Generation] Project Backend query failed:", oError);
                                     if (!sNextId || sNextId === "P-0001") {
                                         oProjIdInput.setValue(sNextId);
                                     }
                                 }
                             });
+                            // Trigger the data load
+                            oBinding.getContexts(0, 1);
                             
                             if (sNextId) {
                                 oProjIdInput.setValue(sNextId);
@@ -2604,47 +2993,6 @@ sap.ui.define([
             
             oProjIdInput.setEnabled(false);
             oProjIdInput.setPlaceholder("Auto-generated");
-        },
-
-        // ✅ NEW: Edit button handlers - populate forms when Edit is clicked
-        onEditCustomerForm: function () {
-            const oTable = this.byId("Customers");
-            const aSelectedContexts = oTable.getSelectedContexts();
-            if (aSelectedContexts && aSelectedContexts.length > 0) {
-                this._onCustDialogData(aSelectedContexts);
-            } else {
-                sap.m.MessageToast.show("Please select a row to edit.");
-            }
-        },
-
-        onEditEmployeeForm: function () {
-            const oTable = this.byId("Employees");
-            const aSelectedContexts = oTable.getSelectedContexts();
-            if (aSelectedContexts && aSelectedContexts.length > 0) {
-                this._onEmpDialogData(aSelectedContexts);
-            } else {
-                sap.m.MessageToast.show("Please select a row to edit.");
-            }
-        },
-
-        onEditOpportunityForm: function () {
-            const oTable = this.byId("Opportunities");
-            const aSelectedContexts = oTable.getSelectedContexts();
-            if (aSelectedContexts && aSelectedContexts.length > 0) {
-                this._onOppDialogData(aSelectedContexts);
-            } else {
-                sap.m.MessageToast.show("Please select a row to edit.");
-            }
-        },
-
-        onEditProjectForm: function () {
-            const oTable = this.byId("Projects");
-            const aSelectedContexts = oTable.getSelectedContexts();
-            if (aSelectedContexts && aSelectedContexts.length > 0) {
-                this._onProjDialogData(aSelectedContexts);
-            } else {
-                sap.m.MessageToast.show("Please select a row to edit.");
-            }
         },
 
         // ✅ NEW: Cancel function for Employee form
@@ -2675,6 +3023,9 @@ sap.ui.define([
                     console.log("Selection cleared or method not available");
                 }
             }
+            
+            // ✅ Explicitly disable Edit button when canceling
+            this.byId("editButton_emp")?.setEnabled(false);
         },
 
         // Include all methods from CustomUtility
@@ -2795,6 +3146,32 @@ sap.ui.define([
             // Store reference to input field
             this._oCustomerValueHelpDialog._oInputField = oInput;
             
+            // ✅ Reset dialog state: Clear search field and table selection
+            const oDialogContent = this._oCustomerValueHelpDialog.getContent()[0];
+            if (oDialogContent) {
+                const aItems = oDialogContent.getItems();
+                const oSearchField = aItems.find(item => item.getId && item.getId().includes("customerValueHelpSearch"));
+                const oTable = aItems.find(item => item.getId && item.getId().includes("customerValueHelpTable"));
+                
+                // Clear search field
+                if (oSearchField) {
+                    oSearchField.setValue("");
+                }
+                
+                // Clear table selection
+                if (oTable && oTable.removeSelections) {
+                    oTable.removeSelections();
+                } else if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                
+                // Reset table filters to show all items
+                const oBinding = oTable ? oTable.getBinding("items") : null;
+                if (oBinding) {
+                    oBinding.filter([], sap.ui.model.FilterType.Application);
+                }
+            }
+            
             // Open dialog
             this._oCustomerValueHelpDialog.open();
         },
@@ -2812,6 +3189,33 @@ sap.ui.define([
             }
             
             this._oOpportunityValueHelpDialog._oInputField = oInput;
+            
+            // ✅ Reset dialog state: Clear search field and table selection
+            const oDialogContent = this._oOpportunityValueHelpDialog.getContent()[0];
+            if (oDialogContent) {
+                const aItems = oDialogContent.getItems();
+                const oSearchField = aItems.find(item => item.getId && item.getId().includes("opportunityValueHelpSearch"));
+                const oTable = aItems.find(item => item.getId && item.getId().includes("opportunityValueHelpTable"));
+                
+                // Clear search field
+                if (oSearchField) {
+                    oSearchField.setValue("");
+                }
+                
+                // Clear table selection
+                if (oTable && oTable.removeSelections) {
+                    oTable.removeSelections();
+                } else if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                
+                // Reset table filters to show all items
+                const oBinding = oTable ? oTable.getBinding("items") : null;
+                if (oBinding) {
+                    oBinding.filter([], sap.ui.model.FilterType.Application);
+                }
+            }
+            
             this._oOpportunityValueHelpDialog.open();
         },
 
@@ -2827,7 +3231,83 @@ sap.ui.define([
                 oView.addDependent(this._oEmployeeValueHelpDialog);
             }
             
+            // ✅ Reset GPM flag when opening for Supervisor (not GPM)
+            this._oEmployeeValueHelpDialog._isGPMField = false;
             this._oEmployeeValueHelpDialog._oInputField = oInput;
+            
+            // ✅ Reset dialog state: Clear search field and table selection
+            const oDialogContent = this._oEmployeeValueHelpDialog.getContent()[0];
+            if (oDialogContent) {
+                const aItems = oDialogContent.getItems();
+                const oSearchField = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpSearch"));
+                const oTable = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpTable"));
+                
+                // Clear search field
+                if (oSearchField) {
+                    oSearchField.setValue("");
+                }
+                
+                // Clear table selection
+                if (oTable && oTable.removeSelections) {
+                    oTable.removeSelections();
+                } else if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                
+                // Reset table filters to show all items
+                const oBinding = oTable ? oTable.getBinding("items") : null;
+                if (oBinding) {
+                    oBinding.filter([], sap.ui.model.FilterType.Application);
+                }
+            }
+            
+            this._oEmployeeValueHelpDialog.open();
+        },
+
+        // ✅ Value Help Dialog: GPM (Employee) selection handler
+        onGPMValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const oView = this.getView();
+            
+            // Reuse Employee Value Help Dialog
+            if (!this._oEmployeeValueHelpDialog) {
+                this._oEmployeeValueHelpDialog = sap.ui.xmlfragment(
+                    "glassboard.view.dialogs.EmployeeValueHelp",
+                    this
+                );
+                oView.addDependent(this._oEmployeeValueHelpDialog);
+            }
+            
+            // Mark this as GPM field so confirm handler knows to display name
+            this._oEmployeeValueHelpDialog._isGPMField = true; // Flag to identify GPM field
+            this._oEmployeeValueHelpDialog._oInputField = oInput;
+            
+            // ✅ Reset dialog state: Clear search field and table selection
+            const oDialogContent = this._oEmployeeValueHelpDialog.getContent()[0];
+            if (oDialogContent) {
+                const aItems = oDialogContent.getItems();
+                const oSearchField = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpSearch"));
+                const oTable = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpTable"));
+                
+                // Clear search field
+                if (oSearchField) {
+                    oSearchField.setValue("");
+                }
+                
+                // Clear table selection
+                if (oTable && oTable.removeSelections) {
+                    oTable.removeSelections();
+                } else if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                
+                // Reset table filters to show all items
+                const oBinding = oTable ? oTable.getBinding("items") : null;
+                if (oBinding) {
+                    oBinding.filter([], sap.ui.model.FilterType.Application);
+                }
+            }
+            
             this._oEmployeeValueHelpDialog.open();
         },
 
@@ -2892,12 +3372,54 @@ sap.ui.define([
                     } else {
                         oModel.setProperty("/customerId", oCustomer.SAPcustId);
                     }
+                    
+                    // ✅ Update context property and refresh table to update UI INSTANTLY (like dropdowns do)
+                    const oOpportunitiesTable = this.byId("Opportunities");
+                    if (oOpportunitiesTable) {
+                        const aSelectedContexts = oOpportunitiesTable.getSelectedContexts();
+                        if (aSelectedContexts && aSelectedContexts.length > 0) {
+                            const oRowContext = aSelectedContexts[0];
+                            // Update the customerId property directly in the context
+                            oRowContext.setProperty("customerId", oCustomer.SAPcustId);
+                            // Refresh the context to update association display in table INSTANTLY
+                            if (oRowContext.requestObject && typeof oRowContext.requestObject === "function") {
+                                oRowContext.requestObject().then(() => {
+                                    // Force table refresh after context update
+                                    const oBinding = oOpportunitiesTable.getBinding("rows") || oOpportunitiesTable.getBinding("items");
+                                    if (oBinding) {
+                                        oBinding.refresh();
+                                    }
+                                    if (oOpportunitiesTable.rebind) {
+                                        oOpportunitiesTable.rebind();
+                                    }
+                                }).catch(() => {
+                                    // Even on error, try to refresh
+                                    const oBinding = oOpportunitiesTable.getBinding("rows") || oOpportunitiesTable.getBinding("items");
+                                    if (oBinding) {
+                                        oBinding.refresh();
+                                    }
+                                    if (oOpportunitiesTable.rebind) {
+                                        oOpportunitiesTable.rebind();
+                                    }
+                                });
+                            } else {
+                                // Fallback: refresh binding directly
+                                const oBinding = oOpportunitiesTable.getBinding("rows") || oOpportunitiesTable.getBinding("items");
+                                if (oBinding) {
+                                    oBinding.refresh();
+                                }
+                                if (oOpportunitiesTable.rebind) {
+                                    oOpportunitiesTable.rebind();
+                                }
+                            }
+                        }
+                    }
                 }
             }
             oDialog.close();
         },
 
-        // ✅ Value Help Dialog: Opportunity selection handler
+        // ✅ Value Help Dialog: Opportunity selection handler (for Projects form)
         onOpportunityValueHelpConfirm: function (oEvent) {
             const oDialog = this._oOpportunityValueHelpDialog;
             if (!oDialog) {
@@ -2924,17 +3446,60 @@ sap.ui.define([
             if (oContext) {
                 const oOpportunity = oContext.getObject();
                 if (oDialog._oInputField) {
-                    // Display opportunity name, but store ID in data attribute
+                    // ✅ EXACT same pattern as Employee Supervisor - set value and data attribute
                     oDialog._oInputField.setValue(oOpportunity.opportunityName || "");
                     oDialog._oInputField.data("selectedId", oOpportunity.sapOpportunityId);
+                    console.log("[Opportunity Value Help] ✅ Opportunity set - Display:", oOpportunity.opportunityName, "| Store ID:", oOpportunity.sapOpportunityId);
                     
-                    // Also update/create the model with the ID (for backend submission)
+                    // Also update/create the model with the ID (for backend submission) - EXACT same as Employee Supervisor
                     let oModel = this.getView().getModel("projectModel");
                     if (!oModel) {
                         oModel = new sap.ui.model.json.JSONModel({ oppId: oOpportunity.sapOpportunityId });
                         this.getView().setModel(oModel, "projectModel");
                     } else {
                         oModel.setProperty("/oppId", oOpportunity.sapOpportunityId);
+                    }
+                    
+                    // ✅ Update context property and refresh table to update UI INSTANTLY (like dropdowns do)
+                    const oProjectsTable = this.byId("Projects");
+                    if (oProjectsTable) {
+                        const aSelectedContexts = oProjectsTable.getSelectedContexts();
+                        if (aSelectedContexts && aSelectedContexts.length > 0) {
+                            const oRowContext = aSelectedContexts[0];
+                            // Update the oppId property directly in the context
+                            oRowContext.setProperty("oppId", oOpportunity.sapOpportunityId);
+                            // Refresh the context to update association display in table INSTANTLY
+                            if (oRowContext.requestObject && typeof oRowContext.requestObject === "function") {
+                                oRowContext.requestObject().then(() => {
+                                    // Force table refresh after context update
+                                    const oBinding = oProjectsTable.getBinding("rows") || oProjectsTable.getBinding("items");
+                                    if (oBinding) {
+                                        oBinding.refresh();
+                                    }
+                                    if (oProjectsTable.rebind) {
+                                        oProjectsTable.rebind();
+                                    }
+                                }).catch(() => {
+                                    // Even on error, try to refresh
+                                    const oBinding = oProjectsTable.getBinding("rows") || oProjectsTable.getBinding("items");
+                                    if (oBinding) {
+                                        oBinding.refresh();
+                                    }
+                                    if (oProjectsTable.rebind) {
+                                        oProjectsTable.rebind();
+                                    }
+                                });
+                            } else {
+                                // Fallback: refresh binding directly
+                                const oBinding = oProjectsTable.getBinding("rows") || oProjectsTable.getBinding("items");
+                                if (oBinding) {
+                                    oBinding.refresh();
+                                }
+                                if (oProjectsTable.rebind) {
+                                    oProjectsTable.rebind();
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2954,13 +3519,15 @@ sap.ui.define([
             const oTable = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpTable"));
             
             if (!oTable || !oTable.getSelectedItem) {
-                sap.m.MessageToast.show("Please select a supervisor");
+                const sMessage = oDialog._isGPMField ? "Please select a GPM" : "Please select a supervisor";
+                sap.m.MessageToast.show(sMessage);
                 return;
             }
             
             const oSelectedItem = oTable.getSelectedItem();
             if (!oSelectedItem) {
-                sap.m.MessageToast.show("Please select a supervisor");
+                const sMessage = oDialog._isGPMField ? "Please select a GPM" : "Please select a supervisor";
+                sap.m.MessageToast.show(sMessage);
                 return;
             }
             
@@ -2968,9 +3535,115 @@ sap.ui.define([
             if (oContext) {
                 const oEmployee = oContext.getObject();
                 if (oDialog._oInputField) {
-                    oDialog._oInputField.setValue(oEmployee.ohrId);
+                    // Check if this is GPM field - display name but store OHR ID
+                    if (oDialog._isGPMField) {
+                        // For GPM: Display full name, store OHR ID in data attribute
+                        oDialog._oInputField.setValue(oEmployee.fullName || "");
+                        oDialog._oInputField.data("selectedId", oEmployee.ohrId);
+                        
+                        // Update/create project model with GPM OHR ID (for backend submission)
+                        let oProjModel = this.getView().getModel("projectModel");
+                        if (!oProjModel) {
+                            oProjModel = new sap.ui.model.json.JSONModel({ gpm: oEmployee.ohrId });
+                            this.getView().setModel(oProjModel, "projectModel");
+                        } else {
+                            oProjModel.setProperty("/gpm", oEmployee.ohrId);
+                        }
+                        
+                        // ✅ Update context property and refresh table to update UI INSTANTLY (like dropdowns do)
+                        const oTable = this.byId("Projects");
+                        if (oTable) {
+                            const aSelectedContexts = oTable.getSelectedContexts();
+                            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                                const oRowContext = aSelectedContexts[0];
+                                // Update the gpm property directly in the context
+                                oRowContext.setProperty("gpm", oEmployee.ohrId);
+                                // Refresh the context to update GPM display in table INSTANTLY
+                                if (oRowContext.requestObject && typeof oRowContext.requestObject === "function") {
+                                    oRowContext.requestObject().then(() => {
+                                        // Force table refresh after context update
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oBinding) {
+                                            oBinding.refresh();
+                                        }
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    }).catch(() => {
+                                        // Even on error, try to refresh
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oBinding) {
+                                            oBinding.refresh();
+                                        }
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    });
+                                } else {
+                                    // Fallback: refresh binding directly
+                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                    if (oBinding) {
+                                        oBinding.refresh();
+                                    }
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // For Supervisor: Display full name, store OHR ID in data attribute (WORKING PATTERN)
+                        oDialog._oInputField.setValue(oEmployee.fullName || "");
+                        oDialog._oInputField.data("selectedId", oEmployee.ohrId);
+                        console.log("[Employee Value Help] ✅ Supervisor set - Display:", oEmployee.fullName, "| Store OHR ID:", oEmployee.ohrId);
+                        
+                        // ✅ Update context property and refresh table to update UI INSTANTLY (like dropdowns do)
+                        const oTable = this.byId("Employees");
+                        if (oTable) {
+                            const aSelectedContexts = oTable.getSelectedContexts();
+                            if (aSelectedContexts && aSelectedContexts.length > 0) {
+                                const oRowContext = aSelectedContexts[0];
+                                // Update the supervisorOHR property directly in the context
+                                oRowContext.setProperty("supervisorOHR", oEmployee.ohrId);
+                                // Refresh the context to update supervisor display in table INSTANTLY
+                                if (oRowContext.requestObject && typeof oRowContext.requestObject === "function") {
+                                    oRowContext.requestObject().then(() => {
+                                        // Force table refresh after context update
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oBinding) {
+                                            oBinding.refresh();
+                                        }
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    }).catch(() => {
+                                        // Even on error, try to refresh
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oBinding) {
+                                            oBinding.refresh();
+                                        }
+                                        if (oTable.rebind) {
+                                            oTable.rebind();
+                                        }
+                                    });
+                                } else {
+                                    // Fallback: refresh binding directly
+                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                    if (oBinding) {
+                                        oBinding.refresh();
+                                    }
+                                    if (oTable.rebind) {
+                                        oTable.rebind();
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
+            
+            // Clear the GPM flag
+            oDialog._isGPMField = false;
             oDialog.close();
         },
 
@@ -3001,7 +3674,8 @@ sap.ui.define([
                     new sap.ui.model.Filter({
                         path: "customerName",
                         operator: sap.ui.model.FilterOperator.Contains,
-                        value1: sValue.trim()
+                        value1: sValue.trim(),
+                        caseSensitive: false  // ✅ Case-insensitive search
                     })
                 ];
                 oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
@@ -3036,7 +3710,8 @@ sap.ui.define([
                     new sap.ui.model.Filter({
                         path: "opportunityName",
                         operator: sap.ui.model.FilterOperator.Contains,
-                        value1: sValue.trim()
+                        value1: sValue.trim(),
+                        caseSensitive: false  // ✅ Case-insensitive search
                     })
                 ];
                 oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
@@ -3071,12 +3746,149 @@ sap.ui.define([
                     new sap.ui.model.Filter({
                         path: "fullName",
                         operator: sap.ui.model.FilterOperator.Contains,
-                        value1: sValue.trim()
+                        value1: sValue.trim(),
+                        caseSensitive: false  // ✅ Case-insensitive search
                     })
                 ];
                 oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
             } else {
                 oBinding.filter([], sap.ui.model.FilterType.Application);
+            }
+        },
+
+        // ✅ NEW: Normalize date value to YYYY-MM-DD format
+        _normalizeDateValue: function(sDateValue) {
+            if (!sDateValue) return "";
+            
+            // If already in YYYY-MM-DD format, return as is
+            if (/^\d{4}-\d{2}-\d{2}$/.test(sDateValue)) {
+                return sDateValue;
+            }
+            
+            // Try to parse and format
+            try {
+                const oDate = new Date(sDateValue);
+                if (!isNaN(oDate.getTime())) {
+                    // Format as YYYY-MM-DD
+                    const sYear = oDate.getFullYear();
+                    const sMonth = String(oDate.getMonth() + 1).padStart(2, "0");
+                    const sDay = String(oDate.getDate()).padStart(2, "0");
+                    return `${sYear}-${sMonth}-${sDay}`;
+                }
+            } catch (e) {
+                console.warn("Date normalization failed:", e);
+            }
+            
+            // Fallback: return original value
+            return sDateValue;
+        },
+
+        // ✅ NEW: Handle Country selection change - update City dropdown (same pattern as Band-Designation)
+        onCountryChange: function(oEvent) {
+            const sSelectedCountry = oEvent.getParameter("selectedItem")?.getKey() || "";
+            const oCitySelect = this.byId("inputCity");
+            
+            if (!oCitySelect) {
+                return;
+            }
+            
+            // Clear existing items
+            oCitySelect.removeAllItems();
+            
+            // Add placeholder item first
+            const oPlaceholderItem = new sap.ui.core.Item({
+                key: "",
+                text: "Select City..."
+            });
+            oCitySelect.addItem(oPlaceholderItem);
+            
+            // Get cities for selected country
+            const aCities = this._mCountryToCities && this._mCountryToCities[sSelectedCountry] ? this._mCountryToCities[sSelectedCountry] : [];
+            
+            if (aCities.length === 0) {
+                // No cities available for this country - clear selection
+                oCitySelect.setSelectedKey("");
+                return;
+            }
+            
+            // Add items for each city
+            aCities.forEach((sCity) => {
+                const oItem = new sap.ui.core.Item({
+                    key: sCity,
+                    text: sCity
+                });
+                oCitySelect.addItem(oItem);
+            });
+            
+            // Clear current selection if it's not in the new list
+            const sCurrentCity = oCitySelect.getSelectedKey();
+            if (sCurrentCity && !aCities.includes(sCurrentCity)) {
+                oCitySelect.setSelectedKey("");
+            }
+        },
+
+        // ✅ NEW: Handle Band selection change - update Designation dropdown
+        onBandChange: function(oEvent) {
+            const sSelectedBand = oEvent.getParameter("selectedItem")?.getKey() || "";
+            const oDesignationSelect = this.byId("inputRole_emp");
+            
+            if (!oDesignationSelect) {
+                return;
+            }
+            
+            // Mapping of Band to Designations
+            const mBandToDesignations = {
+                "1": ["Senior Vice President"],
+                "2": ["Vice President"],
+                "3": ["Assistant Vice President"],
+                "4A": ["Consultant", "Management Trainee"],
+                "4B-C": ["Assistant Manager", "Consultant"],
+                "4B-LC": ["Assistant Manager", "Lead Consultant"],
+                "4C": ["Manager", "Principal Consultant", "Project Manager"],
+                "4D": ["Senior Manager", "Senior Principal Consultant", "Senior Project Manager"],
+                "5A": ["Process Associate"],
+                "5B": ["Senior Associate", "Sr Associate", "Technical Associate"],
+                "Subcon": ["Subcon"]
+            };
+            
+            // Also handle legacy band keys that might exist in data
+            mBandToDesignations["4A_1"] = ["Consultant", "Management Trainee"];
+            mBandToDesignations["4A_2"] = ["Consultant", "Management Trainee"];
+            mBandToDesignations["4B_C"] = ["Assistant Manager", "Consultant"];
+            mBandToDesignations["4B_LC"] = ["Assistant Manager", "Lead Consultant"];
+            
+            // Clear existing items
+            oDesignationSelect.removeAllItems();
+            
+            // Add placeholder item first
+            const oPlaceholderItem = new sap.ui.core.Item({
+                key: "",
+                text: "Select Designation..."
+            });
+            oDesignationSelect.addItem(oPlaceholderItem);
+            
+            // Get designations for selected band
+            const aDesignations = mBandToDesignations[sSelectedBand] || [];
+            
+            if (aDesignations.length === 0) {
+                // No designations available for this band - clear selection
+                oDesignationSelect.setSelectedKey("");
+                return;
+            }
+            
+            // Add items for each designation
+            aDesignations.forEach((sDesignation) => {
+                const oItem = new sap.ui.core.Item({
+                    key: sDesignation,
+                    text: sDesignation
+                });
+                oDesignationSelect.addItem(oItem);
+            });
+            
+            // Clear current selection if it's not in the new list
+            const sCurrentRole = oDesignationSelect.getSelectedKey();
+            if (sCurrentRole && !aDesignations.includes(sCurrentRole)) {
+                oDesignationSelect.setSelectedKey("");
             }
         },
 

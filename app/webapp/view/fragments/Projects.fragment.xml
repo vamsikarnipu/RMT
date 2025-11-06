@@ -3,7 +3,7 @@
                          xmlns:f="sap.ui.layout.form"
                          xmlns:mdc="sap.ui.mdc"
                          xmlns:mdct="sap.ui.mdc.table">
-    <VBox class="sapUiSmallMargin">
+            <VBox class="sapUiSmallMargin">
         <!-- Panel for Table -->
         <Panel class="sapUiResponsiveMargin" expandable="false">
             <Toolbar>
@@ -45,23 +45,23 @@
 
                     <mdc:actions>
                         <SegmentedButton 
-                            selectedKey="less"
-                            selectionChange="onToggleRowDetail"
-                            tooltip="Toggle Row Details">
-                            <items>
+                                             selectedKey="less"
+                                             selectionChange="onToggleRowDetail"
+                                             tooltip="Toggle Row Details">
+                                <items>
                                 <SegmentedButtonItem key="more" icon="sap-icon://detail-more" tooltip="Show More"/>
                                 <SegmentedButtonItem key="less" icon="sap-icon://detail-less" tooltip="Show Less"/>
-                            </items>
-                        </SegmentedButton>
-                        <Button icon="sap-icon://delete" id="btnDelete_proj" tooltip="Delete" press="onDeletePress" enabled="false" />
-                        <SplitButton
-                            id="projectUpload"
-                            icon="sap-icon://upload"
-                            tooltip="Upload"
-                            type="Transparent"
-                            press="onUpload"
-                            arrowPress="onSplitButtonArrowPress"
-                        />
+                                </items>
+                            </SegmentedButton>
+                            <Button icon="sap-icon://delete" id="btnDelete_proj" tooltip="Delete" press="onDeletePress" enabled="false" />
+                             <SplitButton
+                                    id="projectUpload"
+                                    icon="sap-icon://upload"
+                                    tooltip="Upload"
+                                    type="Transparent"
+                                    press="onUpload"
+                                    arrowPress="onSplitButtonArrowPress"
+                                />
                     </mdc:actions>
 
                     <!-- <mdc:copyProvider>
@@ -104,11 +104,21 @@
                             <DatePicker id="inputEndDate_proj" value="{projectModel>/endDate}" width="100%" />
                             
                             <Label text="GPM" />
-                            <Input id="inputGPM_proj" value="{projectModel>/gpm}" width="100%" />
+                            <Input 
+                                id="inputGPM_proj" 
+                                width="100%"
+                                placeholder="Select GPM"
+                                showValueHelp="true"
+                                valueHelpRequest="onGPMValueHelpRequest">
+                                <layoutData>
+                                    <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
+                                </layoutData>
+                            </Input>
                             
                             <Label text="Project Type" />
                             <Select id="inputProjectType_proj" selectedKey="{projectModel>/projectType}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Project Type..." />
                                     <core:Item key="FixedPrice" text="Fixed Price" />
                                     <core:Item key="TransactionBased" text="Transaction Based" />
                                     <core:Item key="FixedMonthly" text="Fixed Monthly" />
@@ -135,6 +145,7 @@
                             <Label text="Status" />
                             <Select id="inputStatus_proj" selectedKey="{projectModel>/status}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Status..." />
                                     <core:Item key="Active" text="Active" />
                                     <core:Item key="Closed" text="Closed" />
                                     <core:Item key="Planned" text="Planned" />
@@ -165,6 +176,7 @@
                             <Label text="SOW Received" />
                             <Select id="inputSOWReceived_proj" selectedKey="{projectModel>/SOWReceived}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select..." />
                                     <core:Item key="Yes" text="Yes" />
                                     <core:Item key="No" text="No" />
                                 </items>
@@ -173,6 +185,7 @@
                             <Label text="PO Received" />
                             <Select id="inputPOReceived_proj" selectedKey="{projectModel>/POReceived}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select..." />
                                     <core:Item key="Yes" text="Yes" />
                                     <core:Item key="No" text="No" />
                                 </items>
@@ -189,5 +202,5 @@
                 </HBox>
             </VBox>
         </Panel>
-    </VBox>
+            </VBox>
 </core:FragmentDefinition>

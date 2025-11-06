@@ -3,7 +3,7 @@
                          xmlns:f="sap.ui.layout.form"
                          xmlns:mdc="sap.ui.mdc"
                          xmlns:mdct="sap.ui.mdc.table">
-    <VBox class="sapUiSmallMargin">
+            <VBox class="sapUiSmallMargin">
         <!-- Panel for Table -->
         <Panel class="sapUiResponsiveMargin" expandable="false">
             <Toolbar>
@@ -44,24 +44,24 @@
                     </mdc:type>
 
                     <mdc:actions>
-                        <SegmentedButton 
-                            selectedKey="less"
-                            selectionChange="onToggleRowDetail"
-                            tooltip="Toggle Row Details">
-                            <items>
+                             <SegmentedButton 
+                                             selectedKey="less"
+                                             selectionChange="onToggleRowDetail"
+                                             tooltip="Toggle Row Details">
+                                <items>
                                 <SegmentedButtonItem key="more" icon="sap-icon://detail-more" tooltip="Show More"/>
                                 <SegmentedButtonItem key="less" icon="sap-icon://detail-less" tooltip="Show Less"/>
-                            </items>
-                        </SegmentedButton>
-                        <Button icon="sap-icon://delete" id="Delete_emp" tooltip="Delete" press="onDeletePress" enabled="false" />
-                        <SplitButton
-                            id="employeeUpload"
-                            icon="sap-icon://upload"
-                            tooltip="Upload"
-                            type="Transparent"
-                            press="onUpload"
-                            arrowPress="onSplitButtonArrowPress"
-                        />
+                                </items>
+                            </SegmentedButton>
+                            <Button icon="sap-icon://delete" id="Delete_emp" tooltip="Delete" press="onDeletePress" enabled="false" />
+                                 <SplitButton
+                                    id="employeeUpload"
+                                    icon="sap-icon://upload"
+                                    tooltip="Upload"
+                                    type="Transparent"
+                                    press="onUpload"
+                                    arrowPress="onSplitButtonArrowPress"
+                                />
                     </mdc:actions>
 
                     <mdc:copyProvider>
@@ -89,7 +89,7 @@
                             columnsM="1"
                             class="sapUiNoContentPadding">
                             <Label text="OHR ID" />
-                            <Input id="inputOHRId_emp" value="{employeeModel>/ohrId}" width="100%" enabled="false" placeholder="Auto-generated" />
+                            <Input id="inputOHRId_emp" value="{employeeModel>/ohrId}" width="100%" placeholder="Enter OHR ID" />
                             
                             <Label text="Full Name" />
                             <Input id="inputFullName_emp" value="{employeeModel>/fullName}" width="100%" />
@@ -100,6 +100,7 @@
                             <Label text="Gender" />
                             <Select id="inputGender_emp" selectedKey="{employeeModel>/gender}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Gender..." />
                                     <core:Item key="Male" text="Male" />
                                     <core:Item key="Female" text="Female" />
                                     <core:Item key="Others" text="Others" />
@@ -109,6 +110,7 @@
                             <Label text="Employee Type" />
                             <Select id="inputEmployeeType_emp" selectedKey="{employeeModel>/employeeType}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Employee Type..." />
                                     <core:Item key="FullTime" text="Full Time" />
                                     <core:Item key="SubCon" text="Subcon" />
                                     <core:Item key="Intern" text="Intern" />
@@ -122,6 +124,7 @@
                             <Label text="Status" />
                             <Select id="inputStatus_emp" selectedKey="{employeeModel>/status}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Status..." />
                                     <core:Item key="PreAllocated" text="Pre Allocated" />
                                     <core:Item key="Bench" text="Bench" />
                                     <core:Item key="Resigned" text="Resigned" />
@@ -145,24 +148,27 @@
                             columnsM="1"
                             class="sapUiNoContentPadding">
                             <Label text="Band" />
-                            <Select id="inputBand_emp" selectedKey="{employeeModel>/band}" width="100%">
+                            <Select id="inputBand_emp" selectedKey="{employeeModel>/band}" change="onBandChange" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Band..." />
                                     <core:Item key="1" text="1" />
                                     <core:Item key="2" text="2" />
                                     <core:Item key="3" text="3" />
-                                    <core:Item key="4A_1" text="4A_1" />
-                                    <core:Item key="4A_2" text="4A_2" />
-                                    <core:Item key="4B_C" text="4B_C" />
-                                    <core:Item key="4B_LC" text="4B_LC" />
+                                    <core:Item key="4A" text="4A" />
+                                    <core:Item key="4B-C" text="4B-C" />
+                                    <core:Item key="4B-LC" text="4B-LC" />
                                     <core:Item key="4C" text="4C" />
                                     <core:Item key="4D" text="4D" />
                                     <core:Item key="5A" text="5A" />
                                     <core:Item key="5B" text="5B" />
+                                    <core:Item key="Subcon" text="Subcon" />
                                 </items>
                             </Select>
                             
                             <Label text="Designation" />
-                            <Input id="inputRole_emp" value="{employeeModel>/role}" width="100%" />
+                            <Select id="inputRole_emp" selectedKey="{employeeModel>/role}" width="100%">
+                                <!-- Items will be populated dynamically based on Band selection -->
+                            </Select>
                             
                             <Label text="Location" />
                             <Input id="inputLocation_emp" value="{employeeModel>/location}" width="100%" />
@@ -200,5 +206,5 @@
                 </HBox>
             </VBox>
         </Panel>
-    </VBox>
+            </VBox>
 </core:FragmentDefinition>

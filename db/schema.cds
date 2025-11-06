@@ -128,6 +128,8 @@ entity Project {
     
         to_Opportunity    : Association to one Opportunity
                              on to_Opportunity.sapOpportunityId = $self.oppId;
+        to_GPM             : Association to one Employee       // ✅ NEW: GPM association (like Supervisor)
+                             on to_GPM.ohrId = $self.gpm;
         to_Demand         : Association to many Demand
                              on to_Demand.sapPId = $self.sapPId;
         to_Allocations    : Association to many EmployeeProjectAllocation  // ✅ NEW

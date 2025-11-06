@@ -215,7 +215,7 @@ sap.ui.define([
         oBindingInfo.parameters = Object.assign(oBindingInfo.parameters || {}, {
             $count: true
         });
-        
+
         // ✅ Expand associations to load related entity names
         const sCollectionPath = sPath.replace(/^\//, "");
         if (sCollectionPath === "Opportunities") {
