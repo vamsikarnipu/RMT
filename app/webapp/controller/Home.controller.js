@@ -31,6 +31,58 @@ sap.ui.define([
             // Optional: Set a separate model for table-specific state (if needed)
             const oTableModel = new sap.ui.model.json.JSONModel();
             this.getView().setModel(oTableModel, "tableModel");
+
+            // ✅ Initialize Country-City mapping for dependent dropdowns
+            this._mCountryToCities = {
+                "South Africa": ["Johannesburg (Gauteng)"],
+                "China": ["Dalian", "Foshan (Guangdong)", "Kunshan (Jiangsu)"],
+                "India": ["Bangalore (Karnataka)", "Chennai (Tamil Nadu)", "Gurgaon/Haryana (NCR)", "Hyderabad (Telangana)", "Jaipur (Rajasthan)", "Jodhpur (Rajasthan)", "Kolkata (West Bengal)", "Madurai (Tamil Nadu)", "Mumbai (Maharashtra)", "New Delhi (Delhi)", "Noida (Uttar Pradesh)", "Pune (Maharashtra)", "Warangal (Telangana)"],
+                "Japan": ["Tokyo (Chiyoda-ku)", "Yokohama (Kanagawa)"],
+                "Malaysia": ["Kuala Lumpur / Petaling Jaya (Selangor)"],
+                "Philippines": ["Bataan", "Manila / Quezon City"],
+                "Singapore": ["Singapore"],
+                "Colombia": ["Bogota"],
+                "Costa Rica": ["Heredia"],
+                "Brazil": ["Belo Horizonte (MG)", "Uberlândia (MG)"],
+                "Guatemala": ["Guatemala City"],
+                "Mexico": ["Juárez (Chihuahua)", "Guadalajara (Jalisco)", "Monterrey / San Pedro Garza García (Nuevo León)"],
+                "Egypt": ["Cairo"],
+                "Israel": ["Netanya"],
+                "Turkey": ["Istanbul"],
+                "Canada": ["Toronto (Ontario)"],
+                "USA": ["Atlanta (Georgia)", "Danville (Illinois)", "New York (New York)", "Richardson (Texas)", "Wilkes-Barre (Pennsylvania)"],
+                "Australia": ["Melbourne (Victoria)", "Sydney (New South Wales)"],
+                "Bulgaria": ["Sofia"],
+                "France": ["Paris"],
+                "Hungary": ["Budapest"],
+                "Italy": ["Milano"],
+                "Germany": ["Munich"],
+                "Netherlands": ["Hoofddorp"],
+                "Poland": ["Katowice", "Kraków", "Lublin", "Bielsko-Biała", "Wrocław"],
+                "Portugal": ["Lisbon"],
+                "Republic of Ireland": ["Dublin"],
+                "Romania": ["Bucharest", "Cluj Napoca", "Iași"],
+                "Switzerland": ["Zug"],
+                "United Kingdom": ["London (England)", "Manchester (Greater Manchester)", "Bellshill (Scotland)"]
+            };
+
+            // ✅ Initialize Band-Designation mapping for dependent dropdowns
+            this.mBandToDesignations = {
+                "1": ["CEO", "CTO", "CFO", "President", "Vice President"],
+                "2": ["Senior Vice President", "Vice President", "Director"],
+                "3": ["Senior Director", "Director", "Associate Director"],
+                "4A_1": ["Senior Manager", "Manager", "Assistant Manager"],
+                "4A_2": ["Manager", "Assistant Manager", "Team Lead"],
+                "4B_C": ["Consultant", "Senior Consultant", "Lead Consultant"],
+                "4B_LC": ["Lead Consultant", "Senior Consultant", "Consultant"],
+                "4C": ["Senior Associate", "Associate", "Junior Associate"],
+                "4D": ["Associate", "Junior Associate", "Trainee"],
+                "5A": ["Senior Analyst", "Analyst", "Junior Analyst"],
+                "5B": ["Analyst", "Junior Analyst", "Trainee"]
+            };
+
+            // ✅ Populate Country dropdown in Customers fragment when loaded
+            this._populateCountryDropdown();
         },
 
         onSideNavButtonPress() {
@@ -87,8 +139,28 @@ sap.ui.define([
         _loadFragmentIfNeeded: function (sKey, sPageId) {
             var oLogButton = this.byId("uploadLogButton");
             if (sKey === "customers") {
+                // Check if already loaded to prevent duplicate IDs
+                if (this._bCustomersLoaded) {
+                    console.log("[Customers] Fragment already loaded, skipping");
+                    return;
+                }
+                
                 this._bCustomersLoaded = true;
-                const oCustomersPage = this.byId(sPageId);
+                const oCustomersPage = this.getView().byId(sPageId);
+                
+                // ✅ CRITICAL: Remove existing content before adding new fragment to prevent duplicate IDs
+                if (oCustomersPage && oCustomersPage.getContent) {
+                    const aExistingContent = oCustomersPage.getContent();
+                    if (aExistingContent && aExistingContent.length > 0) {
+                        console.log("[Customers] Removing existing content to prevent duplicate IDs");
+                        aExistingContent.forEach((oContent) => {
+                            if (oContent && oContent.destroy) {
+                                oContent.destroy();
+                            }
+                        });
+                        oCustomersPage.removeAllContent();
+                    }
+                }
 
                 Fragment.load({
                     id: this.getView().getId(),
@@ -111,6 +183,9 @@ sap.ui.define([
                     if (oModel) {
                         oTable.setModel(oModel);
                     }
+
+                    // ✅ Populate Country dropdown when Customers fragment loads
+                    this._populateCountryDropdown();
 
                     // Ensure FilterBar has the correct models
                     const oFilterBar = this.byId("customerFilterBar");
@@ -243,8 +318,28 @@ sap.ui.define([
 
                 }.bind(this));
             } else if (sKey === "opportunities") {
+                // Check if already loaded to prevent duplicate IDs
+                if (this._bOpportunitiesLoaded) {
+                    console.log("[Opportunities] Fragment already loaded, skipping");
+                    return;
+                }
+                
                 this._bOpportunitiesLoaded = true;
-                const oOpportunitiesPage = this.byId(sPageId);
+                const oOpportunitiesPage = this.getView().byId(sPageId);
+                
+                // ✅ CRITICAL: Remove existing content before adding new fragment to prevent duplicate IDs
+                if (oOpportunitiesPage && oOpportunitiesPage.getContent) {
+                    const aExistingContent = oOpportunitiesPage.getContent();
+                    if (aExistingContent && aExistingContent.length > 0) {
+                        console.log("[Opportunities] Removing existing content to prevent duplicate IDs");
+                        aExistingContent.forEach((oContent) => {
+                            if (oContent && oContent.destroy) {
+                                oContent.destroy();
+                            }
+                        });
+                        oOpportunitiesPage.removeAllContent();
+                    }
+                }
 
                 Fragment.load({
                     id: this.getView().getId(),
@@ -290,8 +385,31 @@ sap.ui.define([
                     }, 300);
                 }.bind(this));
             } else if (sKey === "projects") {
+                const oProjectsPage = this.getView().byId(sPageId);
+                
+                // ✅ CRITICAL: Check if content already exists and remove it to prevent duplicate IDs
+                if (oProjectsPage && oProjectsPage.getContent) {
+                    const aExistingContent = oProjectsPage.getContent();
+                    if (aExistingContent && aExistingContent.length > 0) {
+                        console.log("[Projects] Removing existing content to prevent duplicate IDs");
+                        aExistingContent.forEach((oContent) => {
+                            if (oContent && oContent.destroy) {
+                                oContent.destroy();
+                            }
+                        });
+                        oProjectsPage.removeAllContent();
+                        // Reset flag so fragment can be reloaded if needed
+                        this._bProjectsLoaded = false;
+                    }
+                }
+                
+                // Check if already loaded to prevent duplicate IDs
+                if (this._bProjectsLoaded) {
+                    console.log("[Projects] Fragment already loaded, skipping");
+                    return;
+                }
+                
                 this._bProjectsLoaded = true;
-                const oProjectsPage = this.byId(sPageId);
 
                 Fragment.load({
                     id: this.getView().getId(),
@@ -368,8 +486,28 @@ sap.ui.define([
                     this._resetSegmentedButtonForFragment("SAPIdStatuses");
                 }.bind(this));
             } else if (sKey === "employees") {
+                // Check if already loaded to prevent duplicate IDs
+                if (this._bEmployeesLoaded) {
+                    console.log("[Employees] Fragment already loaded, skipping");
+                    return;
+                }
+                
                 this._bEmployeesLoaded = true;
-                const oEmployeesPage = this.byId(sPageId);
+                const oEmployeesPage = this.getView().byId(sPageId);
+                
+                // ✅ CRITICAL: Remove existing content before adding new fragment to prevent duplicate IDs
+                if (oEmployeesPage && oEmployeesPage.getContent) {
+                    const aExistingContent = oEmployeesPage.getContent();
+                    if (aExistingContent && aExistingContent.length > 0) {
+                        console.log("[Employees] Removing existing content to prevent duplicate IDs");
+                        aExistingContent.forEach((oContent) => {
+                            if (oContent && oContent.destroy) {
+                                oContent.destroy();
+                            }
+                        });
+                        oEmployeesPage.removeAllContent();
+                    }
+                }
 
                 Fragment.load({
                     id: this.getView().getId(),
@@ -712,8 +850,8 @@ sap.ui.define([
                     "country": sCountry || "",
                 "customerName": sCustName,
                     "state": sState || "",
-                    "status": sStatus || "A", // Default to Active if not set
-                    "vertical": sVertical || "BFS" // Default if not set
+                    "status": sStatus || "",
+                    "vertical": sVertical || ""
                 };
                 
                 try {
@@ -795,9 +933,31 @@ sap.ui.define([
                     "country": sCountry || "",
                     "customerName": sCustName,
                     "state": sState || "",
-                    "status": sStatus || "A", // Default to Active if not set
-                    "vertical": sVertical || "BFS" // Default to BFS if not set
+                    "status": sStatus || "",
+                    "vertical": sVertical || ""
                 };
+                
+                // Validation - ensure required fields are filled
+                if (!sCustName || sCustName.trim() === "") {
+                    sap.m.MessageBox.error("Customer Name is required!");
+                    return;
+                }
+                if (!sCountry || sCountry.trim() === "") {
+                    sap.m.MessageBox.error("Country is required!");
+                    return;
+                }
+                if (!sState || sState.trim() === "") {
+                    sap.m.MessageBox.error("City is required!");
+                    return;
+                }
+                if (!sStatus || sStatus.trim() === "") {
+                    sap.m.MessageBox.error("Status is required!");
+                    return;
+                }
+                if (!sVertical || sVertical.trim() === "") {
+                    sap.m.MessageBox.error("Vertical is required!");
+                    return;
+                }
                 
                 console.log("Creating customer with data:", oCreateEntry);
                 
@@ -1494,8 +1654,18 @@ sap.ui.define([
                 this._initializeCustomerIdField();
             }
             this.byId("inputCustomerName")?.setValue("");
-            this.byId("inputCountry")?.setValue("");
-            this.byId("inputState")?.setValue("");
+            this.byId("inputCountry")?.setSelectedKey("");
+            this.byId("inputCity")?.setSelectedKey("");
+            // Clear City dropdown items (except placeholder) when country is cleared
+            const oCitySelect = this.byId("inputCity");
+            if (oCitySelect) {
+                const aItems = oCitySelect.getItems();
+                aItems.forEach((oItem, iIndex) => {
+                    if (iIndex > 0) {
+                        oCitySelect.removeItem(oItem);
+                    }
+                });
+            }
             this.byId("inputStatus")?.setSelectedKey("");
             this.byId("inputVertical")?.setSelectedKey("");
             
@@ -1638,16 +1808,16 @@ sap.ui.define([
                     "ohrId": sOHRId,
                     "fullName": sFullName,
                     "mailid": sMailId || "",
-                    "gender": sGender || "Male",
-                    "employeeType": sEmployeeType || "FullTime",
+                    "gender": sGender || "",
+                    "employeeType": sEmployeeType || "",
                     "doj": sDoJ || "",
-                    "band": sBand || "1",
+                    "band": sBand || "",
                     "role": sRole || "",
                     "location": sLocation || "",
                     "city": sCity || "",
                     "supervisorOHR": sSupervisor || "",
                     "skills": sSkills || "",
-                    "status": sStatus || "Allocated",
+                    "status": sStatus || "",
                     "lwd": sLWD || ""
                 };
                 
@@ -1815,8 +1985,8 @@ sap.ui.define([
                     "sfdcOpportunityId": sSfdcOppId || "",
                     "opportunityName": sOppName,
                     "businessUnit": sBusinessUnit || "",
-                    "probability": sProbability || "ProposalStage",
-                    "Stage": sStage || "Discover",
+                    "probability": sProbability || "",
+                    "Stage": sStage || "",
                     "salesSPOC": sSalesSPOC || "",
                     "deliverySPOC": sDeliverySPOC || "",
                     "expectedStart": sExpectedStart || "",
@@ -1911,8 +2081,8 @@ sap.ui.define([
                     "sfdcOpportunityId": sSfdcOppId || "",
                     "opportunityName": sOppName,
                     "businessUnit": sBusinessUnit || "",
-                    "probability": sProbability || "ProposalStage",
-                    "Stage": sStage || "Discover",
+                    "probability": sProbability || "",
+                    "Stage": sStage || "",
                     "salesSPOC": sSalesSPOC || "",
                     "deliverySPOC": sDeliverySPOC || "",
                     "expectedStart": sExpectedStart || "",
@@ -2088,14 +2258,15 @@ sap.ui.define([
             this.byId("inputSfdcOppId_oppr")?.setValue("");
             this.byId("inputOppName_oppr")?.setValue("");
             this.byId("inputBusinessUnit_oppr")?.setValue("");
-            this.byId("inputProbability_oppr")?.setSelectedKey("ProposalStage");
-            this.byId("inputStage_oppr")?.setSelectedKey("Discover");
+            this.byId("inputProbability_oppr")?.setSelectedKey("");
+            this.byId("inputStage_oppr")?.setSelectedKey("");
             this.byId("inputSalesSPOC_oppr")?.setValue("");
             this.byId("inputDeliverySPOC_oppr")?.setValue("");
             this.byId("inputExpectedStart_oppr")?.setValue("");
             this.byId("inputExpectedEnd_oppr")?.setValue("");
             this.byId("inputTCV_oppr")?.setValue("");
             this.byId("inputCustomerId_oppr")?.setValue("");
+            this.byId("inputCustomerId_oppr")?.data("selectedId", "");
             
             // Deselect any selected row
             if (oTable && oTable.clearSelection) {
@@ -2190,7 +2361,8 @@ sap.ui.define([
                 sProjectName = this.byId("inputProjectName_proj").getValue(),
                 sStartDate = this.byId("inputStartDate_proj").getValue(),
                 sEndDate = this.byId("inputEndDate_proj").getValue(),
-                sGPM = this.byId("inputGPM_proj").getValue(),
+                // Get GPM OHR ID from data attribute (not displayed name)
+                sGPM = (this.byId("inputGPM_proj")?.data("selectedId")) || this.byId("inputGPM_proj")?.getValue() || "",
                 sProjectType = this.byId("inputProjectType_proj").getSelectedKey(),
                 sStatus = this.byId("inputStatus_proj").getSelectedKey();
             
@@ -2231,14 +2403,14 @@ sap.ui.define([
                     "startDate": sStartDate || "",
                     "endDate": sEndDate || "",
                     "gpm": sGPM || "",
-                    "projectType": sProjectType || "FixedPrice",
-                    "status": sStatus || "Planned",
+                    "projectType": sProjectType || "",
+                    "status": sStatus || "",
                     "oppId": sOppId || "",
                     "requiredResources": sRequiredResources ? parseInt(sRequiredResources) : 0,
                     "allocatedResources": sAllocatedResources ? parseInt(sAllocatedResources) : 0,
                     "toBeAllocated": sToBeAllocated ? parseInt(sToBeAllocated) : 0,
-                    "SOWReceived": sSOWReceived || "No",
-                    "POReceived": sPOReceived || "No"
+                    "SOWReceived": sSOWReceived || "",
+                    "POReceived": sPOReceived || ""
                 };
                 
                 try {
@@ -2332,14 +2504,14 @@ sap.ui.define([
                     "startDate": sStartDate || "",
                     "endDate": sEndDate || "",
                     "gpm": sGPM || "",
-                    "projectType": sProjectType || "FixedPrice",
-                    "status": sStatus || "Planned",
+                    "projectType": sProjectType || "",
+                    "status": sStatus || "",
                     "oppId": sOppId || "",
                     "requiredResources": sRequiredResources ? parseInt(sRequiredResources) : 0,
                     "allocatedResources": sAllocatedResources ? parseInt(sAllocatedResources) : 0,
                     "toBeAllocated": sToBeAllocated ? parseInt(sToBeAllocated) : 0,
-                    "SOWReceived": sSOWReceived || "No",
-                    "POReceived": sPOReceived || "No"
+                    "SOWReceived": sSOWReceived || "",
+                    "POReceived": sPOReceived || ""
                 };
                 
                 console.log("Creating project with data:", oCreateEntry);
@@ -2511,14 +2683,17 @@ sap.ui.define([
             this.byId("inputStartDate_proj")?.setValue("");
             this.byId("inputEndDate_proj")?.setValue("");
             this.byId("inputGPM_proj")?.setValue("");
-            this.byId("inputProjectType_proj")?.setSelectedKey("FixedPrice");
-            this.byId("inputStatus_proj")?.setSelectedKey("Planned");
-            this.byId("inputOppId_proj")?.setSelectedKey("");
+            this.byId("inputProjectType_proj")?.setSelectedKey("");
+            this.byId("inputStatus_proj")?.setSelectedKey("");
+            this.byId("inputOppId_proj")?.setValue("");
+            this.byId("inputOppId_proj")?.data("selectedId", "");
+            this.byId("inputGPM_proj")?.setValue("");
+            this.byId("inputGPM_proj")?.data("selectedId", "");
             this.byId("inputRequiredResources_proj")?.setValue("");
             this.byId("inputAllocatedResources_proj")?.setValue("");
             this.byId("inputToBeAllocated_proj")?.setValue("");
-            this.byId("inputSOWReceived_proj")?.setSelectedKey("No");
-            this.byId("inputPOReceived_proj")?.setSelectedKey("No");
+            this.byId("inputSOWReceived_proj")?.setSelectedKey("");
+            this.byId("inputPOReceived_proj")?.setSelectedKey("");
             
             // Deselect any selected row
             if (oTable && oTable.clearSelection) {
@@ -2554,30 +2729,32 @@ sap.ui.define([
                     if (!sNextId || sNextId === "P-0001") {
                         const oModel = this.getOwnerComponent().getModel();
                         if (oModel) {
-                            oModel.read("/Projects", {
-                                urlParameters: {
-                                    "$orderby": "sapPId desc",
-                                    "$top": "1"
-                                },
-                                success: (oData) => {
-                                    console.log("[ID Generation] Project Backend query result:", oData);
-                                    let sBackendId = "P-0001";
-                                    if (oData && oData.results && oData.results.length > 0) {
-                                        const sMaxId = oData.results[0].sapPId || "";
+                            // ✅ FIXED: Use OData V4 bindList instead of oModel.read()
+                            const oBinding = oModel.bindList("/Projects", null, [], {
+                                "$orderby": "sapPId desc",
+                                "$top": "1"
+                            });
+                            
+                            oBinding.requestContexts(0, 1).then((aContexts) => {
+                                console.log("[ID Generation] Project Backend query result:", aContexts);
+                                let sBackendId = "P-0001";
+                                if (aContexts && aContexts.length > 0) {
+                                    const oObj = aContexts[0].getObject();
+                                    if (oObj && oObj.sapPId) {
+                                        const sMaxId = oObj.sapPId;
                                         const m = sMaxId.match(/(\d+)$/);
                                         if (m) {
                                             const iNextNum = parseInt(m[1], 10) + 1;
                                             sBackendId = `P-${String(iNextNum).padStart(4, "0")}`;
                                         }
                                     }
-                                    console.log("[ID Generation] Project Method 2 (backend):", sBackendId);
-                                    oProjIdInput.setValue(sBackendId);
-                                },
-                                error: (oError) => {
-                                    console.warn("[ID Generation] Project Backend query failed:", oError);
-                                    if (!sNextId || sNextId === "P-0001") {
-                                        oProjIdInput.setValue(sNextId);
-                                    }
+                                }
+                                console.log("[ID Generation] Project Method 2 (backend):", sBackendId);
+                                oProjIdInput.setValue(sBackendId);
+                            }).catch((oError) => {
+                                console.warn("[ID Generation] Project Backend query failed:", oError);
+                                if (!sNextId || sNextId === "P-0001") {
+                                    oProjIdInput.setValue(sNextId);
                                 }
                             });
                             
@@ -2658,10 +2835,21 @@ sap.ui.define([
             this.byId("inputEmployeeType_emp")?.setSelectedKey("");
             this.byId("inputDoJ_emp")?.setValue("");
             this.byId("inputBand_emp")?.setSelectedKey("");
-            this.byId("inputRole_emp")?.setValue("");
+            this.byId("inputRole_emp")?.setSelectedKey("");
+            // Clear designation dropdown items when band is cleared
+            const oDesignationSelect = this.byId("inputRole_emp");
+            if (oDesignationSelect) {
+                const aItems = oDesignationSelect.getItems();
+                aItems.forEach((oItem, iIndex) => {
+                    if (iIndex > 0) {
+                        oDesignationSelect.removeItem(oItem);
+                    }
+                });
+            }
             this.byId("inputLocation_emp")?.setValue("");
             this.byId("inputCity_emp")?.setValue("");
-            this.byId("inputSupervisor_emp")?.setSelectedKey("");
+            this.byId("inputSupervisor_emp")?.setValue("");
+            this.byId("inputSupervisor_emp")?.data("selectedId", "");
             this.byId("inputSkills_emp")?.setValue("");
             this.byId("inputStatus_emp")?.setSelectedKey("");
             this.byId("inputLWD_emp")?.setValue("");
@@ -2827,8 +3015,19 @@ sap.ui.define([
                 oView.addDependent(this._oEmployeeValueHelpDialog);
             }
             
+            // Check if this is GPM field (from Projects) or Supervisor field (from Employees)
+            const sInputId = oInput.getId();
+            const bIsGPMField = sInputId && sInputId.includes("inputGPM_proj");
+            
             this._oEmployeeValueHelpDialog._oInputField = oInput;
+            this._oEmployeeValueHelpDialog._isGPMField = bIsGPMField;
             this._oEmployeeValueHelpDialog.open();
+        },
+
+        // ✅ Value Help Dialog: GPM request handler (reuses Employee dialog)
+        onGPMValueHelpRequest: function (oEvent) {
+            // Reuse Employee value help dialog for GPM selection
+            this.onEmployeeValueHelpRequest(oEvent);
         },
 
         // ✅ Value Help Dialog: Cancel handler
@@ -2851,6 +3050,12 @@ sap.ui.define([
             if (oDialog) {
                 oDialog.close();
             }
+        },
+
+        // ✅ Value Help Dialog: GPM cancel handler (reuses Employee dialog)
+        onGPMValueHelpCancel: function (oEvent) {
+            // Reuse Employee value help cancel
+            this.onEmployeeValueHelpCancel(oEvent);
         },
 
         // ✅ Value Help Dialog: Customer selection handler
@@ -3077,6 +3282,112 @@ sap.ui.define([
                 oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
             } else {
                 oBinding.filter([], sap.ui.model.FilterType.Application);
+            }
+        },
+
+        // ✅ Helper: Populate Country dropdown when Customers fragment is loaded
+        _populateCountryDropdown: function () {
+            const oCountrySelect = this.byId("inputCountry");
+            if (oCountrySelect && this._mCountryToCities) {
+                const aCountries = Object.keys(this._mCountryToCities).sort();
+                const aItems = oCountrySelect.getItems();
+                
+                // Clear existing items (except placeholder)
+                aItems.forEach((oItem, iIndex) => {
+                    if (iIndex > 0) { // Keep first placeholder item
+                        oCountrySelect.removeItem(oItem);
+                    }
+                });
+                
+                // Add country items
+                aCountries.forEach((sCountry) => {
+                    oCountrySelect.addItem(new sap.ui.core.Item({
+                        key: sCountry,
+                        text: sCountry
+                    }));
+                });
+            }
+        },
+
+        // ✅ Handler: Country change - populate City dropdown
+        onCountryChange: function (oEvent) {
+            const sSelectedCountry = oEvent.getParameter("selectedItem")?.getKey() || "";
+            const oCitySelect = this.byId("inputCity");
+            
+            if (!oCitySelect) {
+                return;
+            }
+            
+            // Clear existing city items (except placeholder)
+            const aItems = oCitySelect.getItems();
+            aItems.forEach((oItem, iIndex) => {
+                if (iIndex > 0) { // Keep first placeholder item
+                    oCitySelect.removeItem(oItem);
+                }
+            });
+            
+            // Reset selection
+            oCitySelect.setSelectedKey("");
+            
+            if (!sSelectedCountry || !this._mCountryToCities) {
+                return;
+            }
+            
+            // Populate cities for selected country
+            const aCities = this._mCountryToCities[sSelectedCountry] || [];
+            aCities.forEach((sCity) => {
+                oCitySelect.addItem(new sap.ui.core.Item({
+                    key: sCity,
+                    text: sCity
+                }));
+            });
+            
+            // Update model
+            const oCustomerModel = this.getView().getModel("customerModel");
+            if (oCustomerModel) {
+                oCustomerModel.setProperty("/country", sSelectedCountry);
+                oCustomerModel.setProperty("/city", ""); // Reset city when country changes
+            }
+        },
+
+        // ✅ Handler: Band change - populate Designation dropdown
+        onBandChange: function (oEvent) {
+            const sSelectedBand = oEvent.getParameter("selectedItem")?.getKey() || "";
+            const oDesignationSelect = this.byId("inputRole_emp");
+            
+            if (!oDesignationSelect) {
+                return;
+            }
+            
+            // Clear existing designation items (except placeholder)
+            const aItems = oDesignationSelect.getItems();
+            aItems.forEach((oItem, iIndex) => {
+                if (iIndex > 0) { // Keep first placeholder item
+                    oDesignationSelect.removeItem(oItem);
+                }
+            });
+            
+            // Reset selection
+            oDesignationSelect.setSelectedKey("");
+            
+            if (!sSelectedBand || !this.mBandToDesignations) {
+                return;
+            }
+            
+            // Populate designations for selected band
+            const aDesignations = this.mBandToDesignations[sSelectedBand] || [];
+            aDesignations.forEach((sDesignation) => {
+                oDesignationSelect.addItem(new sap.ui.core.Item({
+                    key: sDesignation,
+                    text: sDesignation
+                }));
+            });
+            
+            // Update model
+            const oEmployeeModel = this.getView().getModel("employeeModel");
+            if (oEmployeeModel) {
+                oEmployeeModel.setProperty("/band", sSelectedBand);
+                oEmployeeModel.setProperty("/role", ""); // Reset designation when band changes
             }
         },
 

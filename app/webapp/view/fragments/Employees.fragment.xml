@@ -100,6 +100,7 @@
                             <Label text="Gender" />
                             <Select id="inputGender_emp" selectedKey="{employeeModel>/gender}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Gender..." />
                                     <core:Item key="Male" text="Male" />
                                     <core:Item key="Female" text="Female" />
                                     <core:Item key="Others" text="Others" />
@@ -109,6 +110,7 @@
                             <Label text="Employee Type" />
                             <Select id="inputEmployeeType_emp" selectedKey="{employeeModel>/employeeType}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Employee Type..." />
                                     <core:Item key="FullTime" text="Full Time" />
                                     <core:Item key="SubCon" text="Subcon" />
                                     <core:Item key="Intern" text="Intern" />
@@ -122,6 +124,7 @@
                             <Label text="Status" />
                             <Select id="inputStatus_emp" selectedKey="{employeeModel>/status}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Status..." />
                                     <core:Item key="PreAllocated" text="Pre Allocated" />
                                     <core:Item key="Bench" text="Bench" />
                                     <core:Item key="Resigned" text="Resigned" />
@@ -145,8 +148,9 @@
                             columnsM="1"
                             class="sapUiNoContentPadding">
                             <Label text="Band" />
-                            <Select id="inputBand_emp" selectedKey="{employeeModel>/band}" width="100%">
+                            <Select id="inputBand_emp" selectedKey="{employeeModel>/band}" width="100%" change="onBandChange">
                                 <items>
+                                    <core:Item key="" text="Select Band..." />
                                     <core:Item key="1" text="1" />
                                     <core:Item key="2" text="2" />
                                     <core:Item key="3" text="3" />
@@ -162,7 +166,11 @@
                             </Select>
                             
                             <Label text="Designation" />
-                            <Input id="inputRole_emp" value="{employeeModel>/role}" width="100%" />
+                            <Select id="inputRole_emp" selectedKey="{employeeModel>/role}" width="100%">
+                                <items>
+                                    <core:Item key="" text="Select Designation..." />
+                                </items>
+                            </Select>
                             
                             <Label text="Location" />
                             <Input id="inputLocation_emp" value="{employeeModel>/location}" width="100%" />

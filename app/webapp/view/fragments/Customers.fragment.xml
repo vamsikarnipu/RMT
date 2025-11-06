@@ -106,10 +106,18 @@
                             <Input id="inputCustomerName" value="{customerModel>/customerName}" width="100%" />
                             
                             <Label text="Country" />
-                            <Input id="inputCountry" value="{customerModel>/country}" width="100%" />
+                            <Select id="inputCountry" selectedKey="{customerModel>/country}" width="100%" change="onCountryChange">
+                                <items>
+                                    <core:Item key="" text="Select Country..." />
+                                </items>
+                            </Select>
                             
-                            <Label text="State" />
-                            <Input id="inputState" value="{customerModel>/state}" width="100%" />
+                            <Label text="City" />
+                            <Select id="inputCity" selectedKey="{customerModel>/city}" width="100%">
+                                <items>
+                                    <core:Item key="" text="Select City..." />
+                                </items>
+                            </Select>
                         </f:SimpleForm>
                     </VBox>
                     
@@ -129,6 +137,7 @@
                             <Label text="Status" />
                             <Select id="inputStatus" selectedKey="{customerModel>/status}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Status..." />
                                     <core:Item key="A" text="Active" />
                                     <core:Item key="I" text="Inactive" />
                                     <core:Item key="P" text="Prospect" />
@@ -138,6 +147,7 @@
                             <Label text="Vertical" />
                             <Select id="inputVertical" selectedKey="{customerModel>/vertical}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Vertical..." />
                                     <core:Item key="BFS" text="BFS" />
                                     <core:Item key="CapitalMarkets" text="Capital Markets" />
                                     <core:Item key="CPG" text="CPG" />

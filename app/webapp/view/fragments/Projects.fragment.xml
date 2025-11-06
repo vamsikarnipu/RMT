@@ -104,7 +104,17 @@
                             <DatePicker id="inputEndDate_proj" value="{projectModel>/endDate}" width="100%" />
                             
                             <Label text="GPM" />
-                            <Input id="inputGPM_proj" value="{projectModel>/gpm}" width="100%" />
+                            <Input 
+                                id="inputGPM_proj" 
+                                value="{projectModel>/gpm}" 
+                                width="100%"
+                                placeholder="Select GPM"
+                                showValueHelp="true"
+                                valueHelpRequest="onGPMValueHelpRequest">
+                                <layoutData>
+                                    <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
+                                </layoutData>
+                            </Input>
                             
                             <Label text="Project Type" />
                             <Select id="inputProjectType_proj" selectedKey="{projectModel>/projectType}" width="100%">

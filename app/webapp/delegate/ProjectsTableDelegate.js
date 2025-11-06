@@ -219,8 +219,9 @@ sap.ui.define([
         // ✅ Expand associations to load related entity names
         const sCollectionPath = sPath.replace(/^\//, "");
         if (sCollectionPath === "Projects") {
-            // Expand Opportunity association for Project table
-            oBindingInfo.parameters.$expand = "to_Opportunity";
+            // ✅ Expand Opportunity and GPM associations (like Supervisor in Employees)
+            oBindingInfo.parameters.$expand = "to_Opportunity,to_GPM";
+            console.log("[ProjectsTableDelegate] Expanded associations:", oBindingInfo.parameters.$expand);
         }
 
         console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);

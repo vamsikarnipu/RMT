@@ -245,7 +245,7 @@ sap.ui.define([
                 this.byId("inputEmployeeType_emp")?.setSelectedKey("");
                 this.byId("inputDoJ_emp")?.setValue("");
                 this.byId("inputBand_emp")?.setSelectedKey("");
-                this.byId("inputRole_emp")?.setValue("");
+                this.byId("inputRole_emp")?.setSelectedKey("");
                 this.byId("inputLocation_emp")?.setValue("");
                 this.byId("inputCity_emp")?.setValue("");
                 this.byId("inputSupervisor_emp")?.setValue("");
@@ -264,8 +264,34 @@ sap.ui.define([
             this.byId("inputGender_emp")?.setSelectedKey(oObj.gender || "");
             this.byId("inputEmployeeType_emp")?.setSelectedKey(oObj.employeeType || "");
             this.byId("inputDoJ_emp")?.setValue(oObj.doj || "");
-            this.byId("inputBand_emp")?.setSelectedKey(oObj.band || "");
-            this.byId("inputRole_emp")?.setValue(oObj.role || "");
+            const sBand = oObj.band || "";
+            this.byId("inputBand_emp")?.setSelectedKey(sBand);
+            
+            // ✅ Populate Designation dropdown based on Band selection
+            if (sBand && this.getView()) {
+                const oController = this.getView().getController();
+                if (oController && oController.mBandToDesignations) {
+                    const aDesignations = oController.mBandToDesignations[sBand] || [];
+                    const oDesignationSelect = this.byId("inputRole_emp");
+                    if (oDesignationSelect) {
+                        // Clear existing items (except placeholder)
+                        const aItems = oDesignationSelect.getItems();
+                        aItems.forEach((oItem, iIndex) => {
+                            if (iIndex > 0) {
+                                oDesignationSelect.removeItem(oItem);
+                            }
+                        });
+                        // Add designations for selected band
+                        aDesignations.forEach((sDesignation) => {
+                            oDesignationSelect.addItem(new sap.ui.core.Item({
+                                key: sDesignation,
+                                text: sDesignation
+                            }));
+                        });
+                    }
+                }
+            }
+            this.byId("inputRole_emp")?.setSelectedKey(oObj.role || "");
             this.byId("inputLocation_emp")?.setValue(oObj.location || "");
             this.byId("inputCity_emp")?.setValue(oObj.city || "");
             this.byId("inputSupervisor_emp")?.setValue(oObj.supervisorOHR || "");
@@ -295,8 +321,8 @@ sap.ui.define([
                 this.byId("inputSfdcOppId_oppr")?.setValue("");
                 this.byId("inputOppName_oppr")?.setValue("");
                 this.byId("inputBusinessUnit_oppr")?.setValue("");
-                this.byId("inputProbability_oppr")?.setSelectedKey("ProposalStage");
-                this.byId("inputStage_oppr")?.setSelectedKey("Discover");
+                this.byId("inputProbability_oppr")?.setSelectedKey("");
+                this.byId("inputStage_oppr")?.setSelectedKey("");
                 this.byId("inputSalesSPOC_oppr")?.setValue("");
                 this.byId("inputDeliverySPOC_oppr")?.setValue("");
                 this.byId("inputExpectedStart_oppr")?.setValue("");
@@ -308,45 +334,70 @@ sap.ui.define([
             }
             
             // Row selected - populate form for update
-            // ✅ Use EXACT same simple approach as Customer and Employee (which are working perfectly)
+            // ✅ EXACT same pattern as Employee (which works perfectly)
             let oObj = aSelectedContexts[0].getObject();
-            
+
+            // Update model first (fields are bound to model)
+            let oOppModel = this.getView().getModel("opportunityModel");
+            if (!oOppModel) {
+                oOppModel = new sap.ui.model.json.JSONModel({});
+                this.getView().setModel(oOppModel, "opportunityModel");
+            }
+            oOppModel.setProperty("/sapOpportunityId", oObj.sapOpportunityId || "");
+            oOppModel.setProperty("/sfdcOpportunityId", oObj.sfdcOpportunityId || "");
+            oOppModel.setProperty("/opportunityName", oObj.opportunityName || "");
+            oOppModel.setProperty("/businessUnit", oObj.businessUnit || "");
+            oOppModel.setProperty("/probability", oObj.probability || "");
+            oOppModel.setProperty("/Stage", oObj.Stage || "");
+            oOppModel.setProperty("/salesSPOC", oObj.salesSPOC || "");
+            oOppModel.setProperty("/deliverySPOC", oObj.deliverySPOC || "");
+            oOppModel.setProperty("/expectedStart", oObj.expectedStart || "");
+            oOppModel.setProperty("/expectedEnd", oObj.expectedEnd || "");
+            oOppModel.setProperty("/tcv", oObj.tcv != null ? oObj.tcv : null);
+            oOppModel.setProperty("/customerId", oObj.customerId || "");
+
+            // Also set values directly on controls
             this.byId("inputSapOppId_oppr")?.setValue(oObj.sapOpportunityId || "");
-            this.byId("inputSapOppId_oppr")?.setEnabled(false); // Disable in update mode
+            this.byId("inputSapOppId_oppr")?.setEnabled(false);
             this.byId("inputSapOppId_oppr")?.setPlaceholder("");
             this.byId("inputSfdcOppId_oppr")?.setValue(oObj.sfdcOpportunityId || "");
             this.byId("inputOppName_oppr")?.setValue(oObj.opportunityName || "");
             this.byId("inputBusinessUnit_oppr")?.setValue(oObj.businessUnit || "");
-            this.byId("inputProbability_oppr")?.setSelectedKey(oObj.probability || "ProposalStage");
-            this.byId("inputStage_oppr")?.setSelectedKey(oObj.Stage || "Discover");
+            this.byId("inputProbability_oppr")?.setSelectedKey(oObj.probability || "");
+            this.byId("inputStage_oppr")?.setSelectedKey(oObj.Stage || "");
             this.byId("inputSalesSPOC_oppr")?.setValue(oObj.salesSPOC || "");
             this.byId("inputDeliverySPOC_oppr")?.setValue(oObj.deliverySPOC || "");
             this.byId("inputExpectedStart_oppr")?.setValue(oObj.expectedStart || "");
             this.byId("inputExpectedEnd_oppr")?.setValue(oObj.expectedEnd || "");
-            // ✅ Convert numeric field to string for Input control
             this.byId("inputTCV_oppr")?.setValue(oObj.tcv != null ? String(oObj.tcv) : "");
-            // For customer field - use same simple approach as Employee supervisor field
+
+            // ✅ Customer field - same pattern as Employee Supervisor
             const sCustomerId = oObj.customerId || "";
-            if (sCustomerId) {
-                // ✅ FIRST: Try to get name from expanded association (if available)
+            const oCustomerInput = this.byId("inputCustomerId_oppr");
+            if (sCustomerId && oCustomerInput) {
+                // First check association (same as Supervisor)
                 if (oObj.to_Customer && oObj.to_Customer.customerName) {
-                    this.byId("inputCustomerId_oppr")?.setValue(oObj.to_Customer.customerName);
+                    oCustomerInput.setValue(oObj.to_Customer.customerName);
+                    oCustomerInput.data("selectedId", sCustomerId);
                 } else {
-                    // If association not expanded, just set the ID (will be resolved by value help)
-                    this.byId("inputCustomerId_oppr")?.setValue(sCustomerId);
+                    // Load async (same as Supervisor)
+                    oCustomerInput.setValue(sCustomerId);
+                    oCustomerInput.data("selectedId", sCustomerId);
+                    const oModel = this.getView().getModel();
+                    if (oModel) {
+                        const oCustomerContext = oModel.bindContext(`/Customers('${sCustomerId}')`, null, { deferred: true });
+                        oCustomerContext.execute().then(() => {
+                            const oCustomer = oCustomerContext.getObject();
+                            if (oCustomer && oCustomer.customerName) {
+                                oCustomerInput.setValue(oCustomer.customerName);
+                                oCustomerInput.data("selectedId", sCustomerId);
+                            }
+                        }).catch(() => {});
+                    }
                 }
-                this.byId("inputCustomerId_oppr")?.data("selectedId", sCustomerId);
-                // Update model for backend submission
-                let oOppModel = this.getView().getModel("opportunityModel");
-                if (!oOppModel) {
-                    oOppModel = new sap.ui.model.json.JSONModel({ customerId: sCustomerId });
-                    this.getView().setModel(oOppModel, "opportunityModel");
-                } else {
-                    oOppModel.setProperty("/customerId", sCustomerId);
-                }
-            } else {
-                this.byId("inputCustomerId_oppr")?.setValue("");
-                this.byId("inputCustomerId_oppr")?.data("selectedId", "");
+            } else if (oCustomerInput) {
+                oCustomerInput.setValue("");
+                oCustomerInput.data("selectedId", "");
             }
         },
         
@@ -460,60 +511,126 @@ sap.ui.define([
                 this.byId("inputStartDate_proj")?.setValue("");
                 this.byId("inputEndDate_proj")?.setValue("");
                 this.byId("inputGPM_proj")?.setValue("");
-                this.byId("inputProjectType_proj")?.setSelectedKey("FixedPrice");
-                this.byId("inputStatus_proj")?.setSelectedKey("Planned");
+                this.byId("inputProjectType_proj")?.setSelectedKey("");
+                this.byId("inputStatus_proj")?.setSelectedKey("");
                 this.byId("inputOppId_proj")?.setValue("");
                 this.byId("inputOppId_proj")?.data("selectedId", "");
+                this.byId("inputGPM_proj")?.data("selectedId", "");
                 this.byId("inputRequiredResources_proj")?.setValue("");
                 this.byId("inputAllocatedResources_proj")?.setValue("");
                 this.byId("inputToBeAllocated_proj")?.setValue("");
-                this.byId("inputSOWReceived_proj")?.setSelectedKey("No");
-                this.byId("inputPOReceived_proj")?.setSelectedKey("No");
+                this.byId("inputSOWReceived_proj")?.setSelectedKey("");
+                this.byId("inputPOReceived_proj")?.setSelectedKey("");
                 return;
             }
             
             // Row selected - populate form for update
-            // ✅ Use EXACT same simple approach as Customer and Employee (which are working perfectly)
+            // ✅ EXACT same pattern as Employee (which works perfectly)
             let oObj = aSelectedContexts[0].getObject();
-            
+
+            // Update model first (fields are bound to model)
+            let oProjModel = this.getView().getModel("projectModel");
+            if (!oProjModel) {
+                oProjModel = new sap.ui.model.json.JSONModel({});
+                this.getView().setModel(oProjModel, "projectModel");
+            }
+            oProjModel.setProperty("/sapPId", oObj.sapPId || "");
+            oProjModel.setProperty("/sfdcPId", oObj.sfdcPId || "");
+            oProjModel.setProperty("/projectName", oObj.projectName || "");
+            oProjModel.setProperty("/startDate", oObj.startDate || "");
+            oProjModel.setProperty("/endDate", oObj.endDate || "");
+            oProjModel.setProperty("/gpm", oObj.gpm || "");
+            oProjModel.setProperty("/projectType", oObj.projectType || "");
+            oProjModel.setProperty("/status", oObj.status || "");
+            oProjModel.setProperty("/requiredResources", oObj.requiredResources != null ? oObj.requiredResources : null);
+            oProjModel.setProperty("/allocatedResources", oObj.allocatedResources != null ? oObj.allocatedResources : null);
+            oProjModel.setProperty("/toBeAllocated", oObj.toBeAllocated != null ? oObj.toBeAllocated : null);
+            oProjModel.setProperty("/SOWReceived", oObj.SOWReceived || "");
+            oProjModel.setProperty("/POReceived", oObj.POReceived || "");
+            oProjModel.setProperty("/oppId", oObj.oppId || "");
+
+            // Also set values directly on controls
             this.byId("inputSapProjId_proj")?.setValue(oObj.sapPId || "");
-            this.byId("inputSapProjId_proj")?.setEnabled(false); // Disable in update mode
+            this.byId("inputSapProjId_proj")?.setEnabled(false);
             this.byId("inputSapProjId_proj")?.setPlaceholder("");
             this.byId("inputSfdcProjId_proj")?.setValue(oObj.sfdcPId || "");
             this.byId("inputProjectName_proj")?.setValue(oObj.projectName || "");
             this.byId("inputStartDate_proj")?.setValue(oObj.startDate || "");
             this.byId("inputEndDate_proj")?.setValue(oObj.endDate || "");
-            // ✅ Convert numeric fields to strings for Input controls
-            this.byId("inputGPM_proj")?.setValue(oObj.gpm != null ? String(oObj.gpm) : "");
-            this.byId("inputProjectType_proj")?.setSelectedKey(oObj.projectType || "FixedPrice");
-            this.byId("inputStatus_proj")?.setSelectedKey(oObj.status || "Planned");
+            this.byId("inputProjectType_proj")?.setSelectedKey(oObj.projectType || "");
+            this.byId("inputStatus_proj")?.setSelectedKey(oObj.status || "");
             this.byId("inputRequiredResources_proj")?.setValue(oObj.requiredResources != null ? String(oObj.requiredResources) : "");
             this.byId("inputAllocatedResources_proj")?.setValue(oObj.allocatedResources != null ? String(oObj.allocatedResources) : "");
             this.byId("inputToBeAllocated_proj")?.setValue(oObj.toBeAllocated != null ? String(oObj.toBeAllocated) : "");
-            this.byId("inputSOWReceived_proj")?.setSelectedKey(oObj.SOWReceived || "No");
-            this.byId("inputPOReceived_proj")?.setSelectedKey(oObj.POReceived || "No");
-            // For opportunity field - use same simple approach as Employee supervisor field
+            this.byId("inputSOWReceived_proj")?.setSelectedKey(oObj.SOWReceived || "");
+            this.byId("inputPOReceived_proj")?.setSelectedKey(oObj.POReceived || "");
+
+            // ✅ GPM field - same pattern as Employee Supervisor
+            const sGPMId = oObj.gpm || "";
+            const oGPMInput = this.byId("inputGPM_proj");
+            if (sGPMId && oGPMInput) {
+                // First check association (same as Supervisor)
+                if (oObj.to_GPM && oObj.to_GPM.fullName) {
+                    oGPMInput.setValue(oObj.to_GPM.fullName);
+                    oGPMInput.data("selectedId", sGPMId);
+                } else {
+                    // Load async (same as Supervisor)
+                    oGPMInput.setValue(sGPMId);
+                    oGPMInput.data("selectedId", sGPMId);
+                    const oModel = this.getView().getModel();
+                    if (oModel && /^\d{6,10}$/.test(sGPMId.trim())) {
+                        const oEmployeeContext = oModel.bindContext(`/Employees('${sGPMId}')`, null, { deferred: true });
+                        oEmployeeContext.execute().then(() => {
+                            const oEmployee = oEmployeeContext.getObject();
+                            if (oEmployee && oEmployee.fullName) {
+                                oGPMInput.setValue(oEmployee.fullName);
+                                oGPMInput.data("selectedId", sGPMId);
+                            }
+                        }).catch(() => {});
+                    }
+                }
+            } else if (oGPMInput) {
+                oGPMInput.setValue("");
+                oGPMInput.data("selectedId", "");
+            }
+
+            // ✅ Opportunity field - same pattern as Employee Supervisor
             const sOppId = oObj.oppId || "";
-            if (sOppId) {
-                // ✅ FIRST: Try to get name from expanded association (if available)
+            const oOppInput = this.byId("inputOppId_proj");
+            console.log("[Project Form] Opportunity field - oppId:", sOppId, "to_Opportunity:", oObj.to_Opportunity, "oOppInput exists:", !!oOppInput);
+            if (sOppId && oOppInput) {
+                // ✅ Set immediately with ID first (like GPM)
+                oOppInput.setValue(sOppId);
+                oOppInput.data("selectedId", sOppId);
+                
+                // First check association (same as Supervisor)
                 if (oObj.to_Opportunity && oObj.to_Opportunity.opportunityName) {
-                    this.byId("inputOppId_proj")?.setValue(oObj.to_Opportunity.opportunityName);
+                    // Association expanded - update with name immediately
+                    oOppInput.setValue(oObj.to_Opportunity.opportunityName);
+                    oOppInput.data("selectedId", sOppId);
+                    console.log("[Project Form] ✅ Opportunity set from association:", oObj.to_Opportunity.opportunityName);
                 } else {
-                    // If association not expanded, just set the ID (will be resolved by value help)
-                    this.byId("inputOppId_proj")?.setValue(sOppId);
+                    // Load async (same as Supervisor)
+                    console.log("[Project Form] Loading Opportunity name async for ID:", sOppId);
+                    const oModel = this.getView().getModel();
+                    if (oModel) {
+                        const oOppContext = oModel.bindContext(`/Opportunities('${sOppId}')`, null, { deferred: true });
+                        oOppContext.execute().then(() => {
+                            const oOpportunity = oOppContext.getObject();
+                            console.log("[Project Form] Opportunity loaded:", oOpportunity);
+                            if (oOpportunity && oOpportunity.opportunityName) {
+                                oOppInput.setValue(oOpportunity.opportunityName);
+                                oOppInput.data("selectedId", sOppId);
+                                console.log("[Project Form] ✅ Opportunity field updated with name:", oOpportunity.opportunityName);
+                            }
+                        }).catch((oError) => {
+                            console.warn("[Project Form] Error loading Opportunity name:", oError);
+                        });
+                    }
                 }
-                this.byId("inputOppId_proj")?.data("selectedId", sOppId);
-                // Update model for backend submission
-                let oProjModel = this.getView().getModel("projectModel");
-                if (!oProjModel) {
-                    oProjModel = new sap.ui.model.json.JSONModel({ oppId: sOppId });
-                    this.getView().setModel(oProjModel, "projectModel");
-                } else {
-                    oProjModel.setProperty("/oppId", sOppId);
-                }
-            } else {
-                this.byId("inputOppId_proj")?.setValue("");
-                this.byId("inputOppId_proj")?.data("selectedId", "");
+            } else if (oOppInput) {
+                oOppInput.setValue("");
+                oOppInput.data("selectedId", "");
             }
         },
         
@@ -633,10 +750,10 @@ sap.ui.define([
                     oCustomerIdInput.setPlaceholder("Auto-generated");
                 }
                 this.byId("inputCustomerName")?.setValue("");
-                this.byId("inputCountry")?.setValue("");
-                this.byId("inputState")?.setValue("");
+                this.byId("inputCountry")?.setSelectedKey("");
+                this.byId("inputCity")?.setSelectedKey("");
                 this.byId("inputStatus")?.setSelectedKey("");
-                this.byId("inputVertical")?.setValue("");
+                this.byId("inputVertical")?.setSelectedKey("");
                 return;
             }
             
@@ -646,8 +763,57 @@ sap.ui.define([
             this.byId("inputCustomerId")?.setEnabled(false); // Always disabled - key field cannot be changed
             this.byId("inputCustomerId")?.setPlaceholder("");
             this.byId("inputCustomerName")?.setValue(oObj.customerName || "");
-            this.byId("inputCountry")?.setValue(oObj.country || "");
-            this.byId("inputState")?.setValue(oObj.state || "");
+            
+            const sCountry = oObj.country || "";
+            const sState = oObj.state || "";
+            
+            // ✅ Set Country first
+            this.byId("inputCountry")?.setSelectedKey(sCountry);
+            
+            // ✅ Populate City dropdown based on Country and match state to city format
+            if (sCountry && this.getView()) {
+                const oController = this.getView().getController();
+                if (oController && oController._mCountryToCities) {
+                    const aCities = oController._mCountryToCities[sCountry] || [];
+                    const oCitySelect = this.byId("inputCity");
+                    if (oCitySelect) {
+                        // Clear existing items (except placeholder)
+                        const aItems = oCitySelect.getItems();
+                        aItems.forEach((oItem, iIndex) => {
+                            if (iIndex > 0) {
+                                oCitySelect.removeItem(oItem);
+                            }
+                        });
+                        // Add cities for selected country
+                        aCities.forEach((sCity) => {
+                            oCitySelect.addItem(new sap.ui.core.Item({
+                                key: sCity,
+                                text: sCity
+                            }));
+                        });
+                        
+                        // ✅ Match state to city format (e.g., "Karnataka" -> "Bangalore (Karnataka)")
+                        if (sState) {
+                            const oMatchedCity = aCities.find((sCity) => {
+                                // Extract state from city format "City (State)"
+                                const sMatch = sCity.match(/\(([^)]+)\)/);
+                                return sMatch && sMatch[1] === sState;
+                            });
+                            if (oMatchedCity) {
+                                this.byId("inputCity")?.setSelectedKey(oMatchedCity);
+                            } else {
+                                // Fallback: try to find city that contains state
+                                const oFallbackCity = aCities.find((sCity) => sCity.includes(sState));
+                                if (oFallbackCity) {
+                                    this.byId("inputCity")?.setSelectedKey(oFallbackCity);
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                this.byId("inputCity")?.setSelectedKey("");
+            }
             // Status enum: backend uses A/I/P, form uses same keys now
             this.byId("inputStatus")?.setSelectedKey(oObj.status || "A");
             this.byId("inputVertical")?.setValue(oObj.vertical || "");
@@ -1881,16 +2047,16 @@ sap.ui.define([
                 // oEmptyData.segment = ""; // Optional, user can fill
                 oEmptyData.state = ""; // Optional, user can fill
                 oEmptyData.country = ""; // User will fill this
-                oEmptyData.status = "Active"; // Default to Active (CustomerStatusEnum: A = 'Active')
-                oEmptyData.vertical = "BFS"; // ✅ UPDATED: Default to BFS (VerticalEnum value)
+                oEmptyData.status = ""; // No default
+                oEmptyData.vertical = ""; // No default
             } else if (sTableId === "Employees") {
                 oEmptyData.ohrId = ""; // Will be auto-generated
                 oEmptyData.mailid = ""; // User will fill this
                 oEmptyData.fullName = ""; // User will fill this
                 // oEmptyData.lastName = ""; // User will fill this
-                oEmptyData.gender = "Male"; // Default to Male (GenderEnum)
-                oEmptyData.employeeType = "FullTime"; // Default to FullTime (EmployeeTypeEnum)
-                oEmptyData.doj = new Date().toISOString().split('T')[0]; // Today's date
+                oEmptyData.gender = ""; // No default
+                oEmptyData.employeeType = ""; // No default
+                oEmptyData.doj = ""; // No default
                 oEmptyData.band = ""; // User will fill this (EmployeeBandEnum)
                 oEmptyData.role = ""; // User will fill this
                 oEmptyData.location = ""; // User will fill this
