@@ -988,35 +988,94 @@ sap.ui.define([
                         
                         console.log("Customer context created:", oNewContext.getPath());
                         
+                        // ✅ CRITICAL: Set all properties individually to ensure they're queued in batch group
+                        Object.keys(oCreateEntry).forEach(sKey => {
+                            oNewContext.setProperty(sKey, oCreateEntry[sKey]);
+                        });
+                        
+                        // ✅ CRITICAL: Check if batch group has pending changes before submitting
+                        const bHasPendingChanges = oModel.hasPendingChanges && oModel.hasPendingChanges("changesGroup");
+                        console.log("Customer - Has pending changes in batch group:", bHasPendingChanges);
+                        
                         // Submit the batch to send to backend
+                        console.log("Submitting batch for Customers...");
                         oModel.submitBatch("changesGroup")
                             .then(() => {
                                 console.log("Customer created successfully!");
-                                MessageToast.show("Customer created successfully!");
                                 
-                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                setTimeout(() => {
-                                    // Immediately rebind MDC table (this is the key for MDC tables)
-                                    if (oTable.rebind) {
-                                        try {
-                                            oTable.rebind();
-                                        } catch (e) {
-                                            console.log("Rebind error:", e);
+                                // ✅ CRITICAL: Fetch fresh data from backend (not from UI form)
+                                if (oNewContext && oNewContext.requestObject) {
+                                    oNewContext.requestObject().then(() => {
+                                        const oBackendData = oNewContext.getObject();
+                                        console.log("✅ Customer data from backend:", oBackendData);
+                                        
+                                        MessageToast.show("Customer created successfully!");
+                                        
+                                        // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                        setTimeout(() => {
+                                            // Immediately rebind MDC table (this is the key for MDC tables)
+                                            if (oTable.rebind) {
+                                                try {
+                                                    oTable.rebind();
+                                                } catch (e) {
+                                                    console.log("Rebind error:", e);
+                                                }
+                                            }
+                                            
+                                            // Also try refresh methods as backup
+                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                            
+                                            if (oRowBinding) {
+                                                oRowBinding.refresh(true).catch(() => {});
+                                            } else if (oBinding) {
+                                                oBinding.refresh(true).catch(() => {});
+                                            }
+                                        }, 150); // Small delay to ensure batch is committed
+                                        
+                                        this.onCancelForm(); // Clear form after successful create
+                                    }).catch(() => {
+                                        // If requestObject fails, still show success and refresh
+                                        MessageToast.show("Customer created successfully!");
+                                        setTimeout(() => {
+                                            if (oTable.rebind) {
+                                                try {
+                                                    oTable.rebind();
+                                                } catch (e) {
+                                                    console.log("Rebind error:", e);
+                                                }
+                                            }
+                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                            if (oRowBinding) {
+                                                oRowBinding.refresh(true).catch(() => {});
+                                            } else if (oBinding) {
+                                                oBinding.refresh(true).catch(() => {});
+                                            }
+                                        }, 150);
+                                        this.onCancelForm();
+                                    });
+                                } else {
+                                    // Fallback if requestObject not available
+                                    MessageToast.show("Customer created successfully!");
+                                    setTimeout(() => {
+                                        if (oTable.rebind) {
+                                            try {
+                                                oTable.rebind();
+                                            } catch (e) {
+                                                console.log("Rebind error:", e);
+                                            }
                                         }
-                                    }
-                                    
-                                    // Also try refresh methods as backup
-                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                    
-                                    if (oRowBinding) {
-                                        oRowBinding.refresh(true).catch(() => {});
-                                    } else if (oBinding) {
-                                        oBinding.refresh(true).catch(() => {});
-                                    }
-                                }, 150); // Small delay to ensure batch is committed
-                                
-                                this.onCancelForm(); // Clear form after successful create
+                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oRowBinding) {
+                                            oRowBinding.refresh(true).catch(() => {});
+                                        } else if (oBinding) {
+                                            oBinding.refresh(true).catch(() => {});
+                                        }
+                                    }, 150);
+                                    this.onCancelForm();
+                                }
                             })
                             .catch((oError) => {
                                 console.error("Create batch error:", oError);
@@ -2016,30 +2075,79 @@ sap.ui.define([
                     
                     oModel.submitBatch("changesGroup")
                         .then(() => {
-                            MessageToast.show("Opportunity updated successfully!");
-                            // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                            setTimeout(() => {
-                                // Immediately rebind MDC table (this is the key for MDC tables)
-                                if (oTable.rebind) {
-                                    try {
-                                        oTable.rebind();
-                                    } catch (e) {
-                                        console.log("Rebind error:", e);
+                            // ✅ CRITICAL: Fetch fresh data from backend (not from UI form)
+                            if (oContext && oContext.requestObject) {
+                                oContext.requestObject().then(() => {
+                                    const oBackendData = oContext.getObject();
+                                    console.log("✅ Opportunity updated data from backend:", oBackendData);
+                                    
+                                    MessageToast.show("Opportunity updated successfully!");
+                                    
+                                    // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                    setTimeout(() => {
+                                        // Immediately rebind MDC table (this is the key for MDC tables)
+                                        if (oTable.rebind) {
+                                            try {
+                                                oTable.rebind();
+                                            } catch (e) {
+                                                console.log("Rebind error:", e);
+                                            }
+                                        }
+                                        
+                                        // Also try refresh methods as backup
+                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        
+                                        if (oRowBinding) {
+                                            oRowBinding.refresh(true).catch(() => {});
+                                        } else if (oBinding) {
+                                            oBinding.refresh(true).catch(() => {});
+                                        }
+                                    }, 150); // Small delay to ensure batch is committed
+                                    
+                                    this.onCancelOpportunityForm();
+                                }).catch(() => {
+                                    // If requestObject fails, still show success and refresh
+                                    MessageToast.show("Opportunity updated successfully!");
+                                    setTimeout(() => {
+                                        if (oTable.rebind) {
+                                            try {
+                                                oTable.rebind();
+                                            } catch (e) {
+                                                console.log("Rebind error:", e);
+                                            }
+                                        }
+                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oRowBinding) {
+                                            oRowBinding.refresh(true).catch(() => {});
+                                        } else if (oBinding) {
+                                            oBinding.refresh(true).catch(() => {});
+                                        }
+                                    }, 150);
+                                    this.onCancelOpportunityForm();
+                                });
+                            } else {
+                                // Fallback if requestObject not available
+                                MessageToast.show("Opportunity updated successfully!");
+                                setTimeout(() => {
+                                    if (oTable.rebind) {
+                                        try {
+                                            oTable.rebind();
+                                        } catch (e) {
+                                            console.log("Rebind error:", e);
+                                        }
                                     }
-                                }
-                                
-                                // Also try refresh methods as backup
-                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                
-                                if (oRowBinding) {
-                                    oRowBinding.refresh(true).catch(() => {});
-                                } else if (oBinding) {
-                                    oBinding.refresh(true).catch(() => {});
-                                }
-                            }, 150); // Small delay to ensure batch is committed
-                            
-                            this.onCancelOpportunityForm();
+                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                    if (oRowBinding) {
+                                        oRowBinding.refresh(true).catch(() => {});
+                                    } else if (oBinding) {
+                                        oBinding.refresh(true).catch(() => {});
+                                    }
+                                }, 150);
+                                this.onCancelOpportunityForm();
+                            }
                         })
                         .catch((oError) => {
                             setTimeout(() => {
@@ -2103,91 +2211,143 @@ sap.ui.define([
                 
                 console.log("Creating opportunity with data:", oCreateEntry);
                 
+                // Try to get binding using multiple methods (MDC table pattern) - EXACT same as Customer
                 let oBinding = (oTable.getRowBinding && oTable.getRowBinding())
                     || oTable.getBinding("items")
                     || oTable.getBinding("rows");
                 
                 if (oBinding) {
+                    // Binding available - use batch mode with binding.create() - EXACT same as Customer
                     try {
+                        // Create new context using binding with "changesGroup" for batch mode
                         const oNewContext = oBinding.create(oCreateEntry, "changesGroup");
+                        
                         if (!oNewContext) {
                             sap.m.MessageBox.error("Failed to create opportunity entry.");
                             return;
                         }
+                        
                         console.log("Opportunity context created:", oNewContext.getPath());
                         
+                        // ✅ CRITICAL: Set all properties individually to ensure they're queued in batch group
+                        Object.keys(oCreateEntry).forEach(sKey => {
+                            oNewContext.setProperty(sKey, oCreateEntry[sKey]);
+                        });
+                        
+                        // ✅ CRITICAL: Check if batch group has pending changes before submitting
+                        const bHasPendingChanges = oModel.hasPendingChanges && oModel.hasPendingChanges("changesGroup");
+                        console.log("Opportunity - Has pending changes in batch group:", bHasPendingChanges);
+                        
+                        // Submit the batch to send to backend - EXACT same as Customer
+                        console.log("Submitting batch for Opportunities...");
                         oModel.submitBatch("changesGroup")
                             .then(() => {
                                 console.log("Opportunity created successfully!");
-                                MessageToast.show("Opportunity created successfully!");
-                                // ✅ Force refresh table to show new data immediately
-                                setTimeout(() => {
-                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                    const fnRefresh = () => {
-                                        if (oRowBinding) {
-                                            return oRowBinding.refresh(true);
-                                        } else {
-                                            return oBinding.refresh(true);
-                                        }
-                                    };
-                                    
-                                    fnRefresh().then(() => {
-                                        if (oTable.rebind) {
-                                            oTable.rebind();
-                                        }
-                                    }).catch(() => {
-                                        if (oTable.rebind) {
-                                            oTable.rebind();
-                                        }
-                                    });
-                                }, 100);
                                 
-                                this.onCancelOpportunityForm();
+                                // ✅ CRITICAL: Fetch fresh data from backend (not from UI form)
+                                if (oNewContext && oNewContext.requestObject) {
+                                    oNewContext.requestObject().then(() => {
+                                        const oBackendData = oNewContext.getObject();
+                                        console.log("✅ Opportunity data from backend:", oBackendData);
+                                        
+                                        MessageToast.show("Opportunity created successfully!");
+                                        
+                                        // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                        setTimeout(() => {
+                                            // Immediately rebind MDC table (this is the key for MDC tables)
+                                            if (oTable.rebind) {
+                                                try {
+                                                    oTable.rebind();
+                                                } catch (e) {
+                                                    console.log("Rebind error:", e);
+                                                }
+                                            }
+                                            
+                                            // Also try refresh methods as backup
+                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                            
+                                            if (oRowBinding) {
+                                                oRowBinding.refresh(true).catch(() => {});
+                                            } else if (oBinding) {
+                                                oBinding.refresh(true).catch(() => {});
+                                            }
+                                        }, 150); // Small delay to ensure batch is committed
+                                        
+                                        this.onCancelOpportunityForm(); // Clear form after successful create
+                                    }).catch(() => {
+                                        // If requestObject fails, still show success and refresh
+                                        MessageToast.show("Opportunity created successfully!");
+                                        setTimeout(() => {
+                                            if (oTable.rebind) {
+                                                try {
+                                                    oTable.rebind();
+                                                } catch (e) {
+                                                    console.log("Rebind error:", e);
+                                                }
+                                            }
+                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                            if (oRowBinding) {
+                                                oRowBinding.refresh(true).catch(() => {});
+                                            } else if (oBinding) {
+                                                oBinding.refresh(true).catch(() => {});
+                                            }
+                                        }, 150);
+                                        this.onCancelOpportunityForm();
+                                    });
+                                } else {
+                                    // Fallback if requestObject not available
+                                    MessageToast.show("Opportunity created successfully!");
+                                    setTimeout(() => {
+                                        if (oTable.rebind) {
+                                            try {
+                                                oTable.rebind();
+                                            } catch (e) {
+                                                console.log("Rebind error:", e);
+                                            }
+                                        }
+                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oRowBinding) {
+                                            oRowBinding.refresh(true).catch(() => {});
+                                        } else if (oBinding) {
+                                            oBinding.refresh(true).catch(() => {});
+                                        }
+                                    }, 150);
+                                    this.onCancelOpportunityForm();
+                                }
                             })
                             .catch((oError) => {
                                 console.error("Create batch error:", oError);
+                                
+                                // Check if create actually succeeded (false positive error) - EXACT same as Customer
                                 setTimeout(() => {
                                     try {
                                         const oCreatedData = oNewContext.getObject();
                                         if (oCreatedData && oCreatedData.opportunityName === oCreateEntry.opportunityName) {
+                                            // Create succeeded despite error
                                             console.log("✅ Create verified successful");
                                             MessageToast.show("Opportunity created successfully!");
-                                            // ✅ Force refresh table to show new data immediately
-                                            setTimeout(() => {
-                                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                                const fnRefresh = () => {
-                                                    if (oRowBinding) {
-                                                        return oRowBinding.refresh(true);
-                                                    } else {
-                                                        return oBinding.refresh(true);
-                                                    }
-                                                };
-                                                
-                                                fnRefresh().then(() => {
-                                                    if (oTable.rebind) {
-                                                        oTable.rebind();
-                                                    }
-                                                }).catch(() => {
-                                                    if (oTable.rebind) {
-                                                        oTable.rebind();
-                                                    }
-                                                });
-                                            }, 100);
-                                            
+                                            oBinding.refresh();
                                             this.onCancelOpportunityForm();
                                         } else {
+                                            // Actual failure - use direct model create as fallback
                                             this._createOpportunityDirect(oModel, oCreateEntry, oTable);
                                         }
                                     } catch (e) {
+                                        // Use direct model create as fallback
                                         this._createOpportunityDirect(oModel, oCreateEntry, oTable);
                                     }
                                 }, 150);
                             });
                     } catch (oCreateError) {
                         console.error("Error creating via binding:", oCreateError);
+                        // Fallback to direct model create
                         this._createOpportunityDirect(oModel, oCreateEntry, oTable);
                     }
                 } else {
+                    // No binding available - use direct model create (fallback) - EXACT same as Customer
                     console.log("Table binding not available, using direct model create");
                     this._createOpportunityDirect(oModel, oCreateEntry, oTable);
                 }
@@ -2436,33 +2596,79 @@ sap.ui.define([
                     
                     oModel.submitBatch("changesGroup")
                         .then(() => {
-                            MessageToast.show("Project updated successfully!");
-                            // ✅ Force refresh table to show updated data immediately
-                            setTimeout(() => {
-                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                
-                                const fnRefresh = () => {
-                                    if (oRowBinding) {
-                                        return oRowBinding.refresh(true);
-                                    } else if (oBinding) {
-                                        return oBinding.refresh(true);
-                                    }
-                                    return Promise.resolve();
-                                };
-                                
-                                fnRefresh().then(() => {
-                                    if (oTable.rebind) {
-                                        oTable.rebind();
-                                    }
+                            // ✅ CRITICAL: Fetch fresh data from backend (not from UI form)
+                            if (oContext && oContext.requestObject) {
+                                oContext.requestObject().then(() => {
+                                    const oBackendData = oContext.getObject();
+                                    console.log("✅ Project updated data from backend:", oBackendData);
+                                    
+                                    MessageToast.show("Project updated successfully!");
+                                    
+                                    // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                    setTimeout(() => {
+                                        // Immediately rebind MDC table (this is the key for MDC tables)
+                                        if (oTable.rebind) {
+                                            try {
+                                                oTable.rebind();
+                                            } catch (e) {
+                                                console.log("Rebind error:", e);
+                                            }
+                                        }
+                                        
+                                        // Also try refresh methods as backup
+                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        
+                                        if (oRowBinding) {
+                                            oRowBinding.refresh(true).catch(() => {});
+                                        } else if (oBinding) {
+                                            oBinding.refresh(true).catch(() => {});
+                                        }
+                                    }, 150); // Small delay to ensure batch is committed
+                                    
+                                    this.onCancelProjectForm();
                                 }).catch(() => {
-                                    if (oTable.rebind) {
-                                        oTable.rebind();
-                                    }
+                                    // If requestObject fails, still show success and refresh
+                                    MessageToast.show("Project updated successfully!");
+                                    setTimeout(() => {
+                                        if (oTable.rebind) {
+                                            try {
+                                                oTable.rebind();
+                                            } catch (e) {
+                                                console.log("Rebind error:", e);
+                                            }
+                                        }
+                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oRowBinding) {
+                                            oRowBinding.refresh(true).catch(() => {});
+                                        } else if (oBinding) {
+                                            oBinding.refresh(true).catch(() => {});
+                                        }
+                                    }, 150);
+                                    this.onCancelProjectForm();
                                 });
-                            }, 100); // Small delay to ensure batch is committed
-                            
-                            this.onCancelProjectForm();
+                            } else {
+                                // Fallback if requestObject not available
+                                MessageToast.show("Project updated successfully!");
+                                setTimeout(() => {
+                                    if (oTable.rebind) {
+                                        try {
+                                            oTable.rebind();
+                                        } catch (e) {
+                                            console.log("Rebind error:", e);
+                                        }
+                                    }
+                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                    if (oRowBinding) {
+                                        oRowBinding.refresh(true).catch(() => {});
+                                    } else if (oBinding) {
+                                        oBinding.refresh(true).catch(() => {});
+                                    }
+                                }, 150);
+                                this.onCancelProjectForm();
+                            }
                         })
                         .catch((oError) => {
                             setTimeout(() => {
@@ -2528,91 +2734,143 @@ sap.ui.define([
                 
                 console.log("Creating project with data:", oCreateEntry);
                 
+                // Try to get binding using multiple methods (MDC table pattern) - EXACT same as Customer
                 let oBinding = (oTable.getRowBinding && oTable.getRowBinding())
                     || oTable.getBinding("items")
                     || oTable.getBinding("rows");
                 
                 if (oBinding) {
+                    // Binding available - use batch mode with binding.create() - EXACT same as Customer
                     try {
+                        // Create new context using binding with "changesGroup" for batch mode
                         const oNewContext = oBinding.create(oCreateEntry, "changesGroup");
+                        
                         if (!oNewContext) {
                             sap.m.MessageBox.error("Failed to create project entry.");
                             return;
                         }
+                        
                         console.log("Project context created:", oNewContext.getPath());
                         
+                        // ✅ CRITICAL: Set all properties individually to ensure they're queued in batch group
+                        Object.keys(oCreateEntry).forEach(sKey => {
+                            oNewContext.setProperty(sKey, oCreateEntry[sKey]);
+                        });
+                        
+                        // ✅ CRITICAL: Check if batch group has pending changes before submitting
+                        const bHasPendingChanges = oModel.hasPendingChanges && oModel.hasPendingChanges("changesGroup");
+                        console.log("Project - Has pending changes in batch group:", bHasPendingChanges);
+                        
+                        // Submit the batch to send to backend - EXACT same as Customer
+                        console.log("Submitting batch for Projects...");
                         oModel.submitBatch("changesGroup")
                             .then(() => {
                                 console.log("Project created successfully!");
-                                MessageToast.show("Project created successfully!");
-                                // ✅ Force refresh table to show new data immediately
-                                setTimeout(() => {
-                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                    const fnRefresh = () => {
-                                        if (oRowBinding) {
-                                            return oRowBinding.refresh(true);
-                                        } else {
-                                            return oBinding.refresh(true);
-                                        }
-                                    };
-                                    
-                                    fnRefresh().then(() => {
-                                        if (oTable.rebind) {
-                                            oTable.rebind();
-                                        }
-                                    }).catch(() => {
-                                        if (oTable.rebind) {
-                                            oTable.rebind();
-                                        }
-                                    });
-                                }, 100);
                                 
-                                this.onCancelProjectForm();
+                                // ✅ CRITICAL: Fetch fresh data from backend (not from UI form)
+                                if (oNewContext && oNewContext.requestObject) {
+                                    oNewContext.requestObject().then(() => {
+                                        const oBackendData = oNewContext.getObject();
+                                        console.log("✅ Project data from backend:", oBackendData);
+                                        
+                                        MessageToast.show("Project created successfully!");
+                                        
+                                        // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                                        setTimeout(() => {
+                                            // Immediately rebind MDC table (this is the key for MDC tables)
+                                            if (oTable.rebind) {
+                                                try {
+                                                    oTable.rebind();
+                                                } catch (e) {
+                                                    console.log("Rebind error:", e);
+                                                }
+                                            }
+                                            
+                                            // Also try refresh methods as backup
+                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                            
+                                            if (oRowBinding) {
+                                                oRowBinding.refresh(true).catch(() => {});
+                                            } else if (oBinding) {
+                                                oBinding.refresh(true).catch(() => {});
+                                            }
+                                        }, 150); // Small delay to ensure batch is committed
+                                        
+                                        this.onCancelProjectForm(); // Clear form after successful create
+                                    }).catch(() => {
+                                        // If requestObject fails, still show success and refresh
+                                        MessageToast.show("Project created successfully!");
+                                        setTimeout(() => {
+                                            if (oTable.rebind) {
+                                                try {
+                                                    oTable.rebind();
+                                                } catch (e) {
+                                                    console.log("Rebind error:", e);
+                                                }
+                                            }
+                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                            if (oRowBinding) {
+                                                oRowBinding.refresh(true).catch(() => {});
+                                            } else if (oBinding) {
+                                                oBinding.refresh(true).catch(() => {});
+                                            }
+                                        }, 150);
+                                        this.onCancelProjectForm();
+                                    });
+                                } else {
+                                    // Fallback if requestObject not available
+                                    MessageToast.show("Project created successfully!");
+                                    setTimeout(() => {
+                                        if (oTable.rebind) {
+                                            try {
+                                                oTable.rebind();
+                                            } catch (e) {
+                                                console.log("Rebind error:", e);
+                                            }
+                                        }
+                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                                        if (oRowBinding) {
+                                            oRowBinding.refresh(true).catch(() => {});
+                                        } else if (oBinding) {
+                                            oBinding.refresh(true).catch(() => {});
+                                        }
+                                    }, 150);
+                                    this.onCancelProjectForm();
+                                }
                             })
                             .catch((oError) => {
                                 console.error("Create batch error:", oError);
+                                
+                                // Check if create actually succeeded (false positive error) - EXACT same as Customer
                                 setTimeout(() => {
                                     try {
                                         const oCreatedData = oNewContext.getObject();
                                         if (oCreatedData && oCreatedData.projectName === oCreateEntry.projectName) {
+                                            // Create succeeded despite error
                                             console.log("✅ Create verified successful");
                                             MessageToast.show("Project created successfully!");
-                                            // ✅ Force refresh table to show new data immediately
-                                            setTimeout(() => {
-                                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                                const fnRefresh = () => {
-                                                    if (oRowBinding) {
-                                                        return oRowBinding.refresh(true);
-                                                    } else {
-                                                        return oBinding.refresh(true);
-                                                    }
-                                                };
-                                                
-                                                fnRefresh().then(() => {
-                                                    if (oTable.rebind) {
-                                                        oTable.rebind();
-                                                    }
-                                                }).catch(() => {
-                                                    if (oTable.rebind) {
-                                                        oTable.rebind();
-                                                    }
-                                                });
-                                            }, 100);
-                                            
+                                            oBinding.refresh();
                                             this.onCancelProjectForm();
                                         } else {
+                                            // Actual failure - use direct model create as fallback
                                             this._createProjectDirect(oModel, oCreateEntry, oTable);
                                         }
                                     } catch (e) {
+                                        // Use direct model create as fallback
                                         this._createProjectDirect(oModel, oCreateEntry, oTable);
                                     }
                                 }, 150);
                             });
                     } catch (oCreateError) {
                         console.error("Error creating via binding:", oCreateError);
+                        // Fallback to direct model create
                         this._createProjectDirect(oModel, oCreateEntry, oTable);
                     }
                 } else {
+                    // No binding available - use direct model create (fallback) - EXACT same as Customer
                     console.log("Table binding not available, using direct model create");
                     this._createProjectDirect(oModel, oCreateEntry, oTable);
                 }
@@ -2716,6 +2974,7 @@ sap.ui.define([
             this.byId("inputSapProjId_proj")?.setPlaceholder("Auto-generated");
             this.byId("inputOppId_proj")?.setValue("");
             this.byId("inputOppId_proj")?.data("selectedId", "");
+            this.byId("inputGPM_proj")?.setValue("");
             this.byId("inputGPM_proj")?.data("selectedId", "");
             
             // Deselect any selected row
@@ -2837,45 +3096,45 @@ sap.ui.define([
             if (aSelectedContexts && aSelectedContexts.length > 0) {
                 const oContext = aSelectedContexts[0];
                 const oModel = oTable.getModel();
-                // ✅ CRITICAL: Fetch fresh data from backend with Supervisor association expanded
+                // ✅ CRITICAL: Fetch fresh data from backend - use requestObject with refresh
                 if (oModel && oContext.getPath) {
                     const sPath = oContext.getPath();
-                    // First fetch fresh base data using requestObject
-                    const fnFetchAndPopulate = () => {
-                        if (oContext.requestObject && typeof oContext.requestObject === "function") {
-                            oContext.requestObject().then(() => {
-                                // Now fetch Supervisor association if needed
-                                const oObj = oContext.getObject();
-                                const sSupervisorId = oObj && oObj.supervisorOHR;
-                                if (sSupervisorId && oModel) {
-                                    // Fetch Supervisor name
-                                    const oSupervisorContext = oModel.bindContext(`/Employees('${sSupervisorId}')`, null, { deferred: true });
-                                    oSupervisorContext.execute().then(() => {
-                                        const oSupervisor = oSupervisorContext.getObject();
-                                        if (oSupervisor && oObj) {
-                                            // Add supervisor data to object
-                                            oObj.to_Supervisor = oSupervisor;
-                                        }
-                                        // Now populate form
-                                        this._onEmpDialogData(aSelectedContexts);
-                                    }).catch(() => {
-                                        // If supervisor fetch fails, still populate form
-                                        this._onEmpDialogData(aSelectedContexts);
-                                    });
-                                } else {
-                                    // No supervisor or no model, populate directly
+                    // First, refresh the context to get fresh data from backend
+                    if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                        // Request fresh data from backend
+                        oContext.requestObject().then(() => {
+                            const oObj = oContext.getObject();
+                            console.log("✅ Employee fresh data from backend:", oObj);
+                            
+                            // Now fetch Supervisor association if needed
+                            const sSupervisorId = oObj && oObj.supervisorOHR;
+                            if (sSupervisorId && oModel) {
+                                // Fetch Supervisor name from backend
+                                const oSupervisorContext = oModel.bindContext(`/Employees('${sSupervisorId}')`, null, { deferred: true });
+                                oSupervisorContext.execute().then(() => {
+                                    const oSupervisor = oSupervisorContext.getObject();
+                                    if (oSupervisor && oObj) {
+                                        // Add supervisor data to object
+                                        oObj.to_Supervisor = oSupervisor;
+                                    }
+                                    // Now populate form with fresh backend data
                                     this._onEmpDialogData(aSelectedContexts);
-                                }
-                            }).catch(() => {
-                                // If requestObject fails, try direct populate
+                                }).catch(() => {
+                                    // If supervisor fetch fails, still populate form
+                                    this._onEmpDialogData(aSelectedContexts);
+                                });
+                            } else {
+                                // No supervisor, populate directly with fresh backend data
                                 this._onEmpDialogData(aSelectedContexts);
-                            });
-                        } else {
-                            // No requestObject, populate directly
+                            }
+                        }).catch(() => {
+                            // If requestObject fails, try direct populate
                             this._onEmpDialogData(aSelectedContexts);
-                        }
-                    };
-                    fnFetchAndPopulate();
+                        });
+                    } else {
+                        // No requestObject, populate directly
+                        this._onEmpDialogData(aSelectedContexts);
+                    }
                 } else {
                     // No path, use requestObject directly
                     if (oContext.requestObject && typeof oContext.requestObject === "function") {
@@ -2899,44 +3158,45 @@ sap.ui.define([
             if (aSelectedContexts && aSelectedContexts.length > 0) {
                 const oContext = aSelectedContexts[0];
                 const oModel = oTable.getModel();
-                // ✅ CRITICAL: Fetch fresh data from backend with Customer association expanded
+                // ✅ CRITICAL: Fetch fresh data from backend - use requestObject with refresh
                 if (oModel && oContext.getPath) {
-                    // First fetch fresh base data using requestObject
-                    const fnFetchAndPopulate = () => {
-                        if (oContext.requestObject && typeof oContext.requestObject === "function") {
-                            oContext.requestObject().then(() => {
-                                // Now fetch Customer association if needed
-                                const oObj = oContext.getObject();
-                                const sCustomerId = oObj && oObj.customerId;
-                                if (sCustomerId && oModel) {
-                                    // Fetch Customer name
-                                    const oCustomerContext = oModel.bindContext(`/Customers('${sCustomerId}')`, null, { deferred: true });
-                                    oCustomerContext.execute().then(() => {
-                                        const oCustomer = oCustomerContext.getObject();
-                                        if (oCustomer && oObj) {
-                                            // Add customer data to object
-                                            oObj.to_Customer = oCustomer;
-                                        }
-                                        // Now populate form
-                                        this._onOppDialogData(aSelectedContexts);
-                                    }).catch(() => {
-                                        // If customer fetch fails, still populate form
-                                        this._onOppDialogData(aSelectedContexts);
-                                    });
-                                } else {
-                                    // No customer or no model, populate directly
+                    const sPath = oContext.getPath();
+                    // First, refresh the context to get fresh data from backend
+                    if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                        // Request fresh data from backend
+                        oContext.requestObject().then(() => {
+                            const oObj = oContext.getObject();
+                            console.log("✅ Opportunity fresh data from backend:", oObj);
+                            
+                            // Now fetch Customer association if needed
+                            const sCustomerId = oObj && oObj.customerId;
+                            if (sCustomerId && oModel) {
+                                // Fetch Customer name from backend
+                                const oCustomerContext = oModel.bindContext(`/Customers('${sCustomerId}')`, null, { deferred: true });
+                                oCustomerContext.execute().then(() => {
+                                    const oCustomer = oCustomerContext.getObject();
+                                    if (oCustomer && oObj) {
+                                        // Add customer data to object
+                                        oObj.to_Customer = oCustomer;
+                                    }
+                                    // Now populate form with fresh backend data
                                     this._onOppDialogData(aSelectedContexts);
-                                }
-                            }).catch(() => {
-                                // If requestObject fails, try direct populate
+                                }).catch(() => {
+                                    // If customer fetch fails, still populate form
+                                    this._onOppDialogData(aSelectedContexts);
+                                });
+                            } else {
+                                // No customer, populate directly with fresh backend data
                                 this._onOppDialogData(aSelectedContexts);
-                            });
-                        } else {
-                            // No requestObject, populate directly
+                            }
+                        }).catch(() => {
+                            // If requestObject fails, try direct populate
                             this._onOppDialogData(aSelectedContexts);
-                        }
-                    };
-                    fnFetchAndPopulate();
+                        });
+                    } else {
+                        // No requestObject, populate directly
+                        this._onOppDialogData(aSelectedContexts);
+                    }
                 } else {
                     // No path, use requestObject directly
                     if (oContext.requestObject && typeof oContext.requestObject === "function") {
@@ -2960,66 +3220,68 @@ sap.ui.define([
             if (aSelectedContexts && aSelectedContexts.length > 0) {
                 const oContext = aSelectedContexts[0];
                 const oModel = oTable.getModel();
-                // ✅ CRITICAL: Fetch fresh data from backend with Opportunity and GPM associations expanded
+                // ✅ CRITICAL: Fetch fresh data from backend - use requestObject with refresh
                 if (oModel && oContext.getPath) {
-                    // First fetch fresh base data using requestObject
-                    const fnFetchAndPopulate = () => {
-                        if (oContext.requestObject && typeof oContext.requestObject === "function") {
-                            oContext.requestObject().then(() => {
-                                // Now fetch Opportunity and GPM associations if needed
-                                const oObj = oContext.getObject();
-                                const sOppId = oObj && oObj.oppId;
-                                const sGPMId = oObj && oObj.gpm;
-                                const aPromises = [];
-                                
-                                // Fetch Opportunity if exists
-                                if (sOppId && oModel) {
-                                    const oOppContext = oModel.bindContext(`/Opportunities('${sOppId}')`, null, { deferred: true });
-                                    aPromises.push(
-                                        oOppContext.execute().then(() => {
-                                            const oOpportunity = oOppContext.getObject();
-                                            if (oOpportunity && oObj) {
-                                                oObj.to_Opportunity = oOpportunity;
-                                            }
-                                        }).catch(() => {})
-                                    );
-                                }
-                                
-                                // Fetch GPM if exists
-                                if (sGPMId && oModel) {
-                                    const oGPMContext = oModel.bindContext(`/Employees('${sGPMId}')`, null, { deferred: true });
-                                    aPromises.push(
-                                        oGPMContext.execute().then(() => {
-                                            const oGPM = oGPMContext.getObject();
-                                            if (oGPM && oObj) {
-                                                oObj.to_GPM = oGPM;
-                                            }
-                                        }).catch(() => {})
-                                    );
-                                }
-                                
-                                // Wait for all association fetches, then populate form
-                                Promise.all(aPromises).then(() => {
-                                    this._onProjDialogData(aSelectedContexts);
-                                }).catch(() => {
-                                    // Even if some associations fail, populate form
-                                    this._onProjDialogData(aSelectedContexts);
-                                });
-                                
-                                // If no associations to fetch, populate immediately
-                                if (aPromises.length === 0) {
-                                    this._onProjDialogData(aSelectedContexts);
-                                }
+                    const sPath = oContext.getPath();
+                    // First, refresh the context to get fresh data from backend
+                    if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                        // Request fresh data from backend
+                        oContext.requestObject().then(() => {
+                            const oObj = oContext.getObject();
+                            console.log("✅ Project fresh data from backend:", oObj);
+                            
+                            // Now fetch Opportunity and GPM associations if needed
+                            const sOppId = oObj && oObj.oppId;
+                            const sGPMId = oObj && oObj.gpm;
+                            const aPromises = [];
+                            
+                            // Fetch Opportunity if exists
+                            if (sOppId && oModel) {
+                                const oOppContext = oModel.bindContext(`/Opportunities('${sOppId}')`, null, { deferred: true });
+                                aPromises.push(
+                                    oOppContext.execute().then(() => {
+                                        const oOpportunity = oOppContext.getObject();
+                                        if (oOpportunity && oObj) {
+                                            oObj.to_Opportunity = oOpportunity;
+                                        }
+                                    }).catch(() => {})
+                                );
+                            }
+                            
+                            // Fetch GPM if exists
+                            if (sGPMId && oModel) {
+                                const oGPMContext = oModel.bindContext(`/Employees('${sGPMId}')`, null, { deferred: true });
+                                aPromises.push(
+                                    oGPMContext.execute().then(() => {
+                                        const oGPM = oGPMContext.getObject();
+                                        if (oGPM && oObj) {
+                                            oObj.to_GPM = oGPM;
+                                        }
+                                    }).catch(() => {})
+                                );
+                            }
+                            
+                            // Wait for all association fetches, then populate form
+                            Promise.all(aPromises).then(() => {
+                                // Now populate form with fresh backend data
+                                this._onProjDialogData(aSelectedContexts);
                             }).catch(() => {
-                                // If requestObject fails, try direct populate
+                                // Even if some associations fail, populate form
                                 this._onProjDialogData(aSelectedContexts);
                             });
-                        } else {
-                            // No requestObject, populate directly
+                            
+                            // If no associations to fetch, populate immediately
+                            if (aPromises.length === 0) {
+                                this._onProjDialogData(aSelectedContexts);
+                            }
+                        }).catch(() => {
+                            // If requestObject fails, try direct populate
                             this._onProjDialogData(aSelectedContexts);
-                        }
-                    };
-                    fnFetchAndPopulate();
+                        });
+                    } else {
+                        // No requestObject, populate directly
+                        this._onProjDialogData(aSelectedContexts);
+                    }
                 } else {
                     // No path, use requestObject directly
                     if (oContext.requestObject && typeof oContext.requestObject === "function") {
@@ -3386,7 +3648,26 @@ sap.ui.define([
             if (oContext) {
                 const oEmployee = oContext.getObject();
                 if (oDialog._oInputField) {
-                    oDialog._oInputField.setValue(oEmployee.ohrId);
+                    // Check if this is for GPM field or Supervisor field
+                    const bIsGPMField = oDialog._isGPMField === true;
+                    const sDisplayValue = oEmployee.fullName || oEmployee.ohrId || "";
+                    const sStoredId = oEmployee.ohrId || "";
+                    
+                    // Display name in UI, store ID in data attribute
+                    oDialog._oInputField.setValue(sDisplayValue);
+                    oDialog._oInputField.data("selectedId", sStoredId);
+                    
+                    // Update context and refresh table for instant UI update
+                    if (oContext.setProperty && sStoredId) {
+                        const sFieldName = bIsGPMField ? "gpm" : "supervisorOHR";
+                        oContext.setProperty(sFieldName, sStoredId);
+                        oContext.requestObject().then(() => {
+                            const oTable = bIsGPMField ? this.byId("Projects") : this.byId("Employees");
+                            if (oTable) {
+                                oTable.getBinding("rows")?.refresh();
+                            }
+                        }).catch(() => {});
+                    }
                 }
             }
             oDialog.close();
