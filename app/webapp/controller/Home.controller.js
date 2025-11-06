@@ -763,6 +763,15 @@ sap.ui.define([
             oEditModel.setProperty(`/${sTableId}/editingPath`, "");
             oEditModel.setProperty(`/${sTableId}/mode`, null);
             oEditModel.setProperty("/currentTable", null);
+            
+            // ✅ FIX: Clear form models to prevent pre-loading when navigating back
+            const aFormModels = ["customerModel", "employeeModel", "opportunityModel", "projectModel"];
+            aFormModels.forEach((sModelName) => {
+                const oFormModel = this.getView().getModel(sModelName);
+                if (oFormModel) {
+                    oFormModel.setData({});
+                }
+            });
 
             // Disable Save/Cancel buttons
             const buttonMap = {
@@ -823,8 +832,8 @@ sap.ui.define([
         onSubmitCustomer: function () {
             const sCustId = this.byId("inputCustomerId").getValue(),
                 sCustName = this.byId("inputCustomerName").getValue(),
-                sCountry = this.byId("inputCountry").getValue(),
-                sState = this.byId("inputState").getValue(),
+                sCountry = this.byId("inputCountry").getSelectedKey(),
+                sState = this.byId("inputCity").getSelectedKey(), // ✅ FIXED: City is a Select control
                 sStatus = this.byId("inputStatus").getSelectedKey(),
                 sVertical = this.byId("inputVertical").getSelectedKey();
 
@@ -1102,32 +1111,32 @@ sap.ui.define([
                     if (!sNextId || sNextId === "C-0001") {
                         const oModel = this.getOwnerComponent().getModel();
                         if (oModel) {
-                            // Query backend to get max ID
-                            oModel.read("/Customers", {
-                                urlParameters: {
-                                    "$orderby": "SAPcustId desc",
-                                    "$top": "1"
-                                },
-                                success: (oData) => {
-                                    console.log("[ID Generation] Backend query result:", oData);
-                                    let sBackendId = "C-0001";
-                                    if (oData && oData.results && oData.results.length > 0) {
-                                        const sMaxId = oData.results[0].SAPcustId || "";
+                            // ✅ FIXED: Use OData V4 bindList instead of oModel.read()
+                            const oBinding = oModel.bindList("/Customers", null, [], {
+                                "$orderby": "SAPcustId desc",
+                                "$top": "1"
+                            });
+                            
+                            oBinding.requestContexts(0, 1).then((aContexts) => {
+                                console.log("[ID Generation] Customer Backend query result:", aContexts);
+                                let sBackendId = "C-0001";
+                                if (aContexts && aContexts.length > 0) {
+                                    const oObj = aContexts[0].getObject();
+                                    if (oObj && oObj.SAPcustId) {
+                                        const sMaxId = oObj.SAPcustId;
                                         const m = sMaxId.match(/(\d+)$/);
                                         if (m) {
                                             const iNextNum = parseInt(m[1], 10) + 1;
                                             sBackendId = `C-${String(iNextNum).padStart(4, "0")}`;
                                         }
                                     }
-                                    console.log("[ID Generation] Method 2 (backend):", sBackendId);
-                                    oCustomerIdInput.setValue(sBackendId);
-                                },
-                                error: (oError) => {
-                                    console.warn("[ID Generation] Backend query failed:", oError);
-                                    // Keep the default or binding result
-                                    if (!sNextId || sNextId === "C-0001") {
-                                        oCustomerIdInput.setValue(sNextId);
-                                    }
+                                }
+                                console.log("[ID Generation] Customer Method 2 (backend):", sBackendId);
+                                oCustomerIdInput.setValue(sBackendId);
+                            }).catch((oError) => {
+                                console.warn("[ID Generation] Customer Backend query failed:", oError);
+                                if (!sNextId || sNextId === "C-0001") {
+                                    oCustomerIdInput.setValue(sNextId);
                                 }
                             });
                             
@@ -1695,10 +1704,11 @@ sap.ui.define([
                 sEmployeeType = this.byId("inputEmployeeType_emp").getSelectedKey(),
                 sDoJ = this.byId("inputDoJ_emp").getValue(),
                 sBand = this.byId("inputBand_emp").getSelectedKey(),
-                sRole = this.byId("inputRole_emp").getValue(),
+                sRole = this.byId("inputRole_emp").getSelectedKey(), // ✅ FIXED: Role is a Select control
                 sLocation = this.byId("inputLocation_emp").getValue(),
                 sCity = this.byId("inputCity_emp").getValue(),
-                sSupervisor = this.byId("inputSupervisor_emp").getValue(),
+                // Get Supervisor OHR ID from data attribute (not displayed name)
+                sSupervisor = (this.byId("inputSupervisor_emp")?.data("selectedId")) || this.byId("inputSupervisor_emp")?.getValue() || "",
                 sSkills = this.byId("inputSkills_emp").getValue(),
                 sStatus = this.byId("inputStatus_emp").getSelectedKey(),
                 sLWD = this.byId("inputLWD_emp").getValue();
@@ -1722,16 +1732,16 @@ sap.ui.define([
                 const oUpdateEntry = {
                     "fullName": sFullName,
                     "mailid": sMailId || "",
-                    "gender": sGender || "Male",
-                    "employeeType": sEmployeeType || "FullTime",
+                    "gender": sGender || "",
+                    "employeeType": sEmployeeType || "",
                     "doj": sDoJ || "",
-                    "band": sBand || "1",
+                    "band": sBand || "",
                     "role": sRole || "",
                     "location": sLocation || "",
                     "city": sCity || "",
                     "supervisorOHR": sSupervisor || "",
                     "skills": sSkills || "",
-                    "status": sStatus || "Allocated",
+                    "status": sStatus || "",
                     "lwd": sLWD || ""
                 };
                 
@@ -2302,30 +2312,32 @@ sap.ui.define([
                     if (!sNextId || sNextId === "O-0001") {
                         const oModel = this.getOwnerComponent().getModel();
                         if (oModel) {
-                            oModel.read("/Opportunities", {
-                                urlParameters: {
-                                    "$orderby": "sapOpportunityId desc",
-                                    "$top": "1"
-                                },
-                                success: (oData) => {
-                                    console.log("[ID Generation] Opportunity Backend query result:", oData);
-                                    let sBackendId = "O-0001";
-                                    if (oData && oData.results && oData.results.length > 0) {
-                                        const sMaxId = oData.results[0].sapOpportunityId || "";
+                            // ✅ FIXED: Use OData V4 bindList instead of oModel.read()
+                            const oBinding = oModel.bindList("/Opportunities", null, [], {
+                                "$orderby": "sapOpportunityId desc",
+                                "$top": "1"
+                            });
+                            
+                            oBinding.requestContexts(0, 1).then((aContexts) => {
+                                console.log("[ID Generation] Opportunity Backend query result:", aContexts);
+                                let sBackendId = "O-0001";
+                                if (aContexts && aContexts.length > 0) {
+                                    const oObj = aContexts[0].getObject();
+                                    if (oObj && oObj.sapOpportunityId) {
+                                        const sMaxId = oObj.sapOpportunityId;
                                         const m = sMaxId.match(/(\d+)$/);
                                         if (m) {
                                             const iNextNum = parseInt(m[1], 10) + 1;
                                             sBackendId = `O-${String(iNextNum).padStart(4, "0")}`;
                                         }
                                     }
-                                    console.log("[ID Generation] Opportunity Method 2 (backend):", sBackendId);
-                                    oOppIdInput.setValue(sBackendId);
-                                },
-                                error: (oError) => {
-                                    console.warn("[ID Generation] Opportunity Backend query failed:", oError);
-                                    if (!sNextId || sNextId === "O-0001") {
-                                        oOppIdInput.setValue(sNextId);
-                                    }
+                                }
+                                console.log("[ID Generation] Opportunity Method 2 (backend):", sBackendId);
+                                oOppIdInput.setValue(sBackendId);
+                            }).catch((oError) => {
+                                console.warn("[ID Generation] Opportunity Backend query failed:", oError);
+                                if (!sNextId || sNextId === "O-0001") {
+                                    oOppIdInput.setValue(sNextId);
                                 }
                             });
                             
@@ -2674,26 +2686,37 @@ sap.ui.define([
                 console.log("Could not generate next ID, using default:", sNextId);
             }
             
-            // Clear all form fields
+            // ✅ CRITICAL: Clear the model first (form fields are bound to model)
+            let oProjModel = this.getView().getModel("projectModel");
+            if (!oProjModel) {
+                oProjModel = new sap.ui.model.json.JSONModel({});
+                this.getView().setModel(oProjModel, "projectModel");
+            }
+            // Clear all model properties
+            oProjModel.setData({
+                sapPId: sNextId,
+                sfdcPId: "",
+                projectName: "",
+                startDate: "",
+                endDate: "",
+                gpm: "",
+                projectType: "",
+                status: "",
+                oppId: "",
+                requiredResources: "",
+                allocatedResources: "",
+                toBeAllocated: "",
+                SOWReceived: "",
+                POReceived: ""
+            });
+            
+            // Also clear controls directly (for non-bound fields)
             this.byId("inputSapProjId_proj")?.setValue(sNextId);
             this.byId("inputSapProjId_proj")?.setEnabled(false);
             this.byId("inputSapProjId_proj")?.setPlaceholder("Auto-generated");
-            this.byId("inputSfdcProjId_proj")?.setValue("");
-            this.byId("inputProjectName_proj")?.setValue("");
-            this.byId("inputStartDate_proj")?.setValue("");
-            this.byId("inputEndDate_proj")?.setValue("");
-            this.byId("inputGPM_proj")?.setValue("");
-            this.byId("inputProjectType_proj")?.setSelectedKey("");
-            this.byId("inputStatus_proj")?.setSelectedKey("");
             this.byId("inputOppId_proj")?.setValue("");
             this.byId("inputOppId_proj")?.data("selectedId", "");
-            this.byId("inputGPM_proj")?.setValue("");
             this.byId("inputGPM_proj")?.data("selectedId", "");
-            this.byId("inputRequiredResources_proj")?.setValue("");
-            this.byId("inputAllocatedResources_proj")?.setValue("");
-            this.byId("inputToBeAllocated_proj")?.setValue("");
-            this.byId("inputSOWReceived_proj")?.setSelectedKey("");
-            this.byId("inputPOReceived_proj")?.setSelectedKey("");
             
             // Deselect any selected row
             if (oTable && oTable.clearSelection) {
@@ -2784,11 +2807,25 @@ sap.ui.define([
         },
 
         // ✅ NEW: Edit button handlers - populate forms when Edit is clicked
+        // ✅ CRITICAL: Always fetch fresh data from backend with associations expanded
         onEditCustomerForm: function () {
             const oTable = this.byId("Customers");
             const aSelectedContexts = oTable.getSelectedContexts();
             if (aSelectedContexts && aSelectedContexts.length > 0) {
-                this._onCustDialogData(aSelectedContexts);
+                const oContext = aSelectedContexts[0];
+                // ✅ CRITICAL: Fetch fresh data from backend using requestObject
+                if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                    oContext.requestObject().then(() => {
+                        // After fetching fresh data, populate form
+                        this._onCustDialogData(aSelectedContexts);
+                    }).catch(() => {
+                        // Fallback if request fails - still try to populate
+                        this._onCustDialogData(aSelectedContexts);
+                    });
+                } else {
+                    // No requestObject method - populate directly
+                    this._onCustDialogData(aSelectedContexts);
+                }
             } else {
                 sap.m.MessageToast.show("Please select a row to edit.");
             }
@@ -2798,7 +2835,59 @@ sap.ui.define([
             const oTable = this.byId("Employees");
             const aSelectedContexts = oTable.getSelectedContexts();
             if (aSelectedContexts && aSelectedContexts.length > 0) {
-                this._onEmpDialogData(aSelectedContexts);
+                const oContext = aSelectedContexts[0];
+                const oModel = oTable.getModel();
+                // ✅ CRITICAL: Fetch fresh data from backend with Supervisor association expanded
+                if (oModel && oContext.getPath) {
+                    const sPath = oContext.getPath();
+                    // First fetch fresh base data using requestObject
+                    const fnFetchAndPopulate = () => {
+                        if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                            oContext.requestObject().then(() => {
+                                // Now fetch Supervisor association if needed
+                                const oObj = oContext.getObject();
+                                const sSupervisorId = oObj && oObj.supervisorOHR;
+                                if (sSupervisorId && oModel) {
+                                    // Fetch Supervisor name
+                                    const oSupervisorContext = oModel.bindContext(`/Employees('${sSupervisorId}')`, null, { deferred: true });
+                                    oSupervisorContext.execute().then(() => {
+                                        const oSupervisor = oSupervisorContext.getObject();
+                                        if (oSupervisor && oObj) {
+                                            // Add supervisor data to object
+                                            oObj.to_Supervisor = oSupervisor;
+                                        }
+                                        // Now populate form
+                                        this._onEmpDialogData(aSelectedContexts);
+                                    }).catch(() => {
+                                        // If supervisor fetch fails, still populate form
+                                        this._onEmpDialogData(aSelectedContexts);
+                                    });
+                                } else {
+                                    // No supervisor or no model, populate directly
+                                    this._onEmpDialogData(aSelectedContexts);
+                                }
+                            }).catch(() => {
+                                // If requestObject fails, try direct populate
+                                this._onEmpDialogData(aSelectedContexts);
+                            });
+                        } else {
+                            // No requestObject, populate directly
+                            this._onEmpDialogData(aSelectedContexts);
+                        }
+                    };
+                    fnFetchAndPopulate();
+                } else {
+                    // No path, use requestObject directly
+                    if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                        oContext.requestObject().then(() => {
+                            this._onEmpDialogData(aSelectedContexts);
+                        }).catch(() => {
+                            this._onEmpDialogData(aSelectedContexts);
+                        });
+                    } else {
+                        this._onEmpDialogData(aSelectedContexts);
+                    }
+                }
             } else {
                 sap.m.MessageToast.show("Please select a row to edit.");
             }
@@ -2808,7 +2897,58 @@ sap.ui.define([
             const oTable = this.byId("Opportunities");
             const aSelectedContexts = oTable.getSelectedContexts();
             if (aSelectedContexts && aSelectedContexts.length > 0) {
-                this._onOppDialogData(aSelectedContexts);
+                const oContext = aSelectedContexts[0];
+                const oModel = oTable.getModel();
+                // ✅ CRITICAL: Fetch fresh data from backend with Customer association expanded
+                if (oModel && oContext.getPath) {
+                    // First fetch fresh base data using requestObject
+                    const fnFetchAndPopulate = () => {
+                        if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                            oContext.requestObject().then(() => {
+                                // Now fetch Customer association if needed
+                                const oObj = oContext.getObject();
+                                const sCustomerId = oObj && oObj.customerId;
+                                if (sCustomerId && oModel) {
+                                    // Fetch Customer name
+                                    const oCustomerContext = oModel.bindContext(`/Customers('${sCustomerId}')`, null, { deferred: true });
+                                    oCustomerContext.execute().then(() => {
+                                        const oCustomer = oCustomerContext.getObject();
+                                        if (oCustomer && oObj) {
+                                            // Add customer data to object
+                                            oObj.to_Customer = oCustomer;
+                                        }
+                                        // Now populate form
+                                        this._onOppDialogData(aSelectedContexts);
+                                    }).catch(() => {
+                                        // If customer fetch fails, still populate form
+                                        this._onOppDialogData(aSelectedContexts);
+                                    });
+                                } else {
+                                    // No customer or no model, populate directly
+                                    this._onOppDialogData(aSelectedContexts);
+                                }
+                            }).catch(() => {
+                                // If requestObject fails, try direct populate
+                                this._onOppDialogData(aSelectedContexts);
+                            });
+                        } else {
+                            // No requestObject, populate directly
+                            this._onOppDialogData(aSelectedContexts);
+                        }
+                    };
+                    fnFetchAndPopulate();
+                } else {
+                    // No path, use requestObject directly
+                    if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                        oContext.requestObject().then(() => {
+                            this._onOppDialogData(aSelectedContexts);
+                        }).catch(() => {
+                            this._onOppDialogData(aSelectedContexts);
+                        });
+                    } else {
+                        this._onOppDialogData(aSelectedContexts);
+                    }
+                }
             } else {
                 sap.m.MessageToast.show("Please select a row to edit.");
             }
@@ -2818,7 +2958,80 @@ sap.ui.define([
             const oTable = this.byId("Projects");
             const aSelectedContexts = oTable.getSelectedContexts();
             if (aSelectedContexts && aSelectedContexts.length > 0) {
-                this._onProjDialogData(aSelectedContexts);
+                const oContext = aSelectedContexts[0];
+                const oModel = oTable.getModel();
+                // ✅ CRITICAL: Fetch fresh data from backend with Opportunity and GPM associations expanded
+                if (oModel && oContext.getPath) {
+                    // First fetch fresh base data using requestObject
+                    const fnFetchAndPopulate = () => {
+                        if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                            oContext.requestObject().then(() => {
+                                // Now fetch Opportunity and GPM associations if needed
+                                const oObj = oContext.getObject();
+                                const sOppId = oObj && oObj.oppId;
+                                const sGPMId = oObj && oObj.gpm;
+                                const aPromises = [];
+                                
+                                // Fetch Opportunity if exists
+                                if (sOppId && oModel) {
+                                    const oOppContext = oModel.bindContext(`/Opportunities('${sOppId}')`, null, { deferred: true });
+                                    aPromises.push(
+                                        oOppContext.execute().then(() => {
+                                            const oOpportunity = oOppContext.getObject();
+                                            if (oOpportunity && oObj) {
+                                                oObj.to_Opportunity = oOpportunity;
+                                            }
+                                        }).catch(() => {})
+                                    );
+                                }
+                                
+                                // Fetch GPM if exists
+                                if (sGPMId && oModel) {
+                                    const oGPMContext = oModel.bindContext(`/Employees('${sGPMId}')`, null, { deferred: true });
+                                    aPromises.push(
+                                        oGPMContext.execute().then(() => {
+                                            const oGPM = oGPMContext.getObject();
+                                            if (oGPM && oObj) {
+                                                oObj.to_GPM = oGPM;
+                                            }
+                                        }).catch(() => {})
+                                    );
+                                }
+                                
+                                // Wait for all association fetches, then populate form
+                                Promise.all(aPromises).then(() => {
+                                    this._onProjDialogData(aSelectedContexts);
+                                }).catch(() => {
+                                    // Even if some associations fail, populate form
+                                    this._onProjDialogData(aSelectedContexts);
+                                });
+                                
+                                // If no associations to fetch, populate immediately
+                                if (aPromises.length === 0) {
+                                    this._onProjDialogData(aSelectedContexts);
+                                }
+                            }).catch(() => {
+                                // If requestObject fails, try direct populate
+                                this._onProjDialogData(aSelectedContexts);
+                            });
+                        } else {
+                            // No requestObject, populate directly
+                            this._onProjDialogData(aSelectedContexts);
+                        }
+                    };
+                    fnFetchAndPopulate();
+                } else {
+                    // No path, use requestObject directly
+                    if (oContext.requestObject && typeof oContext.requestObject === "function") {
+                        oContext.requestObject().then(() => {
+                            this._onProjDialogData(aSelectedContexts);
+                        }).catch(() => {
+                            this._onProjDialogData(aSelectedContexts);
+                        });
+                    } else {
+                        this._onProjDialogData(aSelectedContexts);
+                    }
+                }
             } else {
                 sap.m.MessageToast.show("Please select a row to edit.");
             }
@@ -3206,7 +3419,8 @@ sap.ui.define([
                     new sap.ui.model.Filter({
                         path: "customerName",
                         operator: sap.ui.model.FilterOperator.Contains,
-                        value1: sValue.trim()
+                        value1: sValue.trim(),
+                        caseSensitive: false // ✅ Case-insensitive search for value help
                     })
                 ];
                 oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
@@ -3241,7 +3455,8 @@ sap.ui.define([
                     new sap.ui.model.Filter({
                         path: "opportunityName",
                         operator: sap.ui.model.FilterOperator.Contains,
-                        value1: sValue.trim()
+                        value1: sValue.trim(),
+                        caseSensitive: false // ✅ Case-insensitive search for value help
                     })
                 ];
                 oBinding.filter(aFilters, sap.ui.model.FilterType.Application);
@@ -3276,7 +3491,8 @@ sap.ui.define([
                     new sap.ui.model.Filter({
                         path: "fullName",
                         operator: sap.ui.model.FilterOperator.Contains,
-                        value1: sValue.trim()
+                        value1: sValue.trim(),
+                        caseSensitive: false // ✅ Case-insensitive search for value help
                     })
                 ];
                 oBinding.filter(aFilters, sap.ui.model.FilterType.Application);

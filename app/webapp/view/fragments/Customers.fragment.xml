@@ -102,18 +102,18 @@
                             <Label text="Customer ID" />
                             <Input id="inputCustomerId" value="{customerModel>/SAPcustId}" width="100%" enabled="false" placeholder="Auto-generated" />
                             
-                            <Label text="Customer Name" />
-                            <Input id="inputCustomerName" value="{customerModel>/customerName}" width="100%" />
+                            <Label text="Customer Name" required="true" />
+                            <Input id="inputCustomerName" value="{customerModel>/customerName}" width="100%" required="true" />
                             
-                            <Label text="Country" />
-                            <Select id="inputCountry" selectedKey="{customerModel>/country}" width="100%" change="onCountryChange">
+                            <Label text="Country" required="true" />
+                            <Select id="inputCountry" selectedKey="{customerModel>/country}" width="100%" change="onCountryChange" required="true">
                                 <items>
                                     <core:Item key="" text="Select Country..." />
                                 </items>
                             </Select>
                             
-                            <Label text="City" />
-                            <Select id="inputCity" selectedKey="{customerModel>/city}" width="100%">
+                            <Label text="City" required="true" />
+                            <Select id="inputCity" selectedKey="{customerModel>/city}" width="100%" required="true">
                                 <items>
                                     <core:Item key="" text="Select City..." />
                                 </items>
@@ -134,8 +134,8 @@
                             columnsL="1"
                             columnsM="1"
                             class="sapUiNoContentPadding">
-                            <Label text="Status" />
-                            <Select id="inputStatus" selectedKey="{customerModel>/status}" width="100%">
+                            <Label text="Status" required="true" />
+                            <Select id="inputStatus" selectedKey="{customerModel>/status}" width="100%" required="true">
                                 <items>
                                     <core:Item key="" text="Select Status..." />
                                     <core:Item key="A" text="Active" />
@@ -144,8 +144,8 @@
                                 </items>
                             </Select>
                             
-                            <Label text="Vertical" />
-                            <Select id="inputVertical" selectedKey="{customerModel>/vertical}" width="100%">
+                            <Label text="Vertical" required="true" />
+                            <Select id="inputVertical" selectedKey="{customerModel>/vertical}" width="100%" required="true">
                                 <items>
                                     <core:Item key="" text="Select Vertical..." />
                                     <core:Item key="BFS" text="BFS" />

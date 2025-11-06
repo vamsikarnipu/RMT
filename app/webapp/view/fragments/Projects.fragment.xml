@@ -119,6 +119,7 @@
                             <Label text="Project Type" />
                             <Select id="inputProjectType_proj" selectedKey="{projectModel>/projectType}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Project Type..." />
                                     <core:Item key="FixedPrice" text="Fixed Price" />
                                     <core:Item key="TransactionBased" text="Transaction Based" />
                                     <core:Item key="FixedMonthly" text="Fixed Monthly" />
@@ -145,6 +146,7 @@
                             <Label text="Status" />
                             <Select id="inputStatus_proj" selectedKey="{projectModel>/status}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select Status..." />
                                     <core:Item key="Active" text="Active" />
                                     <core:Item key="Closed" text="Closed" />
                                     <core:Item key="Planned" text="Planned" />
@@ -175,6 +177,7 @@
                             <Label text="SOW Received" />
                             <Select id="inputSOWReceived_proj" selectedKey="{projectModel>/SOWReceived}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select SOW Received..." />
                                     <core:Item key="Yes" text="Yes" />
                                     <core:Item key="No" text="No" />
                                 </items>
@@ -183,6 +186,7 @@
                             <Label text="PO Received" />
                             <Select id="inputPOReceived_proj" selectedKey="{projectModel>/POReceived}" width="100%">
                                 <items>
+                                    <core:Item key="" text="Select PO Received..." />
                                     <core:Item key="Yes" text="Yes" />
                                     <core:Item key="No" text="No" />
                                 </items>

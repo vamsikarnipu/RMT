@@ -411,8 +411,34 @@ sap.ui.define([
                             });
                             console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ Displaying", sAssocPath, "from association");
                         } else {
+                            // ✅ FIX: Add date formatter for doj and lwd fields to ensure consistent formatting
+                            let oValueBinding = "{" + sPropertyName + "}";
+                            if (sPropertyName === "doj" || sPropertyName === "lwd") {
+                                // Format date strings consistently (handle both Date objects and string dates)
+                                oValueBinding = {
+                                    path: sPropertyName,
+                                    formatter: function(sValue) {
+                                        if (!sValue) return "";
+                                        // If already a formatted string, return as is
+                                        if (typeof sValue === "string" && sValue.match(/^\d{4}-\d{2}-\d{2}/)) {
+                                            // Format YYYY-MM-DD to readable format
+                                            const oDate = new Date(sValue);
+                                            if (!isNaN(oDate.getTime())) {
+                                                return oDate.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
+                                            }
+                                        }
+                                        // If it's a Date object, format it
+                                        if (sValue instanceof Date) {
+                                            return sValue.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
+                                        }
+                                        // Return as is if already formatted
+                                        return sValue;
+                                    }
+                                };
+                            }
+                            
                             oField = new Field({
-                                value: "{" + sPropertyName + "}",
+                                value: oValueBinding,
                                 tooltip: "{" + sPropertyName + "}",
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],

@@ -457,8 +457,8 @@ sap.ui.define([
             this.byId("inputSfdcOppId_oppr")?.setValue(oObj.sfdcOpportunityId || "");
             this.byId("inputOppName_oppr")?.setValue(oObj.opportunityName || "");
             this.byId("inputBusinessUnit_oppr")?.setValue(oObj.businessUnit || "");
-            this.byId("inputProbability_oppr")?.setSelectedKey(oObj.probability || "ProposalStage");
-            this.byId("inputStage_oppr")?.setSelectedKey(oObj.Stage || "Discover");
+            this.byId("inputProbability_oppr")?.setSelectedKey(oObj.probability || "");
+            this.byId("inputStage_oppr")?.setSelectedKey(oObj.Stage || "");
             this.byId("inputSalesSPOC_oppr")?.setValue(oObj.salesSPOC || "");
             this.byId("inputDeliverySPOC_oppr")?.setValue(oObj.deliverySPOC || "");
             this.byId("inputExpectedStart_oppr")?.setValue(oObj.expectedStart || "");
@@ -503,24 +503,37 @@ sap.ui.define([
                     console.log("Could not generate next Project ID, using default:", sNextId);
                 }
                 
+                // ✅ CRITICAL: Clear the model first (form fields are bound to model)
+                let oProjModel = this.getView().getModel("projectModel");
+                if (!oProjModel) {
+                    oProjModel = new sap.ui.model.json.JSONModel({});
+                    this.getView().setModel(oProjModel, "projectModel");
+                }
+                // Clear all model properties (no default values)
+                oProjModel.setData({
+                    sapPId: sNextId,
+                    sfdcPId: "",
+                    projectName: "",
+                    startDate: "",
+                    endDate: "",
+                    gpm: "",
+                    projectType: "",
+                    status: "",
+                    oppId: "",
+                    requiredResources: "",
+                    allocatedResources: "",
+                    toBeAllocated: "",
+                    SOWReceived: "",
+                    POReceived: ""
+                });
+                
+                // Also set controls directly (for non-bound fields and data attributes)
                 this.byId("inputSapProjId_proj")?.setValue(sNextId);
                 this.byId("inputSapProjId_proj")?.setEnabled(false); // Always disabled - auto-generated
                 this.byId("inputSapProjId_proj")?.setPlaceholder("Auto-generated");
-                this.byId("inputSfdcProjId_proj")?.setValue("");
-                this.byId("inputProjectName_proj")?.setValue("");
-                this.byId("inputStartDate_proj")?.setValue("");
-                this.byId("inputEndDate_proj")?.setValue("");
-                this.byId("inputGPM_proj")?.setValue("");
-                this.byId("inputProjectType_proj")?.setSelectedKey("");
-                this.byId("inputStatus_proj")?.setSelectedKey("");
                 this.byId("inputOppId_proj")?.setValue("");
                 this.byId("inputOppId_proj")?.data("selectedId", "");
                 this.byId("inputGPM_proj")?.data("selectedId", "");
-                this.byId("inputRequiredResources_proj")?.setValue("");
-                this.byId("inputAllocatedResources_proj")?.setValue("");
-                this.byId("inputToBeAllocated_proj")?.setValue("");
-                this.byId("inputSOWReceived_proj")?.setSelectedKey("");
-                this.byId("inputPOReceived_proj")?.setSelectedKey("");
                 return;
             }
             
@@ -692,8 +705,8 @@ sap.ui.define([
             this.byId("inputStartDate_proj")?.setValue(oObj.startDate || "");
             this.byId("inputEndDate_proj")?.setValue(oObj.endDate || "");
             this.byId("inputGPM_proj")?.setValue(oObj.gpm || "");
-            this.byId("inputProjectType_proj")?.setSelectedKey(oObj.projectType || "FixedPrice");
-            this.byId("inputStatus_proj")?.setSelectedKey(oObj.status || "Planned");
+            this.byId("inputProjectType_proj")?.setSelectedKey(oObj.projectType || "");
+            this.byId("inputStatus_proj")?.setSelectedKey(oObj.status || "");
             
             // Handle opportunity field
             const sOppId = oObj.oppId || "";
@@ -720,8 +733,8 @@ sap.ui.define([
             this.byId("inputRequiredResources_proj")?.setValue(oObj.requiredResources || "");
             this.byId("inputAllocatedResources_proj")?.setValue(oObj.allocatedResources || "");
             this.byId("inputToBeAllocated_proj")?.setValue(oObj.toBeAllocated || "");
-            this.byId("inputSOWReceived_proj")?.setSelectedKey(oObj.SOWReceived || "No");
-            this.byId("inputPOReceived_proj")?.setSelectedKey(oObj.POReceived || "No");
+            this.byId("inputSOWReceived_proj")?.setSelectedKey(oObj.SOWReceived || "");
+            this.byId("inputPOReceived_proj")?.setSelectedKey(oObj.POReceived || "");
         },
 
         _onCustDialogData: function (aSelectedContexts) {
@@ -2064,31 +2077,33 @@ sap.ui.define([
                 oEmptyData.skills = ""; // User will fill this
                 oEmptyData.city = ""; // User will fill this
                 oEmptyData.lwd = ""; // Optional, user can fill
-                oEmptyData.status = "Allocated"; // Default to Allocated (EmployeeStatusEnum)
+                oEmptyData.status = ""; // ✅ FIXED: No default value
             } else if (sTableId === "Opportunities") {
                 oEmptyData.sapOpportunityId = ""; // Will be auto-generated
                 oEmptyData.sfdcOpportunityId = ""; // User will fill this
                 oEmptyData.opportunityName = ""; // User will fill this
                 oEmptyData.businessUnit = ""; // User will fill this
-                oEmptyData.probability = "ProposalStage"; // Default to 0%-ProposalStage (ProbabilityEnum)
+                oEmptyData.probability = ""; // ✅ FIXED: No default value
                 oEmptyData.salesSPOC = ""; // User will fill this
                 oEmptyData.deliverySPOC = ""; // User will fill this
-                oEmptyData.expectedStart = new Date().toISOString().split('T')[0]; // Today
-                oEmptyData.expectedEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days from now
+                oEmptyData.expectedStart = ""; // ✅ FIXED: No default date
+                oEmptyData.expectedEnd = ""; // ✅ FIXED: No default date
                 // oEmptyData.estimatedRevenue = "0.00"; // Default revenue
-                oEmptyData.Stage = "Discover"; // Default stage (OpportunityStageEnum)
+                oEmptyData.Stage = ""; // ✅ FIXED: No default value
                 oEmptyData.customerId = ""; // Default customer ID
             }
             else if (sTableId === "Projects") {
                 oEmptyData.sapPId = ""; // Will be auto-generated
                 oEmptyData.sfdcPId = ""; // User will fill this
                 oEmptyData.projectName = ""; // User will fill this
-                oEmptyData.startDate = new Date().toISOString().split('T')[0]; // Today
-                oEmptyData.endDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 90 days from now
+                oEmptyData.startDate = ""; // ✅ FIXED: No default date
+                oEmptyData.endDate = ""; // ✅ FIXED: No default date
                 oEmptyData.gpm = ""; // User will fill this
-                oEmptyData.projectType = "Fixed Price"; // Default project type (ProjectTypeEnum)
+                oEmptyData.projectType = ""; // ✅ FIXED: No default value
                 oEmptyData.oppId = ""; // Default opportunity ID
-                oEmptyData.status = "Planned"; // Default status (ProjectStatusEnum)
+                oEmptyData.status = ""; // ✅ FIXED: No default value
+                oEmptyData.SOWReceived = ""; // ✅ FIXED: No default value
+                oEmptyData.POReceived = ""; // ✅ FIXED: No default value
             }
             // else if (sTableId === "SAPIdStatuses") {
             //     oEmptyData.id = ""; // Will be auto-generated
@@ -2618,7 +2633,7 @@ sap.ui.define([
                 "opportunityUpload": [
                     "opportunityName", "sfdcOpportunityId", "businessUnit", "probability",
                     "salesSPOC", "expectedStart", "expectedEnd", "deliverySPOC",
-                    "Stage",
+                    "Stage", "tcv", "customerId",
                 ],
                 "employeeUpload": [
                     "ohrId", "mailid", "fullName",
@@ -2628,7 +2643,9 @@ sap.ui.define([
                 "projectUpload": [
                     "sfdcPId", "projectName", "startDate",
                     "endDate", "gpm", "projectType",
-                    "oppId", "status",
+                    "oppId", "status", "requiredResources",
+                    "allocatedResources", "toBeAllocated",
+                    "SOWReceived", "POReceived",
                 ],
                 "verticalUpload": [
                     "id", "verticalName"

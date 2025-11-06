@@ -94,15 +94,16 @@
                             <Label text="SFDC Opportunity ID" />
                             <Input id="inputSfdcOppId_oppr" value="{opportunityModel>/sfdcOpportunityId}" width="100%" />
                             
-                            <Label text="Opportunity Name" />
-                            <Input id="inputOppName_oppr" value="{opportunityModel>/opportunityName}" width="100%" />
+                            <Label text="Opportunity Name" required="true" />
+                            <Input id="inputOppName_oppr" value="{opportunityModel>/opportunityName}" width="100%" required="true" />
                             
-                            <Label text="Business Unit" />
-                            <Input id="inputBusinessUnit_oppr" value="{opportunityModel>/businessUnit}" width="100%" />
+                            <Label text="Business Unit" required="true" />
+                            <Input id="inputBusinessUnit_oppr" value="{opportunityModel>/businessUnit}" width="100%" required="true" />
                             
-                            <Label text="Probability" />
-                            <Select id="inputProbability_oppr" selectedKey="{opportunityModel>/probability}" width="100%">
+                            <Label text="Probability" required="true" />
+                            <Select id="inputProbability_oppr" selectedKey="{opportunityModel>/probability}" width="100%" required="true">
                                 <items>
+                                    <core:Item key="" text="Select Probability..." />
                                     <core:Item key="ProposalStage" text="0%-ProposalStage" />
                                     <core:Item key="SoWSent" text="33%-SoWSent" />
                                     <core:Item key="SoWSigned" text="85%-SoWSigned" />
@@ -110,9 +111,10 @@
                                 </items>
                             </Select>
                             
-                            <Label text="Stage" />
-                            <Select id="inputStage_oppr" selectedKey="{opportunityModel>/Stage}" width="100%">
+                            <Label text="Stage" required="true" />
+                            <Select id="inputStage_oppr" selectedKey="{opportunityModel>/Stage}" width="100%" required="true">
                                 <items>
+                                    <core:Item key="" text="Select Stage..." />
                                     <core:Item key="Discover" text="Discover" />
                                     <core:Item key="Define" text="Define" />
                                     <core:Item key="OnBid" text="On Bid" />
@@ -136,28 +138,29 @@
                             columnsL="1"
                             columnsM="1"
                             class="sapUiNoContentPadding">
-                            <Label text="Sales SPOC" />
-                            <Input id="inputSalesSPOC_oppr" value="{opportunityModel>/salesSPOC}" width="100%" />
+                            <Label text="Sales SPOC" required="true" />
+                            <Input id="inputSalesSPOC_oppr" value="{opportunityModel>/salesSPOC}" width="100%" required="true" />
                             
-                            <Label text="Delivery SPOC" />
-                            <Input id="inputDeliverySPOC_oppr" value="{opportunityModel>/deliverySPOC}" width="100%" />
+                            <Label text="Delivery SPOC" required="true" />
+                            <Input id="inputDeliverySPOC_oppr" value="{opportunityModel>/deliverySPOC}" width="100%" required="true" />
                             
-                            <Label text="Expected Start" />
-                            <DatePicker id="inputExpectedStart_oppr" value="{opportunityModel>/expectedStart}" width="100%" />
+                            <Label text="Expected Start" required="true" />
+                            <DatePicker id="inputExpectedStart_oppr" value="{opportunityModel>/expectedStart}" width="100%" required="true" />
                             
-                            <Label text="Expected End" />
-                            <DatePicker id="inputExpectedEnd_oppr" value="{opportunityModel>/expectedEnd}" width="100%" />
+                            <Label text="Expected End" required="true" />
+                            <DatePicker id="inputExpectedEnd_oppr" value="{opportunityModel>/expectedEnd}" width="100%" required="true" />
                             
-                            <Label text="TCV" />
-                            <Input id="inputTCV_oppr" value="{opportunityModel>/tcv}" width="100%" type="Number" />
+                            <Label text="TCV" required="true" />
+                            <Input id="inputTCV_oppr" value="{opportunityModel>/tcv}" width="100%" type="Number" required="true" />
                             
-                            <Label text="Customer" />
+                            <Label text="Customer" required="true" />
                             <Input 
                                 id="inputCustomerId_oppr" 
                                 width="100%"
                                 placeholder="Select Customer"
                                 showValueHelp="true"
-                                valueHelpRequest="onCustomerValueHelpRequest">
+                                valueHelpRequest="onCustomerValueHelpRequest"
+                                required="true">
                                 <layoutData>
                                     <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
                                 </layoutData>
