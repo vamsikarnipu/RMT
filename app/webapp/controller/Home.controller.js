@@ -4302,6 +4302,43 @@ sap.ui.define([
             }
             
             this._oDemandValueHelpDialog.open();
+            
+            // ✅ CRITICAL: Apply filter immediately when dialog opens (not just on search)
+            setTimeout(() => {
+                const oDialogContent = this._oDemandValueHelpDialog.getContent()[0];
+                if (oDialogContent) {
+                    const aItems = oDialogContent.getItems();
+                    const oTable = aItems.find(item => item.getId && item.getId().includes("demandValueHelpTable"));
+                    
+                    if (oTable) {
+                        const oBinding = oTable.getBinding("items");
+                        if (oBinding) {
+                            // Apply the same filter logic as in search handler
+                            const aFilters = [];
+                            
+                            // Apply project filter if available
+                            let sProjectFilter = null;
+                            if (this._sAllocateDemandProjectFilter) {
+                                sProjectFilter = this._sAllocateDemandProjectFilter;
+                            } else if (this._sResDemandProjectFilter) {
+                                sProjectFilter = this._sResDemandProjectFilter;
+                            }
+                            
+                            if (sProjectFilter) {
+                                // ✅ CRITICAL: Convert project ID format (P-0006 -> 6) to match Demand CSV data format
+                                let sFilterValue = sProjectFilter;
+                                if (sProjectFilter && sProjectFilter.startsWith("P-")) {
+                                    sFilterValue = sProjectFilter.replace(/^P-0*/, ""); // Remove "P-" and leading zeros
+                                    console.log("✅ Converted project ID for demand filter (on open):", sProjectFilter, "->", sFilterValue);
+                                }
+                                aFilters.push(new sap.ui.model.Filter("sapPId", sap.ui.model.FilterOperator.EQ, sFilterValue));
+                                oBinding.filter(aFilters);
+                                console.log("✅ Applied project filter to demand value help on dialog open");
+                            }
+                        }
+                    }
+                }
+            }, 100);
         },
 
         // ✅ Value Help Dialog: Demand search handler
