@@ -1,0 +1,193 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core"
+                         xmlns="sap.m"
+                         xmlns:f="sap.ui.layout.form"
+                         xmlns:mdc="sap.ui.mdc"
+                         xmlns:mdct="sap.ui.mdc.table">
+    <VBox class="sapUiSmallMargin">
+        <!-- Panel for Table -->
+        <Panel class="sapUiResponsiveMargin" expandable="false">
+            <Toolbar>
+                <SearchField
+                    id="projectSearchField"
+                    width="300px"
+                    placeholder="Search projects..."
+                    liveChange="onProjectSearch"
+                    search="onProjectSearch" />
+            </Toolbar>
+            <ScrollContainer height="380px" vertical="true" horizontal="false">
+                <mdc:Table
+                    id="Projects"
+                    header="Total Count"
+                    class="verticalsTable rowDetailToggleTable"
+                    autoBindOnInit="false"
+                    busyIndicatorDelay="0"
+                    width="100%"
+                    p13nMode="Column,Sort,Filter,Group"
+                    selectionMode="Single"
+                    delegate='{
+                        "name": "glassboard/delegate/ProjectsTableDelegate",
+                        "payload": {
+                            "collectionPath": "Projects"
+                        }
+                    }'
+                    showRowCount="true"
+                    threshold="1000"
+                    enableExport="true"
+                    enableAutoColumnWidth="false"
+                    filter="projectFilterBar"
+                    filterConditions="{filterModel>/conditions}"
+                    selectionChange="onSelectionChange">
+
+                    <mdc:type>
+                        <mdct:ResponsiveTableType />
+                    </mdc:type>
+
+                    <mdc:actions>
+                        <SegmentedButton 
+                            selectedKey="less"
+                            selectionChange="onToggleRowDetail"
+                            tooltip="Toggle Row Details">
+                            <items>
+                                <SegmentedButtonItem key="more" icon="sap-icon://detail-more" tooltip="Show More"/>
+                                <SegmentedButtonItem key="less" icon="sap-icon://detail-less" tooltip="Show Less"/>
+                            </items>
+                        </SegmentedButton>
+                        <Button icon="sap-icon://delete" id="btnDelete_proj" tooltip="Delete" press="onDeletePress" enabled="false" />
+                        <SplitButton
+                            id="projectUpload"
+                            icon="sap-icon://upload"
+                            tooltip="Upload"
+                            type="Transparent"
+                            press="onUpload"
+                            arrowPress="onSplitButtonArrowPress"
+                        />
+                    </mdc:actions>
+
+                    <!-- <mdc:copyProvider>
+                        <plugins:CopyProvider id="copyProvider_proj" />
+                    </mdc:copyProvider> -->
+                </mdc:Table>
+            </ScrollContainer>
+        </Panel>
+        <HBox width="100%" class="extraSpace"><ToolbarSpacer /></HBox>
+
+        <!-- Panel for Form -->
+        <Panel headerText="Project Details" class="sapUiResponsiveMargin" expandable="false">
+            <VBox class="sapUiSmallMargin">
+                <HBox width="100%">
+                    <!-- Left Column -->
+                    <VBox width="50%" class="sapUiSmallMarginEnd">
+                        <f:SimpleForm
+                            layout="ResponsiveGridLayout"
+                            editable="true"
+                            labelSpanL="3"
+                            labelSpanM="3"
+                            adjustLabelSpan="false"
+                            emptySpanL="1"
+                            emptySpanM="1"
+                            columnsL="1"
+                            columnsM="1"
+                            class="sapUiNoContentPadding">
+                            <Label text="SAP Project ID" />
+                            <Input id="inputSapProjId_proj" value="{projectModel>/sapPId}" width="100%" enabled="false" placeholder="Auto-generated" />
+                            
+                            <Label text="SFDC Project ID" />
+                            <Input id="inputSfdcProjId_proj" value="{projectModel>/sfdcPId}" width="100%" />
+                            
+                            <Label text="Project Name" />
+                            <Input id="inputProjectName_proj" value="{projectModel>/projectName}" width="100%" />
+                            
+                            <Label text="Start Date" />
+                            <DatePicker id="inputStartDate_proj" value="{projectModel>/startDate}" width="100%" />
+                            
+                            <Label text="End Date" />
+                            <DatePicker id="inputEndDate_proj" value="{projectModel>/endDate}" width="100%" />
+                            
+                            <Label text="GPM" />
+                            <Input id="inputGPM_proj" value="{projectModel>/gpm}" width="100%" />
+                            
+                            <Label text="Project Type" />
+                            <Select id="inputProjectType_proj" selectedKey="{projectModel>/projectType}" width="100%">
+                                <items>
+                                    <core:Item key="FixedPrice" text="Fixed Price" />
+                                    <core:Item key="TransactionBased" text="Transaction Based" />
+                                    <core:Item key="FixedMonthly" text="Fixed Monthly" />
+                                    <core:Item key="PassThru" text="Pass Thru" />
+                                    <core:Item key="Divine" text="Divine" />
+                                </items>
+                            </Select>
+                        </f:SimpleForm>
+                    </VBox>
+                    
+                    <!-- Right Column -->
+                    <VBox width="50%" class="sapUiSmallMarginBegin">
+                        <f:SimpleForm
+                            layout="ResponsiveGridLayout"
+                            editable="true"
+                            labelSpanL="3"
+                            labelSpanM="3"
+                            adjustLabelSpan="false"
+                            emptySpanL="1"
+                            emptySpanM="1"
+                            columnsL="1"
+                            columnsM="1"
+                            class="sapUiNoContentPadding">
+                            <Label text="Status" />
+                            <Select id="inputStatus_proj" selectedKey="{projectModel>/status}" width="100%">
+                                <items>
+                                    <core:Item key="Active" text="Active" />
+                                    <core:Item key="Closed" text="Closed" />
+                                    <core:Item key="Planned" text="Planned" />
+                                </items>
+                            </Select>
+                            
+                            <Label text="Opportunity" />
+                            <Input 
+                                id="inputOppId_proj" 
+                                width="100%"
+                                placeholder="Select Opportunity"
+                                showValueHelp="true"
+                                valueHelpRequest="onOpportunityValueHelpRequest">
+                                <layoutData>
+                                    <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
+                                </layoutData>
+                            </Input>
+                            
+                            <Label text="Required Resources" />
+                            <Input id="inputRequiredResources_proj" value="{projectModel>/requiredResources}" width="100%" type="Number" />
+                            
+                            <Label text="Allocated Resources" />
+                            <Input id="inputAllocatedResources_proj" value="{projectModel>/allocatedResources}" width="100%" type="Number" />
+                            
+                            <Label text="To Be Allocated" />
+                            <Input id="inputToBeAllocated_proj" value="{projectModel>/toBeAllocated}" width="100%" type="Number" />
+                            
+                            <Label text="SOW Received" />
+                            <Select id="inputSOWReceived_proj" selectedKey="{projectModel>/SOWReceived}" width="100%">
+                                <items>
+                                    <core:Item key="Yes" text="Yes" />
+                                    <core:Item key="No" text="No" />
+                                </items>
+                            </Select>
+                            
+                            <Label text="PO Received" />
+                            <Select id="inputPOReceived_proj" selectedKey="{projectModel>/POReceived}" width="100%">
+                                <items>
+                                    <core:Item key="Yes" text="Yes" />
+                                    <core:Item key="No" text="No" />
+                                </items>
+                            </Select>
+                        </f:SimpleForm>
+                    </VBox>
+                </HBox>
+                
+                <!-- Buttons Row -->
+                <HBox class="sapUiMediumMarginTop" justifyContent="Center" width="100%">
+                    <Button id="editButton_proj" text="Edit" type="Emphasized" press="onEditProjectForm" enabled="false" class="sapUiSmallMarginEnd" />
+                    <Button id="submitButton_proj" text="Submit" type="Accept" press="onSubmitProject" />
+                    <Button id="cancelFormButton_proj" text="Cancel" type="Reject" press="onCancelProjectForm" class="sapUiSmallMarginBegin" />
+                </HBox>
+            </VBox>
+        </Panel>
+    </VBox>
+</core:FragmentDefinition>

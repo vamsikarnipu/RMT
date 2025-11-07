@@ -1,0 +1,222 @@
+<mvc:View
+    controllerName="glassboard.controller.Home"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:tnt="sap.tnt"
+    xmlns:mdc="sap.ui.mdc"
+    xmlns:table="sap.ui.mdc.table"
+    height="100%"
+>
+    <tnt:ToolPage id="toolPage">
+        <tnt:header>
+            <tnt:ToolHeader>
+                <HBox
+                    width="100%"
+                    justifyContent="SpaceBetween"
+                    alignContent="Center"
+                >
+                    <HBox>
+                        <Button
+                            id="sideNavigationToggleButton"
+                            icon="sap-icon://menu2"
+                            type="Transparent"
+                            press="onSideNavButtonPress"
+                        >
+                            <layoutData>
+                                <OverflowToolbarLayoutData
+                                    priority="NeverOverflow"
+                                />
+                            </layoutData>
+                        </Button>
+                        <Image
+                            src="test-resources/sap/tnt/images/SAP_Logo.png"
+                            decorative="false"
+                            press="onLogoPressed"
+                            tooltip="SAP Logo"
+                            width="60px"
+                            height="30px"
+                        >
+                            <layoutData>
+                                <OverflowToolbarLayoutData
+                                    priority="NeverOverflow"
+                                />
+                            </layoutData>
+                        </Image>
+                        <Text
+                            text="Resource Management Tool"
+                            class="sapUiH2"
+                        />
+                    </HBox>
+                    <Button
+                        id="uploadLogButton"
+                        visible="{= ${message>/}.length > 0 }"
+                        type="Emphasized"
+                        press="onMessagePopoverPress"
+                    />
+                </HBox>
+            </tnt:ToolHeader>
+        </tnt:header>
+
+        <tnt:sideContent>
+            <tnt:SideNavigation
+                id="sideNavigation"
+                expanded="true"
+                itemSelect="onItemSelect"
+                selectedKey="home"
+            >
+                <tnt:NavigationList>
+                    <tnt:NavigationListItem
+                        key="home"
+                        text="Home"
+                        icon="sap-icon://home"
+                    />
+
+                    <tnt:NavigationListGroup text="Master Data Management">
+                        <tnt:NavigationListItem
+                            key="customers"
+                            text="Customers"
+                            icon="sap-icon://people-connected"
+                        />
+                        <tnt:NavigationListItem
+                            key="opportunities"
+                            text="Opportunities"
+                            icon="sap-icon://building"
+                        />
+                        <tnt:NavigationListItem
+                            key="projects"
+                            text="Projects"
+                            icon="sap-icon://business-objects-experience"
+                        />
+                        <!-- <tnt:NavigationListItem key="sapid" text="SAP ID" icon="sap-icon://key" /> -->
+                        <tnt:NavigationListItem
+                            key="employees"
+                            text="Employees"
+                            icon="sap-icon://employee"
+                        />
+                        <!-- <tnt:NavigationListItem key="verticals" text="Verticals" /> -->
+                    </tnt:NavigationListGroup>
+
+                    <tnt:NavigationListGroup text="Allocations">
+                        <tnt:NavigationListItem
+                            key="overview"
+                            text="Allocations Overview"
+                            icon="sap-icon://overview-chart"
+                        />
+                        <!-- <tnt:NavigationListItem key="requirements" text="Resource Requirements" icon="sap-icon://business-objects-experience" /> -->
+                    </tnt:NavigationListGroup>
+
+                    <tnt:NavigationListGroup text="Reports">
+                        <tnt:NavigationListItem
+                            key="bench"
+                            text="Bench"
+                            icon="sap-icon://group"
+                        />
+                        <tnt:NavigationListItem
+                            key="pendingProjects"
+                            text="Pending Projects"
+                            icon="sap-icon://pending"
+                        />
+                        <tnt:NavigationListItem
+                            key="pendingOpportunities"
+                            text="Pending Opportunities"
+                            icon="sap-icon://initiative"
+                        />
+                    </tnt:NavigationListGroup>
+                </tnt:NavigationList>
+            </tnt:SideNavigation>
+        </tnt:sideContent>
+
+        <tnt:mainContents>
+            <NavContainer
+                id="pageContainer"
+                initialPage="root1"
+            >
+                <pages>
+                    <Page id="root1" title="Welcome">
+                        <HBox id="_IDGenHBox7" justifyContent="Start" alignItems="Start">
+                            <VBox id="_IDGenVBox170" class="benchC Card">
+                                <Text id="_IDGenText95" text="Total Head Count" class="myCardTitle"/>
+                                <Text id="_IDGenText160" text="1190" class="myCardValue"/>
+                            </VBox>
+                            <VBox id="_IDGenVBox10" class="allocatedC Card">
+                                <Text id="_IDGenText9" text="Allocated Count" class="myCardTitle"/>
+                                <Text id="_IDGenText10" text="995" class="myCardValue"/>
+                            </VBox>
+                            <VBox id="_IDGenVBox510" class="totalHeadC Card">
+                                <Text id="_IDGenText59" text="Bench Count" class="myCardTitle"/>
+                                <Text id="_IDGenText150" text="195" class="myCardValue"/>
+                            </VBox>
+                        </HBox>
+                        <HBox justifyContent="Start" alignItems="Start">
+                            <VBox class="unallocatedBenchC Card">
+                                <Text text="Unallocated Bench" class="myCardTitle" />
+                                <Text text="120" class="myCardValue" />
+                            </VBox>
+                            <VBox class="unproductiveBenchC Card">
+                                <Text text="Unproductive Bench" class="myCardTitle" />
+                                <Text text="45" class="myCardValue" />
+                            </VBox>
+                            <VBox class="netBenchC Card">
+                                <Text text="Net Bench" class="myCardTitle"/>
+                                <Text text="30" class="myCardValue" />
+                            </VBox>
+                        </HBox>
+                        <HBox justifyContent="Start" alignItems="Start">
+                            <VBox class="demandsC Card">
+                                <Text text="Demands Count" class="myCardTitle" />
+                                <Text text="120" class="myCardValue" />
+                            </VBox>
+                            <VBox class="yetToJoinC Card">
+                                <Text text="Yet To Join" class="myCardTitle" />
+                                <Text text="40" class="myCardValue" />
+                            </VBox>
+                            <VBox class="projectsEndingC Card">
+                                <Text text="Projects Ending (In 2 Weeks)" class="myCardTitle"/>
+                                <Text text="5" class="myCardValue" />
+                            </VBox>
+                        </HBox>
+                    </Page>
+
+                    <Page
+                        id="customersPage"
+                        title="Customers"
+                        
+                    />
+                    <Page
+                        id="opportunitiesPage"
+                        title="Opportunities"
+                        
+                    />
+                    <Page
+                        id="projectsPage"
+                        title="Projects"
+                       
+                    />
+                    <Page
+                        id="employeesPage"
+                        title="Employees"
+                       
+                    />
+                    <!-- ✅ REMOVED: <Page id="verticalsPage" title="Verticals" /> (Vertical is now an enum) -->
+                    <Page
+                        id="allocationPage"
+                        title="Allocations"
+                    />
+                    <!-- <Page id="requirementsPage" title="Requirements" /> -->
+                    <Page
+                        id="benchPage"
+                        title="Bench Report"
+                    />
+                    <Page
+                        id="pendingProjectsPage"
+                        title="Pending Projects"
+                    />
+                    <Page
+                        id="pendingOpportunitiesPage"
+                        title="Pending Opportunities"
+                    />
+                </pages>
+            </NavContainer>
+        </tnt:mainContents>
+    </tnt:ToolPage>
+</mvc:View>

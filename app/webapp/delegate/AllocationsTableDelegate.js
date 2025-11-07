@@ -17,23 +17,6 @@ sap.ui.define([
     // ✅ ENUM CONFIGURATION: Static values for enum fields
     GenericTableDelegate._getEnumConfig = function(sTableId, sPropertyName) {
         const mEnumFields = {
-            "Customers": {
-                "status": { values: ["A", "I", "P"], labels: ["Active", "Inactive", "Prospect"] },
-                "vertical": { 
-                    values: ["BFS", "CapitalMarkets", "CPG", "Healthcare", "HighTech", "Insurance", "LifeSciences", "Manufacturing", "Retail", "Services"],
-                    labels: ["BFS", "Capital Markets", "CPG", "Healthcare", "High Tech", "Insurance", "Life Sciences", "Manufacturing", "Retail", "Services"]
-                }
-            },
-            "Opportunities": {
-                "probability": { 
-                    values: ["ProposalStage", "SoWSent", "SoWSigned", "PurchaseOrderReceived"],
-                    labels: ["0%-ProposalStage", "33%-SoWSent", "85%-SoWSigned", "100%-PurchaseOrderReceived"]
-                },
-                "Stage": { 
-                    values: ["Discover", "Define", "OnBid", "DownSelect", "SignedDeal"],
-                    labels: ["Discover", "Define", "On Bid", "Down Select", "Signed Deal"]
-                }
-            },
             "Projects": {
                 "projectType": { 
                     values: ["FixedPrice", "TransactionBased", "FixedMonthly", "PassThru", "Divine"],
@@ -50,24 +33,6 @@ sap.ui.define([
                 "POReceived": { 
                     values: ["Yes", "No"],
                     labels: ["Yes", "No"]
-                }
-            },
-            "Employees": {
-                "gender": { 
-                    values: ["Male", "Female", "Others"],
-                    labels: ["Male", "Female", "Others"]
-                },
-                "employeeType": { 
-                    values: ["FullTime", "SubCon", "Intern", "YTJ"],
-                    labels: ["Full Time", "Subcon", "Intern", "Yet To Join"]
-                },
-                "band": { 
-                    values: ["1", "2", "3", "Band4A_1", "Band4A_2", "Band4B_C", "Band4B_LC", "Band4C", "Band4D", "Band5A", "Band5B"],
-                    labels: ["1", "2", "3", "4A_1", "4A_2", "4B_C", "4B_LC", "4C", "4D", "5A", "5B"]
-                },
-                "status": { 
-                    values: ["PreAllocated", "Bench", "Resigned", "Allocated"],
-                    labels: ["Pre Allocated", "Bench", "Resigned", "Allocated"]
                 }
             },
             "Allocations": {
@@ -87,25 +52,12 @@ sap.ui.define([
             return Promise.resolve(null);
         }
 
-        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Employees";
+        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Projects";
         
         const mAssociationFields = {
-            "Opportunities": {
-                "customerId": { targetEntity: "Customers", displayField: "customerName", keyField: "SAPcustId" }
-            },
             "Projects": {
-                "oppId": { targetEntity: "Opportunities", displayField: "opportunityName", keyField: "sapOpportunityId" }
-            },
-            "Demands": {
-                "skillId": { targetEntity: "Skills", displayField: "name", keyField: "id" },
-                "sapPId": { targetEntity: "Projects", displayField: "projectName", keyField: "sapPId" }
-            },
-            "Employees": {
-                "supervisorOHR": { targetEntity: "Employees", displayField: "fullName", keyField: "ohrId" }
-            },
-            "EmployeeSkills": {
-                "employeeId": { targetEntity: "Employees", displayField: "fullName", keyField: "ohrId" },
-                "skillId": { targetEntity: "Skills", displayField: "name", keyField: "id" }
+                "oppId": { targetEntity: "Opportunities", displayField: "opportunityName", keyField: "sapOpportunityId" },
+                "gpm": { targetEntity: "Employees", displayField: "fullName", keyField: "ohrId" }
             },
             "Allocations": {
                 "employeeId": { targetEntity: "Employees", displayField: "fullName", keyField: "ohrId" },
@@ -122,32 +74,58 @@ sap.ui.define([
         return ["Column", "Sort", "Filter", "Group"];
     };
 
+    // ✅ SHARED LABEL FORMATTER: Ensures consistent labels across fetchProperties and getFilterDelegate
+    GenericTableDelegate._formatPropertyLabel = function(sTableId, sPropertyName) {
+        // Custom header mapping
+        const mCustomHeaders = {
+            "sapPId": "SAP PID",
+            "sfdcPId": "SFDC PID",
+            "projectName": "Project Name",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "gpm": "GPM",
+            "projectType": "Project Type",
+            "oppId": "Opp Name",
+            "status": "Project Status"
+        };
+
+        if (mCustomHeaders[sPropertyName]) {
+            return mCustomHeaders[sPropertyName];
+        }
+
+        // Smart fallback formatting (same as in getFilterDelegate)
+        return String(sPropertyName)
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, function (str) { return str.toUpperCase(); })
+            .trim();
+    };
+
     GenericTableDelegate.fetchProperties = function (oTable) {
-        console.log("=== [GenericDelegate] fetchProperties called ===");
+        console.log("=== [AllocationsTableDelegate] fetchProperties called ===");
 
         const oModel = oTable.getModel();
         if (!oModel) {
-            console.error("[GenericDelegate] No model found on table");
+            console.error("[AllocationsTableDelegate] No model found on table");
             return Promise.resolve([]);
         }
 
         const oMetaModel = oModel.getMetaModel();
-        console.log("[GenericDelegate] MetaModel:", oMetaModel);
+        console.log("[AllocationsTableDelegate] MetaModel:", oMetaModel);
 
         // Get collection path from payload
-        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
-        console.log("[GenericDelegate] Collection Path:", sCollectionPath);
+        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Projects";
+        console.log("[AllocationsTableDelegate] Collection Path:", sCollectionPath);
 
         // Wait for metadata to be loaded
         return oMetaModel.requestObject(`/${sCollectionPath}/$Type`)
             .then(function (sEntityTypePath) {
-                console.log("[GenericDelegate] Entity Type Path:", sEntityTypePath);
+                console.log("[AllocationsTableDelegate] Entity Type Path:", sEntityTypePath);
 
                 // Request the entity type definition
                 return oMetaModel.requestObject(`/${sEntityTypePath}/`);
             })
             .then(function (oEntityType) {
-                console.log("[GenericDelegate] Entity Type loaded:", oEntityType);
+                console.log("[AllocationsTableDelegate] Entity Type loaded:", oEntityType);
 
                 const aProperties = [];
 
@@ -159,17 +137,20 @@ sap.ui.define([
                     }
 
                     const oProperty = oEntityType[sPropertyName];
-                    console.log("[GenericDelegate] Processing property:", sPropertyName, oProperty);
+                    console.log("[AllocationsTableDelegate] Processing property:", sPropertyName, oProperty);
 
                     // Check if it's a property (not a navigation property)
                     if (oProperty.$kind === "Property" || !oProperty.$kind) {
                         const sType = oProperty.$Type || "Edm.String";
+                        
+                        // ✅ Use shared formatter to ensure label matches getFilterDelegate
+                        const sLabel = GenericTableDelegate._formatPropertyLabel(sCollectionPath, sPropertyName);
 
                         // Include all necessary attributes for sorting/filtering
                         aProperties.push({
                             name: sPropertyName,
                             path: sPropertyName,
-                            label: sPropertyName,
+                            label: sLabel, // ✅ Use formatted label
                             dataType: sType,
                             sortable: true,
                             filterable: true,
@@ -180,35 +161,19 @@ sap.ui.define([
                     }
                 });
 
-                console.log("[GenericDelegate] Final properties array:", aProperties);
+                console.log("[AllocationsTableDelegate] Final properties array:", aProperties);
                 return aProperties;
             })
             .catch(function (oError) {
-                console.error("[GenericDelegate] Error fetching properties:", oError);
-                console.log("[GenericDelegate] Using fallback properties for", sCollectionPath);
-
-                // Fallback properties for Opportunities
-                const mFallbackProperties = {
-                    "Opportunities": [
-                        { name: "sapOpportunityId", path: "sapOpportunityId", label: "SAP Opportunity ID", dataType: "Edm.Int32", sortable: true, filterable: true, groupable: true },
-                        { name: "sfdcOpportunityId", path: "sfdcOpportunityId", label: "SFDC Opportunity ID", dataType: "Edm.String", sortable: true, filterable: true, groupable: true },
-                        { name: "probability", path: "probability", label: "Probability", dataType: "Edm.String", sortable: true, filterable: true, groupable: true },
-                        { name: "salesSPOC", path: "salesSPOC", label: "Sales SPOC", dataType: "Edm.String", sortable: true, filterable: true, groupable: true },
-                        { name: "deliverySPOC", path: "deliverySPOC", label: "Delivery SPOC", dataType: "Edm.String", sortable: true, filterable: true, groupable: true },
-                        { name: "expectedStart", path: "expectedStart", label: "Expected Start", dataType: "Edm.Date", sortable: true, filterable: true, groupable: true },
-                        { name: "expectedEnd", path: "expectedEnd", label: "Expected End", dataType: "Edm.Date", sortable: true, filterable: true, groupable: true },
-                        { name: "customerId", path: "customerId", label: "Customer ID", dataType: "Edm.Int32", sortable: true, filterable: true, groupable: true }
-                    ]
-                };
-
-                return mFallbackProperties[sCollectionPath] || [];
+                console.error("[AllocationsTableDelegate] Error fetching properties:", oError);
+                return [];
             });
     };
 
     GenericTableDelegate.updateBindingInfo = function (oTable, oBindingInfo) {
         ODataTableDelegate.updateBindingInfo.apply(this, arguments);
 
-        const sPath = oTable.getPayload()?.collectionPath || "Customers";
+        const sPath = oTable.getPayload()?.collectionPath || "Projects";
         oBindingInfo.path = "/" + sPath;
 
         // Essential OData V4 parameters
@@ -218,25 +183,17 @@ sap.ui.define([
         
         // ✅ Expand associations to load related entity names
         const sCollectionPath = sPath.replace(/^\//, "");
-        if (sCollectionPath === "Employees") {
-            // Expand Supervisor association for Employee table
-            oBindingInfo.parameters.$expand = "to_Supervisor";
-            
-            // ✅ CRITICAL: Check if this is the Res table and apply Bench filter
-            const sTableId = oTable.getId();
-            if (sTableId && sTableId.includes("Res")) {
-                // Store flag that this is Res table - filter will be applied in controller
-                // We can't apply filter here directly, but we can set a flag
-                console.log("[EmployeesTableDelegate] Res table detected, Bench filter should be applied");
-            }
+        if (sCollectionPath === "Projects") {
+            // Expand Opportunity and GPM associations for Project table
+            oBindingInfo.parameters.$expand = "to_Opportunity,to_GPM";
         }
 
-        console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
-        console.log("[GenericDelegate] Table payload:", oTable.getPayload());
+        console.log("[AllocationsTableDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
+        console.log("[AllocationsTableDelegate] Expanded associations: to_Opportunity,to_GPM");
     };
 
     GenericTableDelegate.addItem = function (oTable, sPropertyName, mPropertyBag) {
-        console.log("[GenericDelegate] addItem called for property:", sPropertyName);
+        console.log("[AllocationsTableDelegate] addItem called for property:", sPropertyName);
 
         return this.fetchProperties(oTable).then(function (aProperties) {
             const oProperty = aProperties.find(function (p) {
@@ -244,35 +201,21 @@ sap.ui.define([
             });
 
             if (!oProperty) {
-                console.error("[GenericDelegate] Property not found:", sPropertyName);
+                console.error("[AllocationsTableDelegate] Property not found:", sPropertyName);
                 return Promise.reject("Property not found: " + sPropertyName);
             }
 
-            // Format label
-            // const sLabel = sPropertyName
-            //     // .replace(/([A-Z])/g, ' $1')
-            //     .replace(/([a-z])([A-Z])/g, '$1 $2')
-            //     .replace(/^./, function(str) { return str.toUpperCase(); })
-            //     .trim();
-            // Custom header mapping for Employees table
+            // Custom header mapping for Projects table
             const mCustomHeaders = {
-                "ohrId": "OHR ID",
-                "mailid": "Email ID",
-                "fullName": "Full Name",
-                "gender": "Gender",
-                "dob": "DOB",                    // Optional if you later add a DOB field
-                "employeeType": "Employee Type",
-                "doj": "DOJ",
-                "band": "Band",
-                "role": "Designation",
-                "location": "Location",
-                "skills": "Skill Details",
-                "city": "City",
-                "lwd": "LWD",
-                "supervisorOHR": "Supervisor OHR",
-                "status": "Status",
-                "skillCategory": "Skill Category", // Optional future field
-                "experience": "Experience"         // Optional future field
+                "sapPId": "SAP PID",
+                "sfdcPId": "SFDC PID",
+                "projectName": "Project Name",
+                "startDate": "Start Date",
+                "endDate": "End Date",
+                "gpm": "GPM",
+                "projectType": "Project Type",
+                "oppId": "Opp Name",
+                "status": "Project Status"
             };
 
             // Smart header generation with better fallback
@@ -280,31 +223,26 @@ sap.ui.define([
             let sTooltip;
 
             if (mCustomHeaders[sPropertyName]) {
-                // Use custom header if available
                 sLabel = mCustomHeaders[sPropertyName];
-                sTooltip = sLabel; // Same as label
+                sTooltip = sLabel;
             } else {
-                // Smart fallback for any new or unmapped fields
                 sLabel = sPropertyName
-                    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')   // "SAPId" → "SAP Id"
-                    .replace(/([a-z])([A-Z])/g, '$1 $2')         // "customerName" → "Customer Name"
-                    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')    // "OHRId" → "OHR Id"
-                    .replace(/^./, str => str.toUpperCase())     // Capitalize first letter
+                    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+                    .replace(/([a-z])([A-Z])/g, '$1 $2')
+                    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+                    .replace(/^./, str => str.toUpperCase())
                     .trim();
 
                 sTooltip = `${sLabel} (Field: ${sPropertyName})`;
-
-                console.log(`[EmployeeTableDelegate] New field detected: "${sPropertyName}" → "${sLabel}"`);
             }
 
             oProperty.label = sLabel;
             oProperty.tooltip = sTooltip;
 
-
             // Load the Column module and create column
             return new Promise(function (resolve) {
                 sap.ui.require(["sap/ui/mdc/table/Column"], function (Column) {
-                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Employees";
+                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Projects";
                     
                     const oEnumConfig = GenericTableDelegate._getEnumConfig(sTableId, sPropertyName);
                     const bIsEnum = !!oEnumConfig;
@@ -358,29 +296,14 @@ sap.ui.define([
                                     formatter: fnEditModeFormatter
                                 }
                             });
-                            console.log("[GenericDelegate] Enum field detected:", sPropertyName, "→ ComboBox");
+                            console.log("[AllocationsTableDelegate] Enum field detected:", sPropertyName, "→ ComboBox");
                         } else if (bIsAssoc) {
-                            // ✅ ASSOCIATION: Display name from association, but store ID for editing
-                            // Determine association path based on property
+                            // ✅ ASSOCIATION: Display name from association
                             let sAssocPath = "";
-                            if (sPropertyName === "customerId") {
-                                sAssocPath = "to_Customer/customerName"; // Display customer name
-                            } else if (sPropertyName === "supervisorOHR") {
-                                sAssocPath = "to_Supervisor/fullName"; // Display supervisor name
-                            } else if (sPropertyName === "oppId") {
-                                sAssocPath = "to_Opportunity/opportunityName"; // Display opportunity name
-                            } else {
-                                // Fallback: try to construct association path
-                                sAssocPath = sPropertyName.replace("Id", "").replace("OHR", "");
-                                if (sAssocPath === "customer") {
-                                    sAssocPath = "to_Customer/customerName";
-                                } else if (sAssocPath === "opp") {
-                                    sAssocPath = "to_Opportunity/opportunityName";
-                                } else if (sAssocPath === "supervisor") {
-                                    sAssocPath = "to_Supervisor/fullName";
-                                } else {
-                                    sAssocPath = sPropertyName; // Fallback to ID
-                                }
+                            if (sPropertyName === "oppId") {
+                                sAssocPath = "to_Opportunity/opportunityName";
+                            } else if (sPropertyName === "gpm") {
+                                sAssocPath = "to_GPM/fullName";
                             }
                             
                             const oModel = oTable.getModel();
@@ -402,14 +325,33 @@ sap.ui.define([
                                 placeholder: "Select " + oAssocConfig.displayField
                             });
                             
-                            // Bind to the same model as the table
                             oComboBox.setModel(oModel);
 
-                            // Display the name from association path directly
-                            // OData V4 will automatically expand associations if configured
+                            const fnAssocNameFormatter = function(sId) {
+                                if (!sId) return "";
+                                const oContext = this.getBindingContext();
+                                if (oContext) {
+                                    try {
+                                        const oRowData = oContext.getObject();
+                                        const sAssocEntity = sAssocPath.split("/")[0];
+                                        const sAssocField = sAssocPath.split("/")[1];
+                                        
+                                        if (oRowData[sAssocEntity] && oRowData[sAssocEntity][sAssocField]) {
+                                            return oRowData[sAssocEntity][sAssocField];
+                                        }
+                                    } catch (e) {
+                                        // Association not expanded, will use fallback
+                                    }
+                                }
+                                return sId;
+                            };
+                            
                             oField = new Field({
-                                value: "{" + sAssocPath + "}", // Direct binding to association name
-                                additionalValue: "{" + sPropertyName + "}", // Show ID as secondary value
+                                value: {
+                                    path: sPropertyName,
+                                    formatter: fnAssocNameFormatter
+                                },
+                                additionalValue: "{" + sAssocPath + "}",
                                 contentEdit: oComboBox,
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],
@@ -417,36 +359,10 @@ sap.ui.define([
                                     formatter: fnEditModeFormatter
                                 }
                             });
-                            console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ Displaying", sAssocPath, "from association");
+                            console.log("[AllocationsTableDelegate] Association field detected:", sPropertyName, "→ Displaying", sAssocPath);
                         } else {
-                            // ✅ FIX: Add date formatter for doj and lwd fields to ensure consistent formatting
-                            let oValueBinding = "{" + sPropertyName + "}";
-                            if (sPropertyName === "doj" || sPropertyName === "lwd") {
-                                // Format date strings consistently (handle both Date objects and string dates)
-                                oValueBinding = {
-                                    path: sPropertyName,
-                                    formatter: function(sValue) {
-                                        if (!sValue) return "";
-                                        // If already a formatted string, return as is
-                                        if (typeof sValue === "string" && sValue.match(/^\d{4}-\d{2}-\d{2}/)) {
-                                            // Format YYYY-MM-DD to readable format
-                                            const oDate = new Date(sValue);
-                                            if (!isNaN(oDate.getTime())) {
-                                                return oDate.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-                                            }
-                                        }
-                                        // If it's a Date object, format it
-                                        if (sValue instanceof Date) {
-                                            return sValue.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-                                        }
-                                        // Return as is if already formatted
-                                        return sValue;
-                                    }
-                                };
-                            }
-                            
                             oField = new Field({
-                                value: oValueBinding,
+                                value: "{" + sPropertyName + "}",
                                 tooltip: "{" + sPropertyName + "}",
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],
@@ -464,10 +380,10 @@ sap.ui.define([
                             template: oField
                         });
 
-                        console.log("[GenericDelegate] Column created via addItem:", sPropertyName);
+                        console.log("[AllocationsTableDelegate] Column created via addItem:", sPropertyName);
                         resolve(oColumn);
                     }).catch(function(oError) {
-                        console.warn("[GenericDelegate] Error, using regular field:", oError);
+                        console.warn("[AllocationsTableDelegate] Error, using regular field:", oError);
                         const oField = new Field({
                             value: "{" + sPropertyName + "}",
                             tooltip: "{" + sPropertyName + "}",
@@ -492,7 +408,7 @@ sap.ui.define([
     };
 
     GenericTableDelegate.removeItem = function (oTable, oColumn, mPropertyBag) {
-        console.log("[GenericDelegate] removeItem called for column:", oColumn);
+        console.log("[AllocationsTableDelegate] removeItem called for column:", oColumn);
 
         if (oColumn) {
             oColumn.destroy();
@@ -505,12 +421,10 @@ sap.ui.define([
     GenericTableDelegate.getFilterDelegate = function () {
         return {
             addItem: function (vArg1, vArg2, vArg3) {
-                // Normalize signature: MDC may call (oTable, vProperty, mBag) or (vProperty, oTable, mBag)
                 var oTable = (vArg1 && typeof vArg1.isA === "function" && vArg1.isA("sap.ui.mdc.Table")) ? vArg1 : vArg2;
                 var vProperty = (oTable === vArg1) ? vArg2 : vArg1;
                 var mPropertyBag = vArg3;
 
-                // Resolve property name from string, property object, or mPropertyBag
                 const sName =
                     (typeof vProperty === "string" && vProperty) ||
                     (vProperty && (vProperty.name || vProperty.path || vProperty.key)) ||
@@ -525,7 +439,7 @@ sap.ui.define([
                     const oModel = oTable.getModel();
                     const oMetaModel = oModel && oModel.getMetaModel && oModel.getMetaModel();
                     if (oMetaModel) {
-                        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+                        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Projects";
                         const oProp = oMetaModel.getObject(`/${sCollectionPath}/${sName}`);
                         const sEdmType = oProp && oProp.$Type;
                         if (sEdmType === "Edm.Int16" || sEdmType === "Edm.Int32" || sEdmType === "Edm.Int64" || sEdmType === "Edm.Decimal") {
@@ -538,11 +452,12 @@ sap.ui.define([
                     }
                 } catch (e) { /* ignore */ }
 
+                // ✅ Use shared formatter to ensure label matches fetchProperties
+                const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Projects";
+                const sLabel = GenericTableDelegate._formatPropertyLabel(sCollectionPath, sName);
+
                 return Promise.resolve(new FilterField({
-                    label: String(sName)
-                        .replace(/([A-Z])/g, ' $1')
-                        .replace(/^./, function (str) { return str.toUpperCase(); })
-                        .trim(),
+                    label: sLabel, // ✅ Use same formatter as fetchProperties
                     propertyKey: sName,
                     conditions: "{$filters>/conditions/" + sName + "}",
                     dataType: sDataType

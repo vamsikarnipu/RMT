@@ -552,12 +552,62 @@ sap.ui.define([
                         });
                     }, 300);
                 }.bind(this));
+            } else if (sKey === "overview") {
+                // Check if already loaded to prevent duplicate IDs
+                if (this._bAllocationsLoaded) {
+                    console.log("[Allocations] Fragment already loaded, skipping");
+                    return;
+                }
+                
+                this._bAllocationsLoaded = true;
+                const oAllocationPage = this.getView().byId(sPageId);
+                
+                // ✅ CRITICAL: Remove existing content before adding new fragment to prevent duplicate IDs
+                if (oAllocationPage && oAllocationPage.getContent) {
+                    const aExistingContent = oAllocationPage.getContent();
+                    if (aExistingContent && aExistingContent.length > 0) {
+                        console.log("[Allocations] Removing existing content to prevent duplicate IDs");
+                        aExistingContent.forEach((oContent) => {
+                            if (oContent && oContent.destroy) {
+                                oContent.destroy();
+                            }
+                        });
+                        oAllocationPage.removeAllContent();
+                    }
+                }
+
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "glassboard.view.fragments.Allocations",
+                    controller: this
+                }).then(function (oFragment) {
+                    oAllocationPage.addContent(oFragment);
+                    const oTable = this.byId("Allocations");
+
+                    if (oLogButton) {
+                        oLogButton.setVisible(false);
+                    }
+                    // Ensure table starts with show-less state
+                    oTable.removeStyleClass("show-more");
+                    oTable.addStyleClass("show-less");
+
+                    // Ensure the table has the correct model
+                    const oModel = this.getOwnerComponent().getModel();
+                    if (oModel) {
+                        oTable.setModel(oModel);
+                    }
+
+                    // Initialize table-specific functionality
+                    this.initializeTable("Allocations");
+                    // Reset segmented button to "less" state for this fragment
+                    this._resetSegmentedButtonForFragment("Allocations");
+                }.bind(this));
             }
             // ✅ REMOVED: Verticals fragment loading (Vertical is now an enum, not an entity)
         },
         // Reset all tables to "show-less" state
         _resetAllTablesToShowLess: function () {
-            const aTableIds = ["Customers", "Opportunities", "Projects", "SAPIdStatuses", "Employees"]; // ✅ REMOVED: "Verticals"
+            const aTableIds = ["Customers", "Opportunities", "Projects", "SAPIdStatuses", "Employees", "Allocations"]; // ✅ REMOVED: "Verticals"
 
             aTableIds.forEach((sTableId) => {
                 const oTable = this.byId(sTableId);
@@ -828,6 +878,880 @@ sap.ui.define([
             }
         },
 
+        // ✅ NEW: Handler for allocation view change (Employees/Projects toggle)
+        onAllocationViewChange: function (oEvent) {
+            // Get selected key from Select control
+            const oSelect = oEvent.getSource();
+            const sSelectedKey = oSelect.getSelectedKey();
+            const oAllocationPage = this.byId("allocationPage");
+            
+            console.log("✅ Allocation view change - Selected key:", sSelectedKey);
+            
+            if (!oAllocationPage) {
+                console.error("Allocation page not found");
+                return;
+            }
+            
+            // Reset flag so fragment can be reloaded
+            this._bAllocationsLoaded = false;
+            
+            // Destroy current content
+            oAllocationPage.destroyContent();
+            
+            if (sSelectedKey === "employees") {
+                console.log("✅ Loading Employees view (Res fragment)");
+                // Load Employees view (Res fragment)
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "glassboard.view.fragments.Res",
+                    controller: this
+                }).then(function (oFragment) {
+                    oAllocationPage.addContent(oFragment);
+                    const oTable = this.byId("Res");
+                    
+                    if (oTable) {
+                        oTable.removeStyleClass("show-more");
+                        oTable.addStyleClass("show-less");
+                        
+                        const oModel = this.getOwnerComponent().getModel();
+                        if (oModel) {
+                            oTable.setModel(oModel);
+                        }
+                        
+                        this.initializeTable("Res").then(() => {
+                            // ✅ CRITICAL: Apply Bench filter to Res table after initialization
+                            // Use multiple retries to ensure binding is ready
+                            const fnApplyBenchFilter = () => {
+                                const oResBinding = oTable.getRowBinding && oTable.getRowBinding();
+                                if (oResBinding) {
+                                    const oBenchFilter = new sap.ui.model.Filter("status", sap.ui.model.FilterOperator.EQ, "Bench");
+                                    oResBinding.filter([oBenchFilter]);
+                                    console.log("✅ Res table filtered to show only Bench employees");
+                                    
+                                    // ✅ CRITICAL: Re-apply filter on dataReceived to ensure it persists
+                                    oResBinding.attachDataReceived(() => {
+                                        const oCurrentFilters = oResBinding.getFilters();
+                                        const bHasBenchFilter = oCurrentFilters && oCurrentFilters.some(f => 
+                                            f.getPath() === "status" && f.getOperator() === "EQ" && f.getValue1() === "Bench"
+                                        );
+                                        if (!bHasBenchFilter) {
+                                            const aFilters = oCurrentFilters ? [...oCurrentFilters] : [];
+                                            aFilters.push(oBenchFilter);
+                                            oResBinding.filter(aFilters);
+                                            console.log("✅ Re-applied Bench filter after dataReceived");
+                                        }
+                                    });
+                                    
+                                    return true;
+                                }
+                                return false;
+                            };
+                            
+                            // Try immediately
+                            if (!fnApplyBenchFilter()) {
+                                // Retry after short delay
+                                setTimeout(() => {
+                                    if (!fnApplyBenchFilter()) {
+                                        // Final retry
+                                        setTimeout(fnApplyBenchFilter, 500);
+                                    }
+                                }, 300);
+                            }
+                        });
+                        
+                        this._resetSegmentedButtonForFragment("Res");
+                        
+                        // Ensure dropdown is set to "employees"
+                        const oSelect = this.byId("resViewSelect");
+                        if (oSelect) {
+                            oSelect.setSelectedKey("employees");
+                        }
+                    }
+                }.bind(this));
+            } else {
+                // Load Projects view (Allocations fragment)
+                console.log("✅ Loading Projects view (Allocations fragment)");
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "glassboard.view.fragments.Allocations",
+                    controller: this
+                }).then(function (oFragment) {
+                    oAllocationPage.addContent(oFragment);
+                    const oTable = this.byId("Allocations");
+                    
+                    if (oTable) {
+                        oTable.removeStyleClass("show-more");
+                        oTable.addStyleClass("show-less");
+                        
+                        const oModel = this.getOwnerComponent().getModel();
+                        if (oModel) {
+                            oTable.setModel(oModel);
+                        }
+                        
+                        this.initializeTable("Allocations");
+                        this._resetSegmentedButtonForFragment("Allocations");
+                        
+                        // Ensure dropdown is set to "projects"
+                        const oSelect = this.byId("allocationViewSelect");
+                        if (oSelect) {
+                            oSelect.setSelectedKey("projects");
+                        }
+                    }
+                }.bind(this));
+            }
+        },
+
+        // ✅ NEW: Handler for allocation search
+        onAllocationSearch: function (oEvent) {
+            const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
+            const oTable = this.byId("Allocations");
+            
+            if (!oTable) {
+                return;
+            }
+            
+            // Apply search filter to table
+            const oBinding = oTable.getRowBinding && oTable.getRowBinding();
+            if (oBinding) {
+                if (sQuery) {
+                    // Create search filter - search in projectName field
+                    const oFilter = new sap.ui.model.Filter("projectName", sap.ui.model.FilterOperator.Contains, sQuery);
+                    oBinding.filter([oFilter]);
+                } else {
+                    // Clear filter if search is empty
+                    oBinding.filter([]);
+                }
+            }
+        },
+        
+        // ✅ NEW: Demand button handler - loads Demands fragment filtered by selected project
+        onDemandPress: function() {
+            console.log('Define Demand');
+            const oAllocationPage = this.byId("allocationPage");
+            const oTable = this.byId("Allocations");
+            
+            if (!oAllocationPage) {
+                sap.m.MessageToast.show("Allocation page not found");
+                return;
+            }
+            
+            // Get selected project
+            const aSelectedContexts = oTable ? oTable.getSelectedContexts() : [];
+            if (!aSelectedContexts || aSelectedContexts.length === 0) {
+                sap.m.MessageToast.show("Please select a project first");
+                return;
+            }
+            
+            const oProject = aSelectedContexts[0].getObject();
+            const sProjectId = oProject.sapPId;
+            
+            // Store selected project ID for filtering
+            this._sSelectedProjectId = sProjectId;
+            
+            // Destroy current content
+            oAllocationPage.destroyContent();
+            
+            Fragment.load({
+                id: this.getView().getId(),
+                name: "glassboard.view.fragments.Demands",
+                controller: this
+            }).then(function (oFragment) {
+                oAllocationPage.addContent(oFragment);
+                const oDemandsTable = this.byId("Demands");
+                
+                if (oDemandsTable) {
+                    oDemandsTable.removeStyleClass("show-more");
+                    oDemandsTable.addStyleClass("show-less");
+                    
+                    const oModel = this.getOwnerComponent().getModel();
+                    if (oModel) {
+                        oDemandsTable.setModel(oModel);
+                    }
+                    
+                    // Store project ID for filtering BEFORE initialization
+                    this._sDemandProjectFilter = sProjectId;
+                    console.log("✅ Stored project filter:", sProjectId);
+                    
+                    // ✅ CRITICAL: Extract numeric part from project ID (e.g., "P-0006" -> "6")
+                    // The CSV data has sapPId as numbers (1, 2, 3...), not "P-0001" format
+                    let sFilterValue = sProjectId;
+                    if (sProjectId && sProjectId.startsWith("P-")) {
+                        // Extract number after "P-000" or "P-00" or "P-0" or "P-"
+                        const sNumericPart = sProjectId.replace(/^P-0*/, ""); // Remove "P-" and leading zeros
+                        sFilterValue = sNumericPart || sProjectId; // Fallback to original if extraction fails
+                        console.log("✅ Converted project ID for filter:", sProjectId, "->", sFilterValue);
+                    }
+                    
+                    // ✅ CRITICAL: Prevent auto-binding by setting filter BEFORE initialization
+                    // Get binding early and apply filter immediately to prevent initial data load
+                    const oEarlyBinding = oDemandsTable.getRowBinding && oDemandsTable.getRowBinding();
+                    if (oEarlyBinding && sFilterValue) {
+                        try {
+                            const oFilter = new sap.ui.model.Filter("sapPId", sap.ui.model.FilterOperator.EQ, sFilterValue);
+                            oEarlyBinding.filter([oFilter]);
+                            console.log("✅ Filter applied EARLY to prevent unfiltered data load:", sFilterValue);
+                        } catch (e) {
+                            console.warn("⚠️ Could not apply early filter:", e);
+                        }
+                    }
+                    
+                    // Initialize table and wait for it to complete
+                    this.initializeTable("Demands").then(() => {
+                        console.log("✅ Table initialization completed, ensuring filter is applied");
+                        
+                        // Function to apply/verify filter
+                        const fnApplyFilter = () => {
+                            const oBinding = oDemandsTable.getRowBinding && oDemandsTable.getRowBinding();
+                            if (oBinding && sFilterValue) {
+                                try {
+                                    const oFilter = new sap.ui.model.Filter("sapPId", sap.ui.model.FilterOperator.EQ, sFilterValue);
+                                    oBinding.filter([oFilter]);
+                                    console.log("✅ Filter applied/verified for demands table:", sFilterValue);
+                                    
+                                    // Attach data received event to track data loading
+                                    oBinding.attachDataReceived((oEvent) => {
+                                        const iLength = oEvent.getParameter("length");
+                                        console.log("✅ Demands data received with filter. Count:", iLength);
+                                        if (iLength === 0) {
+                                            console.warn("⚠️ No demands found for project:", sProjectId, "(filter value:", sFilterValue + ")");
+                                        }
+                                    });
+                                } catch (e) {
+                                    console.error("❌ Error applying filter:", e);
+                                }
+                            } else {
+                                console.warn("⚠️ Binding not ready. Binding:", oBinding, "FilterValue:", sFilterValue);
+                            }
+                        };
+                        
+                        // Apply filter immediately after initialization
+                        fnApplyFilter();
+                        
+                        // Also verify after a short delay to ensure it persists
+                        setTimeout(fnApplyFilter, 300);
+                    }).catch((e) => {
+                        console.error("❌ Error initializing Demands table:", e);
+                    });
+                    
+                    this._resetSegmentedButtonForFragment("Demands");
+                }
+            }.bind(this));
+        },
+        
+        // ✅ NEW: Back to Projects handler - returns to Allocations view
+        onBackToProjectsPress: function () {
+            console.log("Back to projects");
+            const oAllocationPage = this.byId("allocationPage");
+            
+            if (!oAllocationPage) {
+                return;
+            }
+            
+            // Clear current content (i.e., Demands fragment)
+            oAllocationPage.destroyContent();
+            
+            // Reset flag so fragment can be reloaded
+            this._bAllocationsLoaded = false;
+            
+            // Load Allocations fragment again
+            Fragment.load({
+                id: this.getView().getId(),
+                name: "glassboard.view.fragments.Allocations",
+                controller: this
+            }).then(function (oFragment) {
+                oAllocationPage.addContent(oFragment);
+                const oTable = this.byId("Allocations");
+                
+                if (oTable) {
+                    oTable.removeStyleClass("show-more");
+                    oTable.addStyleClass("show-less");
+                    
+                    const oModel = this.getOwnerComponent().getModel();
+                    if (oModel) {
+                        oTable.setModel(oModel);
+                    }
+                    
+                    this.initializeTable("Allocations");
+                    this._resetSegmentedButtonForFragment("Allocations");
+                }
+            }.bind(this));
+        },
+        
+        // ✅ NEW: Resources handler - shows resources for selected demand
+        // ✅ NEW: Find Resources handler - opens dialog to select bench employees
+        onResourcesPress: function() {
+            console.log("Find Resources pressed");
+            
+            // Get selected demand to get project ID
+            const oDemandsTable = this.byId("Demands");
+            if (!oDemandsTable) {
+                sap.m.MessageToast.show("Demands table not found");
+                return;
+            }
+            
+            const aSelectedContexts = oDemandsTable.getSelectedContexts();
+            if (!aSelectedContexts || aSelectedContexts.length === 0) {
+                sap.m.MessageToast.show("Please select a demand first");
+                return;
+            }
+            
+            // Get project ID from stored filter or from selected demand
+            const sProjectId = this._sDemandProjectFilter;
+            if (!sProjectId) {
+                sap.m.MessageToast.show("Project ID not found. Please navigate from Projects screen.");
+                return;
+            }
+            
+            // Store project ID for allocation
+            this._sAllocationProjectId = sProjectId;
+            console.log("✅ Stored project ID for allocation:", sProjectId);
+            
+            // Load and open Find Resources dialog
+            if (!this._oFindResourcesDialog) {
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "glassboard.view.dialogs.FindResourcesDialog",
+                    controller: this
+                }).then((oDialog) => {
+                    this._oFindResourcesDialog = oDialog;
+                    this.getView().addDependent(this._oFindResourcesDialog);
+                    this._oFindResourcesDialog.open();
+                });
+            } else {
+                this._oFindResourcesDialog.open();
+            }
+        },
+        
+        // ✅ NEW: Find Resources dialog close handler
+        onFindResourcesDialogClose: function() {
+            if (this._oFindResourcesDialog) {
+                this._oFindResourcesDialog.close();
+                // Clear selection
+                const oTable = this.byId("findResourcesTable");
+                if (oTable) {
+                    oTable.removeSelections();
+                }
+                // Clear allocation button
+                const oAllocateBtn = this.byId("btnFindResourcesAllocate");
+                if (oAllocateBtn) {
+                    oAllocateBtn.setEnabled(false);
+                }
+            }
+        },
+        
+        // ✅ NEW: Find Resources search handler
+        onFindResourcesSearch: function(oEvent) {
+            const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
+            const oTable = this.byId("findResourcesTable");
+            
+            if (!oTable) {
+                return;
+            }
+            
+            const oBinding = oTable.getBinding("items");
+            if (oBinding) {
+                // ✅ CRITICAL: Always include Bench status filter, add search filter on top
+                const aFilters = [
+                    new sap.ui.model.Filter("status", sap.ui.model.FilterOperator.EQ, "Bench")
+                ];
+                
+                if (sQuery) {
+                    aFilters.push(new sap.ui.model.Filter("fullName", sap.ui.model.FilterOperator.Contains, sQuery));
+                }
+                
+                oBinding.filter(aFilters, "Application");
+            }
+        },
+        
+        // ✅ NEW: Find Resources selection change handler
+        onFindResourcesSelectionChange: function(oEvent) {
+            const oTable = oEvent.getSource();
+            const aSelectedItems = oTable.getSelectedItems();
+            const oAllocateBtn = this.byId("btnFindResourcesAllocate");
+            
+            if (oAllocateBtn) {
+                oAllocateBtn.setEnabled(aSelectedItems.length > 0);
+            }
+        },
+        
+        // ✅ NEW: Find Resources allocate handler - creates allocation record
+        onFindResourcesAllocate: function() {
+            const oTable = this.byId("findResourcesTable");
+            if (!oTable) {
+                sap.m.MessageToast.show("Resources table not found");
+                return;
+            }
+            
+            const aSelectedItems = oTable.getSelectedItems();
+            if (!aSelectedItems || aSelectedItems.length === 0) {
+                sap.m.MessageToast.show("Please select an employee to allocate");
+                return;
+            }
+            
+            const oSelectedItem = aSelectedItems[0];
+            const oContext = oSelectedItem.getBindingContext();
+            if (!oContext) {
+                sap.m.MessageToast.show("Could not get employee data");
+                return;
+            }
+            
+            const oEmployee = oContext.getObject();
+            const sEmployeeId = oEmployee.ohrId;
+            let sProjectId = this._sAllocationProjectId;
+            
+            if (!sEmployeeId || !sProjectId) {
+                sap.m.MessageToast.show("Employee ID or Project ID missing");
+                return;
+            }
+            
+            // Note: Keep project ID in original format (P-0006) as Project entity uses this format
+            // The allocation entity's projectId should match Project.sapPId format
+            console.log("✅ Using project ID for allocation:", sProjectId);
+            
+            // Get allocation details from form
+            const oStartDatePicker = this.byId("allocationStartDate");
+            const oEndDatePicker = this.byId("allocationEndDate");
+            const oPercentageInput = this.byId("allocationPercentage");
+            
+            const sStartDate = oStartDatePicker ? oStartDatePicker.getValue() : "";
+            const sEndDate = oEndDatePicker ? oEndDatePicker.getValue() : "";
+            const sPercentage = oPercentageInput ? oPercentageInput.getValue() : "100";
+            
+            if (!sStartDate || !sEndDate) {
+                sap.m.MessageToast.show("Please select start date and end date");
+                return;
+            }
+            
+            // Create allocation record
+            const oModel = this.getOwnerComponent().getModel();
+            if (!oModel) {
+                sap.m.MessageToast.show("Model not found");
+                return;
+            }
+            
+            // Generate UUID for allocationId
+            const sAllocationId = this._generateUUID();
+            
+            const oAllocationData = {
+                allocationId: sAllocationId,
+                employeeId: sEmployeeId,
+                projectId: sProjectId,
+                startDate: sStartDate,
+                endDate: sEndDate,
+                allocationPercentage: parseInt(sPercentage) || 100,
+                status: "Active"
+            };
+            
+            console.log("Creating allocation:", oAllocationData);
+            
+            // ✅ CRITICAL: Use correct entity name "Allocations" (not "EmployeeProjectAllocations")
+            // The service exposes it as "Allocations" (see srv/service.cds)
+            const oBinding = oModel.bindList("/Allocations", null, [], [], {
+                groupId: "changesGroup"
+            });
+            
+            // ✅ CRITICAL: Pass "changesGroup" as second parameter to create() - same as Customer/Employee
+            const oNewContext = oBinding.create(oAllocationData, "changesGroup");
+            
+            if (!oNewContext) {
+                sap.m.MessageBox.error("Failed to create allocation entry.");
+                return;
+            }
+            
+            console.log("✅ Allocation context created:", oNewContext.getPath());
+            
+            // ✅ CRITICAL: Explicitly set all properties on the context to ensure they're queued
+            Object.keys(oAllocationData).forEach((sKey) => {
+                try {
+                    oNewContext.setProperty(sKey, oAllocationData[sKey]);
+                    console.log("✅ Set property:", sKey, "=", oAllocationData[sKey]);
+                } catch (e) {
+                    console.warn("Could not set property:", sKey, e);
+                }
+            });
+            
+            // ✅ CRITICAL: Check if batch group has pending changes before submitting
+            const bHasPendingChanges = oModel.hasPendingChanges && oModel.hasPendingChanges("changesGroup");
+            console.log("Allocation - Has pending changes in batch group:", bHasPendingChanges);
+            
+            console.log("✅ Properties set, submitting batch...");
+            
+            // Submit batch
+            oModel.submitBatch("changesGroup").then(() => {
+                console.log("✅ Allocation batch submitted successfully");
+                sap.m.MessageToast.show(`Employee ${oEmployee.fullName} allocated to project successfully`);
+                
+                // Close dialog
+                this.onFindResourcesDialogClose();
+                
+                // Refresh Demands table to reflect updated allocation
+                const oDemandsTable = this.byId("Demands");
+                if (oDemandsTable && oDemandsTable.rebind) {
+                    oDemandsTable.rebind();
+                }
+                
+                // Also refresh Projects table if visible to update allocation counts
+                const oProjectsTable = this.byId("Allocations");
+                if (oProjectsTable && oProjectsTable.rebind) {
+                    setTimeout(() => {
+                        oProjectsTable.rebind();
+                    }, 500);
+                }
+            }).catch((oError) => {
+                console.error("❌ Error submitting allocation batch:", oError);
+                console.error("Error details:", JSON.stringify(oError, null, 2));
+                sap.m.MessageBox.error("Failed to create allocation: " + (oError.message || "Unknown error"));
+            });
+        },
+        
+        // ✅ NEW: Generate UUID for allocationId
+        _generateUUID: function() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        },
+        
+        // ✅ NEW: Allocate Resource handler - opens allocation dialog
+        onAllocateRes: function() {  
+            console.log("Open allocate dialog"); 
+            
+            if (!this._oAllocateDialog) {
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "glassboard.view.fragments.AllocateDialog",
+                    controller: this
+                }).then(function(oDialog) {
+                    this._oAllocateDialog = oDialog;
+                    this.getView().addDependent(this._oAllocateDialog);
+                    this._oAllocateDialog.open();
+                }.bind(this));
+            } else {
+                this._oAllocateDialog.open();
+            }
+        },
+        
+        // ✅ NEW: Allocate confirm handler - creates allocation from AllocateDialog
+        onAllocateConfirm: function () {
+            // Get selected employee from Res fragment (if available)
+            const oResTable = this.byId("Res");
+            let sEmployeeId = null;
+            
+            if (oResTable) {
+                const aSelectedContexts = oResTable.getSelectedContexts();
+                if (aSelectedContexts && aSelectedContexts.length > 0) {
+                    const oEmployee = aSelectedContexts[0].getObject();
+                    sEmployeeId = oEmployee.ohrId;
+                }
+            }
+            
+            if (!sEmployeeId) {
+                sap.m.MessageToast.show("Please select an employee from the Employees view first");
+                return;
+            }
+            
+            // Get project and demand from dialog
+            const oProjectInput = this.byId("Resinput_proj");
+            const oDemandInput = this.byId("Resinput_demand");
+            const oStartDatePicker = this.byId("startDate");
+            const oEndDatePicker = this.byId("endDate");
+            const oPercentageInput = this.byId("allocationPercentageDialog");
+            
+            const sProjectId = oProjectInput ? oProjectInput.data("selectedId") : null;
+            const sStartDate = oStartDatePicker ? oStartDatePicker.getValue() : "";
+            const sEndDate = oEndDatePicker ? oEndDatePicker.getValue() : "";
+            const sPercentage = oPercentageInput ? oPercentageInput.getValue() : "100";
+            
+            if (!sProjectId) {
+                sap.m.MessageToast.show("Please select a project");
+                return;
+            }
+            
+            if (!sStartDate || !sEndDate) {
+                sap.m.MessageToast.show("Please select start date and end date");
+                return;
+            }
+            
+            // Convert project ID format if needed (P-0006 -> 6 for database, but keep P-0006 for allocation)
+            let sAllocationProjectId = sProjectId;
+            // Note: Allocation entity uses projectId which should match Project.sapPId format (P-0006)
+            console.log("✅ Using project ID for allocation:", sAllocationProjectId);
+            
+            // Create allocation record
+            const oModel = this.getOwnerComponent().getModel();
+            if (!oModel) {
+                sap.m.MessageToast.show("Model not found");
+                return;
+            }
+            
+            // Generate UUID for allocationId
+            const sAllocationId = this._generateUUID();
+            
+            const oAllocationData = {
+                allocationId: sAllocationId,
+                employeeId: sEmployeeId,
+                projectId: sAllocationProjectId,
+                startDate: sStartDate,
+                endDate: sEndDate,
+                allocationPercentage: parseInt(sPercentage) || 100,
+                status: "Active"
+            };
+            
+            console.log("Creating allocation from AllocateDialog:", oAllocationData);
+            
+            // ✅ CRITICAL: Create allocation in batch and set properties explicitly
+            const oBinding = oModel.bindList("/Allocations", null, [], [], {
+                groupId: "changesGroup"
+            });
+            
+            // ✅ CRITICAL: Pass "changesGroup" as second parameter to create() - same as Customer/Employee
+            const oNewContext = oBinding.create(oAllocationData, "changesGroup");
+            
+            if (!oNewContext) {
+                sap.m.MessageBox.error("Failed to create allocation entry.");
+                return;
+            }
+            
+            console.log("✅ Allocation context created:", oNewContext.getPath());
+            
+            // ✅ CRITICAL: Explicitly set all properties on the context to ensure they're queued
+            Object.keys(oAllocationData).forEach((sKey) => {
+                try {
+                    oNewContext.setProperty(sKey, oAllocationData[sKey]);
+                    console.log("✅ Set property:", sKey, "=", oAllocationData[sKey]);
+                } catch (e) {
+                    console.warn("Could not set property:", sKey, e);
+                }
+            });
+            
+            // ✅ CRITICAL: Check if batch group has pending changes before submitting
+            const bHasPendingChanges = oModel.hasPendingChanges && oModel.hasPendingChanges("changesGroup");
+            console.log("Allocation - Has pending changes in batch group:", bHasPendingChanges);
+            
+            console.log("✅ Properties set, submitting batch...");
+            
+            // Submit batch
+            oModel.submitBatch("changesGroup").then(() => {
+                console.log("✅ Allocation batch submitted successfully");
+                sap.m.MessageToast.show("Employee allocated to project successfully");
+                
+                // Close dialog
+                if (this._oAllocateDialog) {
+                    this._oAllocateDialog.close();
+                }
+                
+                // Refresh tables
+                if (oResTable && oResTable.rebind) {
+                    oResTable.rebind();
+                }
+                
+                const oProjectsTable = this.byId("Allocations");
+                if (oProjectsTable && oProjectsTable.rebind) {
+                    setTimeout(() => {
+                        oProjectsTable.rebind();
+                    }, 500);
+                }
+            }).catch((oError) => {
+                console.error("❌ Error submitting allocation batch:", oError);
+                console.error("Error details:", JSON.stringify(oError, null, 2));
+                sap.m.MessageBox.error("Failed to create allocation: " + (oError.message || "Unknown error"));
+            });
+        },
+        
+        // ✅ NEW: Dialog close handler
+        onDialogClose: function () {
+            if (this._oAllocateDialog) {
+                this._oAllocateDialog.close();
+            }
+        },
+        
+        // ✅ NEW: Search handler for Res (Employees) view
+        onResSearch: function (oEvent) {
+            const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
+            const oTable = this.byId("Res");
+            
+            if (!oTable) {
+                return;
+            }
+            
+            // Apply search filter to table - always include Bench filter
+            const oBinding = oTable.getRowBinding && oTable.getRowBinding();
+            if (oBinding) {
+                // ✅ CRITICAL: Always include Bench status filter
+                const aFilters = [
+                    new sap.ui.model.Filter("status", sap.ui.model.FilterOperator.EQ, "Bench")
+                ];
+                
+                if (sQuery && sQuery.trim() !== "") {
+                    // Add search filter on top of Bench filter
+                    aFilters.push(new sap.ui.model.Filter("fullName", sap.ui.model.FilterOperator.Contains, sQuery.trim(), false));
+                }
+                
+                oBinding.filter(aFilters);
+                console.log("✅ Res search filter applied with Bench filter, query:", sQuery);
+            } else {
+                console.warn("⚠️ Res binding not ready for search filter");
+            }
+        },
+        
+        // ✅ NEW: Search handler for Demands view
+        onDemandSearch: function (oEvent) {
+            const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
+            const oTable = this.byId("Demands");
+            
+            if (!oTable) {
+                return;
+            }
+            
+            // Apply search filter to table (but preserve project filter)
+            const oBinding = oTable.getRowBinding && oTable.getRowBinding();
+            if (oBinding) {
+                const aFilters = [];
+                
+                // Always include project filter if available
+                if (this._sDemandProjectFilter) {
+                    // ✅ Convert project ID format (P-0006 -> 6) to match CSV data format
+                    let sFilterValue = this._sDemandProjectFilter;
+                    if (sFilterValue && sFilterValue.startsWith("P-")) {
+                        sFilterValue = sFilterValue.replace(/^P-0*/, ""); // Remove "P-" and leading zeros
+                    }
+                    aFilters.push(new sap.ui.model.Filter("sapPId", sap.ui.model.FilterOperator.EQ, sFilterValue));
+                }
+                
+                // Add search filter if query exists
+                if (sQuery) {
+                    aFilters.push(new sap.ui.model.Filter("skill", sap.ui.model.FilterOperator.Contains, sQuery));
+                }
+                
+                oBinding.filter(aFilters);
+            }
+        },
+        
+        // ✅ NEW: Res fragment - Customer change handler (enables Opportunity)
+        onResCustomerChange: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const sValue = oInput.getValue();
+            const sCustomerId = oInput.data("selectedId");
+            
+            // Clear dependent fields
+            this.byId("Resinput_Opportunity")?.setValue("");
+            this.byId("Resinput_Opportunity")?.data("selectedId", "");
+            this.byId("Resinput_Project")?.setValue("");
+            this.byId("Resinput_Project")?.data("selectedId", "");
+            this.byId("Resinput_Demand")?.setValue("");
+            this.byId("Resinput_Demand")?.data("selectedId", "");
+            
+            // Enable/disable Opportunity based on Customer selection
+            if (sValue && sValue.trim() !== "" && sCustomerId) {
+                this.byId("Resinput_Opportunity")?.setEnabled(true);
+            } else {
+                this.byId("Resinput_Opportunity")?.setEnabled(false);
+                this.byId("Resinput_Project")?.setEnabled(false);
+                this.byId("Resinput_Demand")?.setEnabled(false);
+            }
+        },
+        
+        // ✅ NEW: Res fragment - Opportunity change handler (enables Project)
+        onResOpportunityChange: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const sValue = oInput.getValue();
+            const sOppId = oInput.data("selectedId");
+            
+            // Clear dependent fields
+            this.byId("Resinput_Project")?.setValue("");
+            this.byId("Resinput_Project")?.data("selectedId", "");
+            this.byId("Resinput_Demand")?.setValue("");
+            this.byId("Resinput_Demand")?.data("selectedId", "");
+            
+            // Enable/disable Project based on Opportunity selection
+            if (sValue && sValue.trim() !== "" && sOppId) {
+                this.byId("Resinput_Project")?.setEnabled(true);
+            } else {
+                this.byId("Resinput_Project")?.setEnabled(false);
+                this.byId("Resinput_Demand")?.setEnabled(false);
+            }
+        },
+        
+        // ✅ NEW: Res fragment - Project change handler (enables Demand)
+        onResProjectChange: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const sValue = oInput.getValue();
+            const sProjectId = oInput.data("selectedId");
+            
+            // ✅ CRITICAL: Store project ID for AllocateDialog demand filtering
+            if (sProjectId) {
+                this._sAllocateDemandProjectFilter = sProjectId;
+                console.log("✅ Stored project ID for AllocateDialog demand filter:", sProjectId);
+            }
+            
+            // Clear dependent field
+            this.byId("Resinput_Demand")?.setValue("");
+            this.byId("Resinput_Demand")?.data("selectedId", "");
+            
+            // Enable/disable Demand based on Project selection
+            if (sValue && sValue.trim() !== "" && sProjectId) {
+                this.byId("Resinput_Demand")?.setEnabled(true);
+            } else {
+                this.byId("Resinput_Demand")?.setEnabled(false);
+            }
+        },
+        
+        // ✅ NEW: Res fragment - Opportunity value help (filtered by Customer)
+        onResOpportunityValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const sCustomerId = this.byId("Resinput_Customer")?.data("selectedId");
+            
+            if (!sCustomerId) {
+                sap.m.MessageToast.show("Please select a Customer first");
+                return;
+            }
+            
+            // Store filter for opportunity value help
+            this._sResCustomerFilter = sCustomerId;
+            this._oResOpportunityInput = oInput;
+            
+            // Use existing opportunity value help but filter by customer
+            this.onOpportunityValueHelpRequest(oEvent);
+        },
+        
+        // ✅ NEW: Res fragment - Project value help (filtered by Opportunity)
+        onResProjectValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const sOppId = this.byId("Resinput_Opportunity")?.data("selectedId");
+            
+            if (!sOppId) {
+                sap.m.MessageToast.show("Please select an Opportunity first");
+                return;
+            }
+            
+            // Store filter for project value help
+            this._sResOppFilter = sOppId;
+            this._oResProjectInput = oInput;
+            
+            // TODO: Implement Project value help filtered by Opportunity
+            // For now, use a simple message
+            sap.m.MessageToast.show("Project value help - filtering by Opportunity: " + sOppId);
+        },
+        
+        // ✅ NEW: Res fragment - Demand value help (filtered by Project)
+        onResDemandValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const sProjectId = this.byId("Resinput_Project")?.data("selectedId");
+            
+            if (!sProjectId) {
+                sap.m.MessageToast.show("Please select a Project first");
+                return;
+            }
+            
+            // Store filter for demand value help
+            this._sResProjectFilter = sProjectId;
+            this._oResDemandInput = oInput;
+            
+            // TODO: Implement Demand value help filtered by Project
+            sap.m.MessageToast.show("Demand value help - filtering by Project: " + sProjectId);
+        },
+
         // ✅ REUSABLE: Hard refresh table after CRUD operations to get fresh data from DB
         _hardRefreshTable: function (sTableId) {
             const oTable = this.byId(sTableId);
@@ -1044,7 +1968,7 @@ sap.ui.define([
                                         const oBackendData = oNewContext.getObject();
                                         console.log("✅ Customer data from backend:", oBackendData);
                                         
-                                        MessageToast.show("Customer created successfully!");
+                    MessageToast.show("Customer created successfully!");
                                         
                                         // ✅ CRITICAL: Hard refresh table to get fresh data from DB
                                         this._hardRefreshTable("Customers");
@@ -3209,6 +4133,271 @@ sap.ui.define([
         onGPMValueHelpCancel: function (oEvent) {
             // Reuse Employee value help cancel
             this.onEmployeeValueHelpCancel(oEvent);
+        },
+
+        // ✅ Value Help Dialog: Project request handler
+        onProjectValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const oView = this.getView();
+            
+            if (!this._oProjectValueHelpDialog) {
+                this._oProjectValueHelpDialog = sap.ui.xmlfragment(
+                    "glassboard.view.dialogs.ProjectValueHelp",
+                    this
+                );
+                oView.addDependent(this._oProjectValueHelpDialog);
+            }
+            
+            this._oProjectValueHelpDialog._oInputField = oInput;
+            
+            // Check if this is from AllocateDialog and filter by project if needed
+            const sInputId = oInput.getId();
+            const bIsAllocateDialog = sInputId && sInputId.includes("Resinput_proj");
+            
+            // ✅ CRITICAL: If opened from employee level (AllocateDialog), get project from Res fragment
+            if (bIsAllocateDialog) {
+                // Try to get project ID from Res fragment if available (when opened from employee level)
+                const sResProjectId = this.byId("Resinput_Project")?.data("selectedId");
+                if (sResProjectId) {
+                    this._sAllocateProjectFilter = sResProjectId;
+                    console.log("✅ Stored project ID from Res fragment for AllocateDialog project filter:", sResProjectId);
+                }
+            }
+            
+            this._oProjectValueHelpDialog.open();
+        },
+
+        // ✅ Value Help Dialog: Project search handler
+        onProjectValueHelpSearch: function (oEvent) {
+            const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
+            const oDialog = this._oProjectValueHelpDialog;
+            if (!oDialog) return;
+            
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("projectValueHelpTable"));
+            
+            if (!oTable) return;
+            
+            const oBinding = oTable.getBinding("items");
+            if (!oBinding) return;
+            
+            const aFilters = [];
+            
+            // Apply opportunity filter if available (from Res fragment)
+            if (this._sResOppFilter) {
+                aFilters.push(new sap.ui.model.Filter("oppId", sap.ui.model.FilterOperator.EQ, this._sResOppFilter));
+            }
+            
+            // Apply search filter
+            if (sQuery && sQuery.trim() !== "") {
+                aFilters.push(new sap.ui.model.Filter("projectName", sap.ui.model.FilterOperator.Contains, sQuery.trim(), false));
+            }
+            
+            oBinding.filter(aFilters.length > 0 ? aFilters : []);
+        },
+
+        // ✅ Value Help Dialog: Project confirm handler
+        onProjectValueHelpConfirm: function (oEvent) {
+            const oDialog = this._oProjectValueHelpDialog;
+            if (!oDialog) {
+                return;
+            }
+            
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("projectValueHelpTable"));
+            
+            if (!oTable || !oTable.getSelectedItem) {
+                sap.m.MessageToast.show("Please select a project");
+                return;
+            }
+            
+            const oSelectedItem = oTable.getSelectedItem();
+            if (!oSelectedItem) {
+                sap.m.MessageToast.show("Please select a project");
+                return;
+            }
+            
+            const oContext = oSelectedItem.getBindingContext();
+            if (oContext && oDialog._oInputField) {
+                const oProject = oContext.getObject();
+                const sProjectId = oProject.sapPId || "";
+                
+                // Display project name, but store ID in data attribute
+                oDialog._oInputField.setValue(oProject.projectName || "");
+                oDialog._oInputField.data("selectedId", sProjectId);
+                
+                // ✅ CRITICAL: Store project ID for AllocateDialog demand filtering
+                const sInputId = oDialog._oInputField.getId();
+                if (sInputId && sInputId.includes("Resinput_proj")) {
+                    this._sAllocateDemandProjectFilter = sProjectId;
+                    console.log("✅ Stored project ID for AllocateDialog demand filter:", sProjectId);
+                }
+            }
+            
+            if (oTable && oTable.clearSelection) {
+                oTable.clearSelection();
+            }
+            oDialog.close();
+        },
+
+        // ✅ Value Help Dialog: Project cancel handler
+        onProjectValueHelpCancel: function (oEvent) {
+            const oDialog = this._oProjectValueHelpDialog;
+            if (oDialog) {
+                const oDialogContent = oDialog.getContent()[0];
+                if (oDialogContent) {
+                    const aItems = oDialogContent.getItems();
+                    const oTable = aItems.find(item => item.getId && item.getId().includes("projectValueHelpTable"));
+                    if (oTable && oTable.clearSelection) {
+                        oTable.clearSelection();
+                    }
+                }
+                oDialog.close();
+            }
+        },
+
+        // ✅ Value Help Dialog: Demand request handler
+        onDemandValueHelpRequest: function (oEvent) {
+            const oInput = oEvent.getSource();
+            const oView = this.getView();
+            
+            if (!this._oDemandValueHelpDialog) {
+                this._oDemandValueHelpDialog = sap.ui.xmlfragment(
+                    "glassboard.view.dialogs.DemandValueHelp",
+                    this
+                );
+                oView.addDependent(this._oDemandValueHelpDialog);
+            }
+            
+            this._oDemandValueHelpDialog._oInputField = oInput;
+            
+            // Check if this is from AllocateDialog and filter by project if needed
+            const sInputId = oInput.getId();
+            const bIsAllocateDialog = sInputId && sInputId.includes("Resinput_demand");
+            const bIsResFragment = sInputId && sInputId.includes("Resinput_Demand");
+            
+            // ✅ CRITICAL: Store project filter if available (from AllocateDialog or Res fragment)
+            if (bIsAllocateDialog) {
+                // Get project ID from AllocateDialog project input
+                const sProjectId = this.byId("Resinput_proj")?.data("selectedId");
+                if (sProjectId) {
+                    this._sAllocateDemandProjectFilter = sProjectId;
+                    console.log("✅ Stored project ID for AllocateDialog demand filter:", sProjectId);
+                } else {
+                    // Try to get from Res fragment if available (when opened from employee level)
+                    const sResProjectId = this.byId("Resinput_Project")?.data("selectedId");
+                    if (sResProjectId) {
+                        this._sAllocateDemandProjectFilter = sResProjectId;
+                        console.log("✅ Stored project ID from Res fragment for AllocateDialog:", sResProjectId);
+                    }
+                }
+            } else if (bIsResFragment) {
+                const sProjectId = this.byId("Resinput_Project")?.data("selectedId");
+                if (sProjectId) {
+                    this._sResDemandProjectFilter = sProjectId;
+                    console.log("✅ Stored project ID for Res fragment demand filter:", sProjectId);
+                }
+            }
+            
+            this._oDemandValueHelpDialog.open();
+        },
+
+        // ✅ Value Help Dialog: Demand search handler
+        onDemandValueHelpSearch: function (oEvent) {
+            const sQuery = oEvent.getParameter("query") || oEvent.getParameter("newValue") || "";
+            const oDialog = this._oDemandValueHelpDialog;
+            if (!oDialog) return;
+            
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("demandValueHelpTable"));
+            
+            if (!oTable) return;
+            
+            const oBinding = oTable.getBinding("items");
+            if (!oBinding) return;
+            
+            const aFilters = [];
+            
+            // Apply project filter if available
+            let sProjectFilter = null;
+            if (this._sAllocateDemandProjectFilter) {
+                sProjectFilter = this._sAllocateDemandProjectFilter;
+            } else if (this._sResDemandProjectFilter) {
+                sProjectFilter = this._sResDemandProjectFilter;
+            }
+            
+            if (sProjectFilter) {
+                // ✅ CRITICAL: Convert project ID format (P-0006 -> 6) to match Demand CSV data format
+                let sFilterValue = sProjectFilter;
+                if (sProjectFilter && sProjectFilter.startsWith("P-")) {
+                    sFilterValue = sProjectFilter.replace(/^P-0*/, ""); // Remove "P-" and leading zeros
+                    console.log("✅ Converted project ID for demand filter:", sProjectFilter, "->", sFilterValue);
+                }
+                aFilters.push(new sap.ui.model.Filter("sapPId", sap.ui.model.FilterOperator.EQ, sFilterValue));
+            }
+            
+            // Apply search filter
+            if (sQuery && sQuery.trim() !== "") {
+                aFilters.push(new sap.ui.model.Filter("skill", sap.ui.model.FilterOperator.Contains, sQuery.trim(), false));
+            }
+            
+            oBinding.filter(aFilters.length > 0 ? aFilters : []);
+        },
+
+        // ✅ Value Help Dialog: Demand confirm handler
+        onDemandValueHelpConfirm: function (oEvent) {
+            const oDialog = this._oDemandValueHelpDialog;
+            if (!oDialog) {
+                return;
+            }
+            
+            const oDialogContent = oDialog.getContent()[0];
+            const aItems = oDialogContent.getItems();
+            const oTable = aItems.find(item => item.getId && item.getId().includes("demandValueHelpTable"));
+            
+            if (!oTable || !oTable.getSelectedItem) {
+                sap.m.MessageToast.show("Please select a demand");
+                return;
+            }
+            
+            const oSelectedItem = oTable.getSelectedItem();
+            if (!oSelectedItem) {
+                sap.m.MessageToast.show("Please select a demand");
+                return;
+            }
+            
+            const oContext = oSelectedItem.getBindingContext();
+            if (oContext && oDialog._oInputField) {
+                const oDemand = oContext.getObject();
+                // Display demand info (skill + band), but store demand ID in data attribute
+                const sDisplayText = `${oDemand.skill || ""} - ${oDemand.band || ""} (Qty: ${oDemand.quantity || 0})`;
+                oDialog._oInputField.setValue(sDisplayText);
+                oDialog._oInputField.data("selectedId", oDemand.demandId || oDemand.id);
+            }
+            
+            if (oTable && oTable.clearSelection) {
+                oTable.clearSelection();
+            }
+            oDialog.close();
+        },
+
+        // ✅ Value Help Dialog: Demand cancel handler
+        onDemandValueHelpCancel: function (oEvent) {
+            const oDialog = this._oDemandValueHelpDialog;
+            if (oDialog) {
+                const oDialogContent = oDialog.getContent()[0];
+                if (oDialogContent) {
+                    const aItems = oDialogContent.getItems();
+                    const oTable = aItems.find(item => item.getId && item.getId().includes("demandValueHelpTable"));
+                    if (oTable && oTable.clearSelection) {
+                        oTable.clearSelection();
+                    }
+                }
+                oDialog.close();
+            }
         },
 
         // ✅ Value Help Dialog: Customer selection handler

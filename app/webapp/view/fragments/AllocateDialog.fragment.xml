@@ -1,0 +1,64 @@
+<core:FragmentDefinition
+  xmlns="sap.m" 
+  xmlns:core="sap.ui.core"
+  xmlns:f="sap.ui.layout.form">
+
+  <Dialog
+    id="allocateDialog"
+    title="Allocate Resource"
+    draggable="true"
+    resizable="true"
+    contentWidth="400px"
+    contentHeight="auto"
+    class="sapUiResponsivePadding--header sapUiResponsivePadding--content sapUiResponsivePadding--footer"
+    afterClose="onDialogClose">
+
+    <VBox>
+      <Label text="Project" labelFor="Resinput_proj"/>
+      <Input 
+        id="Resinput_proj" 
+        width="100%"
+        placeholder="Select project"
+        showValueHelp="true"
+        valueHelpRequest="onProjectValueHelpRequest">
+        <layoutData>
+          <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
+        </layoutData>
+      </Input>
+
+      <Label text="Demand" labelFor="Resinput_demand"/>
+      <Input 
+        id="Resinput_demand" 
+        width="100%"
+        placeholder="Select Demand"
+        showValueHelp="true"
+        valueHelpRequest="onDemandValueHelpRequest">
+        <layoutData>
+          <f:ColumnElementData cellsSmall="12" cellsLarge="12" />
+        </layoutData>
+      </Input>
+
+      <Label text="From" labelFor="startDate"/>
+      <DatePicker id="startDate" valueFormat="yyyy-MM-dd" displayFormat="long"/>
+
+      <Label text="To" labelFor="endDate"/>
+      <DatePicker id="endDate" valueFormat="yyyy-MM-dd" displayFormat="long"/>
+      
+      <Label text="Allocation Percentage" labelFor="allocationPercentageDialog"/>
+      <Input
+        id="allocationPercentageDialog"
+        type="Number"
+        placeholder="0-100"
+        value="100"
+        maxLength="3" />
+    </VBox>
+
+    <beginButton>
+      <Button text="Allocate" type="Emphasized" press="onAllocateConfirm"/>
+    </beginButton>
+
+    <endButton>
+      <Button icon="sap-icon://decline" press="onDialogClose"/>
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

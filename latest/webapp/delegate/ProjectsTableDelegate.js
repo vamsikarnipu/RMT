@@ -87,7 +87,7 @@ sap.ui.define([
             return Promise.resolve(null);
         }
 
-        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Employees";
+        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Projects";
         
         const mAssociationFields = {
             "Opportunities": {
@@ -218,17 +218,9 @@ sap.ui.define([
         
         // ✅ Expand associations to load related entity names
         const sCollectionPath = sPath.replace(/^\//, "");
-        if (sCollectionPath === "Employees") {
-            // Expand Supervisor association for Employee table
-            oBindingInfo.parameters.$expand = "to_Supervisor";
-            
-            // ✅ CRITICAL: Check if this is the Res table and apply Bench filter
-            const sTableId = oTable.getId();
-            if (sTableId && sTableId.includes("Res")) {
-                // Store flag that this is Res table - filter will be applied in controller
-                // We can't apply filter here directly, but we can set a flag
-                console.log("[EmployeesTableDelegate] Res table detected, Bench filter should be applied");
-            }
+        if (sCollectionPath === "Projects") {
+            // Expand Opportunity association for Project table
+            oBindingInfo.parameters.$expand = "to_Opportunity";
         }
 
         console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
@@ -254,25 +246,17 @@ sap.ui.define([
             //     .replace(/([a-z])([A-Z])/g, '$1 $2')
             //     .replace(/^./, function(str) { return str.toUpperCase(); })
             //     .trim();
-            // Custom header mapping for Employees table
+            // Custom header mapping for Projects table
             const mCustomHeaders = {
-                "ohrId": "OHR ID",
-                "mailid": "Email ID",
-                "fullName": "Full Name",
-                "gender": "Gender",
-                "dob": "DOB",                    // Optional if you later add a DOB field
-                "employeeType": "Employee Type",
-                "doj": "DOJ",
-                "band": "Band",
-                "role": "Designation",
-                "location": "Location",
-                "skills": "Skill Details",
-                "city": "City",
-                "lwd": "LWD",
-                "supervisorOHR": "Supervisor OHR",
-                "status": "Status",
-                "skillCategory": "Skill Category", // Optional future field
-                "experience": "Experience"         // Optional future field
+                "sapPId": "SAP PID",
+                "sfdcPId": "SFDC PID",
+                "projectName": "Project Name",
+                "startDate": "Start Date",
+                "endDate": "End Date",
+                "gpm": "GPM",
+                "projectType": "Project Type",
+                "oppId": "Opp Name",
+                "status": "Project Status"
             };
 
             // Smart header generation with better fallback
@@ -286,17 +270,18 @@ sap.ui.define([
             } else {
                 // Smart fallback for any new or unmapped fields
                 sLabel = sPropertyName
-                    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')   // "SAPId" → "SAP Id"
-                    .replace(/([a-z])([A-Z])/g, '$1 $2')         // "customerName" → "Customer Name"
-                    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')    // "OHRId" → "OHR Id"
+                    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')   // e.g., "SAPId" → "SAP Id"
+                    .replace(/([a-z])([A-Z])/g, '$1 $2')         // e.g., "projectName" → "Project Name"
+                    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')    // e.g., "OHRId" → "OHR Id"
                     .replace(/^./, str => str.toUpperCase())     // Capitalize first letter
                     .trim();
 
                 sTooltip = `${sLabel} (Field: ${sPropertyName})`;
 
-                console.log(`[EmployeeTableDelegate] New field detected: "${sPropertyName}" → "${sLabel}"`);
+                // console.log(`[ProjectTableDelegate] New field detected: "${sPropertyName}" → "${sLabel}"`);
             }
 
+            // Assign to property metadata
             oProperty.label = sLabel;
             oProperty.tooltip = sTooltip;
 
@@ -304,7 +289,7 @@ sap.ui.define([
             // Load the Column module and create column
             return new Promise(function (resolve) {
                 sap.ui.require(["sap/ui/mdc/table/Column"], function (Column) {
-                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Employees";
+                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Projects";
                     
                     const oEnumConfig = GenericTableDelegate._getEnumConfig(sTableId, sPropertyName);
                     const bIsEnum = !!oEnumConfig;
@@ -405,11 +390,37 @@ sap.ui.define([
                             // Bind to the same model as the table
                             oComboBox.setModel(oModel);
 
-                            // Display the name from association path directly
-                            // OData V4 will automatically expand associations if configured
+                            // Create a formatter to resolve association name with fallback
+                            const fnAssocNameFormatter = function(sId) {
+                                if (!sId) return "";
+                                // Try to get from expanded association first
+                                const oContext = this.getBindingContext();
+                                if (oContext) {
+                                    try {
+                                        const oRowData = oContext.getObject();
+                                        const sAssocEntity = sAssocPath.split("/")[0]; // e.g., "to_Opportunity"
+                                        const sAssocField = sAssocPath.split("/")[1]; // e.g., "opportunityName"
+                                        
+                                        // Check if association is expanded
+                                        if (oRowData[sAssocEntity] && oRowData[sAssocEntity][sAssocField]) {
+                                            return oRowData[sAssocEntity][sAssocField];
+                                        }
+                                    } catch (e) {
+                                        // Association not expanded, will use fallback
+                                    }
+                                }
+                                // Fallback: return ID if name not available
+                                return sId;
+                            };
+                            
+                            // Display the name from association path with formatter fallback
                             oField = new Field({
-                                value: "{" + sAssocPath + "}", // Direct binding to association name
-                                additionalValue: "{" + sPropertyName + "}", // Show ID as secondary value
+                                value: {
+                                    path: sPropertyName,
+                                    formatter: fnAssocNameFormatter
+                                },
+                                // Also try direct association path binding as primary source
+                                additionalValue: "{" + sAssocPath + "}", // Try association path
                                 contentEdit: oComboBox,
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],
@@ -419,34 +430,8 @@ sap.ui.define([
                             });
                             console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ Displaying", sAssocPath, "from association");
                         } else {
-                            // ✅ FIX: Add date formatter for doj and lwd fields to ensure consistent formatting
-                            let oValueBinding = "{" + sPropertyName + "}";
-                            if (sPropertyName === "doj" || sPropertyName === "lwd") {
-                                // Format date strings consistently (handle both Date objects and string dates)
-                                oValueBinding = {
-                                    path: sPropertyName,
-                                    formatter: function(sValue) {
-                                        if (!sValue) return "";
-                                        // If already a formatted string, return as is
-                                        if (typeof sValue === "string" && sValue.match(/^\d{4}-\d{2}-\d{2}/)) {
-                                            // Format YYYY-MM-DD to readable format
-                                            const oDate = new Date(sValue);
-                                            if (!isNaN(oDate.getTime())) {
-                                                return oDate.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-                                            }
-                                        }
-                                        // If it's a Date object, format it
-                                        if (sValue instanceof Date) {
-                                            return sValue.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-                                        }
-                                        // Return as is if already formatted
-                                        return sValue;
-                                    }
-                                };
-                            }
-                            
                             oField = new Field({
-                                value: oValueBinding,
+                                value: "{" + sPropertyName + "}",
                                 tooltip: "{" + sPropertyName + "}",
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],

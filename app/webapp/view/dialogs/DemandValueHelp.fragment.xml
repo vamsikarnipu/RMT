@@ -1,0 +1,60 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog 
+        id="demandValueHelpDialog"
+        title="Select Demand"
+        contentWidth="600px"
+        contentHeight="500px">
+        <content>
+            <VBox class="sapUiSmallMargin">
+                <SearchField 
+                    id="demandValueHelpSearch"
+                    width="100%"
+                    placeholder="Search by Skill..."
+                    liveChange="onDemandValueHelpSearch"
+                    search="onDemandValueHelpSearch" />
+                <Table 
+                    id="demandValueHelpTable"
+                    mode="SingleSelectLeft"
+                    items="{
+                        path: '/Demands',
+                        sorter: { path: 'skill', descending: false }
+                    }"
+                    growing="true"
+                    growingThreshold="50"
+                    growingScrollToLoad="true">
+                    <columns>
+                        <Column width="25%">
+                            <Text text="Project ID" />
+                        </Column>
+                        <Column width="25%">
+                            <Text text="Skill" />
+                        </Column>
+                        <Column width="25%">
+                            <Text text="Band" />
+                        </Column>
+                        <Column width="25%">
+                            <Text text="Quantity" />
+                        </Column>
+                    </columns>
+                    <items>
+                        <ColumnListItem>
+                            <cells>
+                                <Text text="{sapPId}" />
+                                <Text text="{skill}" />
+                                <Text text="{band}" />
+                                <Text text="{quantity}" />
+                            </cells>
+                        </ColumnListItem>
+                    </items>
+                </Table>
+            </VBox>
+        </content>
+        <beginButton>
+            <Button text="Select" type="Emphasized" press="onDemandValueHelpConfirm" />
+        </beginButton>
+        <endButton>
+            <Button text="Cancel" press="onDemandValueHelpCancel" />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>
+

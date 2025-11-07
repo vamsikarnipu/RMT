@@ -221,14 +221,6 @@ sap.ui.define([
         if (sCollectionPath === "Employees") {
             // Expand Supervisor association for Employee table
             oBindingInfo.parameters.$expand = "to_Supervisor";
-            
-            // ✅ CRITICAL: Check if this is the Res table and apply Bench filter
-            const sTableId = oTable.getId();
-            if (sTableId && sTableId.includes("Res")) {
-                // Store flag that this is Res table - filter will be applied in controller
-                // We can't apply filter here directly, but we can set a flag
-                console.log("[EmployeesTableDelegate] Res table detected, Bench filter should be applied");
-            }
         }
 
         console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
@@ -419,34 +411,8 @@ sap.ui.define([
                             });
                             console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ Displaying", sAssocPath, "from association");
                         } else {
-                            // ✅ FIX: Add date formatter for doj and lwd fields to ensure consistent formatting
-                            let oValueBinding = "{" + sPropertyName + "}";
-                            if (sPropertyName === "doj" || sPropertyName === "lwd") {
-                                // Format date strings consistently (handle both Date objects and string dates)
-                                oValueBinding = {
-                                    path: sPropertyName,
-                                    formatter: function(sValue) {
-                                        if (!sValue) return "";
-                                        // If already a formatted string, return as is
-                                        if (typeof sValue === "string" && sValue.match(/^\d{4}-\d{2}-\d{2}/)) {
-                                            // Format YYYY-MM-DD to readable format
-                                            const oDate = new Date(sValue);
-                                            if (!isNaN(oDate.getTime())) {
-                                                return oDate.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-                                            }
-                                        }
-                                        // If it's a Date object, format it
-                                        if (sValue instanceof Date) {
-                                            return sValue.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-                                        }
-                                        // Return as is if already formatted
-                                        return sValue;
-                                    }
-                                };
-                            }
-                            
                             oField = new Field({
-                                value: oValueBinding,
+                                value: "{" + sPropertyName + "}",
                                 tooltip: "{" + sPropertyName + "}",
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],

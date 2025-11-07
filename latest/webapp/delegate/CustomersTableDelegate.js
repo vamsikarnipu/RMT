@@ -87,7 +87,8 @@ sap.ui.define([
             return Promise.resolve(null);
         }
 
-        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Employees";
+        // Simple fallback mapping for associations (can be enhanced with metadata later)
+        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
         
         const mAssociationFields = {
             "Opportunities": {
@@ -215,21 +216,6 @@ sap.ui.define([
         oBindingInfo.parameters = Object.assign(oBindingInfo.parameters || {}, {
             $count: true
         });
-        
-        // ✅ Expand associations to load related entity names
-        const sCollectionPath = sPath.replace(/^\//, "");
-        if (sCollectionPath === "Employees") {
-            // Expand Supervisor association for Employee table
-            oBindingInfo.parameters.$expand = "to_Supervisor";
-            
-            // ✅ CRITICAL: Check if this is the Res table and apply Bench filter
-            const sTableId = oTable.getId();
-            if (sTableId && sTableId.includes("Res")) {
-                // Store flag that this is Res table - filter will be applied in controller
-                // We can't apply filter here directly, but we can set a flag
-                console.log("[EmployeesTableDelegate] Res table detected, Bench filter should be applied");
-            }
-        }
 
         console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
         console.log("[GenericDelegate] Table payload:", oTable.getPayload());
@@ -248,31 +234,15 @@ sap.ui.define([
                 return Promise.reject("Property not found: " + sPropertyName);
             }
 
-            // Format label
-            // const sLabel = sPropertyName
-            //     // .replace(/([A-Z])/g, ' $1')
-            //     .replace(/([a-z])([A-Z])/g, '$1 $2')
-            //     .replace(/^./, function(str) { return str.toUpperCase(); })
-            //     .trim();
-            // Custom header mapping for Employees table
+            // Custom header mapping for Customers table
             const mCustomHeaders = {
-                "ohrId": "OHR ID",
-                "mailid": "Email ID",
-                "fullName": "Full Name",
-                "gender": "Gender",
-                "dob": "DOB",                    // Optional if you later add a DOB field
-                "employeeType": "Employee Type",
-                "doj": "DOJ",
-                "band": "Band",
-                "role": "Designation",
-                "location": "Location",
-                "skills": "Skill Details",
-                "city": "City",
-                "lwd": "LWD",
-                "supervisorOHR": "Supervisor OHR",
+                "SAPcustId": "SAP Customer ID",
+                "customerName": "Customer Name",
+                "segment": "Segment",
+                "state": "State",
+                "country": "Country",
                 "status": "Status",
-                "skillCategory": "Skill Category", // Optional future field
-                "experience": "Experience"         // Optional future field
+                "vertical": "Vertical"  // ✅ UPDATED: Now using enum instead of verticalId
             };
 
             // Smart header generation with better fallback
@@ -282,34 +252,38 @@ sap.ui.define([
             if (mCustomHeaders[sPropertyName]) {
                 // Use custom header if available
                 sLabel = mCustomHeaders[sPropertyName];
-                sTooltip = sLabel; // Same as label
+                sTooltip = sLabel; // Use same text for tooltip
             } else {
-                // Smart fallback for any new or unmapped fields
+                // Smart fallback for new fields
                 sLabel = sPropertyName
-                    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')   // "SAPId" → "SAP Id"
-                    .replace(/([a-z])([A-Z])/g, '$1 $2')         // "customerName" → "Customer Name"
-                    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')    // "OHRId" → "OHR Id"
-                    .replace(/^./, str => str.toUpperCase())     // Capitalize first letter
+                    // Handle common patterns
+                    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')  // "SAPId" → "SAP Id"
+                    .replace(/([a-z])([A-Z])/g, '$1 $2')        // "customerName" → "customer Name"
+                    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')   // "OHRId" → "OHR Id"
+                    .replace(/^./, function (str) { return str.toUpperCase(); })
                     .trim();
 
+                // Enhanced tooltip for new fields
                 sTooltip = `${sLabel} (Field: ${sPropertyName})`;
 
-                console.log(`[EmployeeTableDelegate] New field detected: "${sPropertyName}" → "${sLabel}"`);
+                // Log new field for easy identification
+                // console.log(`[CustomersTableDelegate] New field detected: "${sPropertyName}" → "${sLabel}"`);
             }
-
-            oProperty.label = sLabel;
-            oProperty.tooltip = sTooltip;
-
 
             // Load the Column module and create column
             return new Promise(function (resolve) {
                 sap.ui.require(["sap/ui/mdc/table/Column"], function (Column) {
-                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Employees";
+                    // ✅ FIXED: Get table ID from collectionPath for table-specific edit state
+                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
                     
+                    // ✅ STEP 1: Check if enum field (fixed values)
                     const oEnumConfig = GenericTableDelegate._getEnumConfig(sTableId, sPropertyName);
                     const bIsEnum = !!oEnumConfig;
+
+                    // ✅ STEP 2: Check if association field (dynamic from OData)
                     const oAssocPromise = GenericTableDelegate._detectAssociation(oTable, sPropertyName);
                     
+                    // Helper function for edit mode formatter
                     const fnEditModeFormatter = function (sPath) {
                         var rowPath = this.getBindingContext() && this.getBindingContext().getPath();
                         if (sPath && sPath.includes(",")) {
@@ -319,6 +293,7 @@ sap.ui.define([
                         return sPath === rowPath ? "Editable" : "Display";
                     };
 
+                    // Helper function for editable binding
                     const oEditableBinding = {
                         parts: [{ path: `edit>/${sTableId}/editingPath` }],
                         mode: "TwoWay",
@@ -337,18 +312,21 @@ sap.ui.define([
                         let oField;
 
                         if (bIsEnum) {
+                            // ✅ METHOD 1: ENUM - ComboBox with static values
                             const aItems = oEnumConfig.values.map(function(sVal, iIndex) {
                                 return new Item({
                                     key: sVal,
                                     text: oEnumConfig.labels[iIndex] || sVal
                                 });
                             });
+
                             const oComboBox = new ComboBox({
                                 value: "{" + sPropertyName + "}",
                                 selectedKey: "{" + sPropertyName + "}",
                                 items: aItems,
                                 editable: oEditableBinding
                             });
+
                             oField = new Field({
                                 value: "{" + sPropertyName + "}",
                                 contentEdit: oComboBox,
@@ -358,31 +336,10 @@ sap.ui.define([
                                     formatter: fnEditModeFormatter
                                 }
                             });
+
                             console.log("[GenericDelegate] Enum field detected:", sPropertyName, "→ ComboBox");
                         } else if (bIsAssoc) {
-                            // ✅ ASSOCIATION: Display name from association, but store ID for editing
-                            // Determine association path based on property
-                            let sAssocPath = "";
-                            if (sPropertyName === "customerId") {
-                                sAssocPath = "to_Customer/customerName"; // Display customer name
-                            } else if (sPropertyName === "supervisorOHR") {
-                                sAssocPath = "to_Supervisor/fullName"; // Display supervisor name
-                            } else if (sPropertyName === "oppId") {
-                                sAssocPath = "to_Opportunity/opportunityName"; // Display opportunity name
-                            } else {
-                                // Fallback: try to construct association path
-                                sAssocPath = sPropertyName.replace("Id", "").replace("OHR", "");
-                                if (sAssocPath === "customer") {
-                                    sAssocPath = "to_Customer/customerName";
-                                } else if (sAssocPath === "opp") {
-                                    sAssocPath = "to_Opportunity/opportunityName";
-                                } else if (sAssocPath === "supervisor") {
-                                    sAssocPath = "to_Supervisor/fullName";
-                                } else {
-                                    sAssocPath = sPropertyName; // Fallback to ID
-                                }
-                            }
-                            
+                            // ✅ METHOD 2: ASSOCIATION - ComboBox bound to OData (compatible with UI5 1.141.1)
                             const oModel = oTable.getModel();
                             const sCollectionPath = "/" + oAssocConfig.targetEntity;
                             
@@ -405,11 +362,8 @@ sap.ui.define([
                             // Bind to the same model as the table
                             oComboBox.setModel(oModel);
 
-                            // Display the name from association path directly
-                            // OData V4 will automatically expand associations if configured
                             oField = new Field({
-                                value: "{" + sAssocPath + "}", // Direct binding to association name
-                                additionalValue: "{" + sPropertyName + "}", // Show ID as secondary value
+                                value: "{" + sPropertyName + "}",
                                 contentEdit: oComboBox,
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],
@@ -417,36 +371,12 @@ sap.ui.define([
                                     formatter: fnEditModeFormatter
                                 }
                             });
-                            console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ Displaying", sAssocPath, "from association");
+
+                            console.log("[GenericDelegate] Association field detected:", sPropertyName, "→ ComboBox bound to", oAssocConfig.targetEntity);
                         } else {
-                            // ✅ FIX: Add date formatter for doj and lwd fields to ensure consistent formatting
-                            let oValueBinding = "{" + sPropertyName + "}";
-                            if (sPropertyName === "doj" || sPropertyName === "lwd") {
-                                // Format date strings consistently (handle both Date objects and string dates)
-                                oValueBinding = {
-                                    path: sPropertyName,
-                                    formatter: function(sValue) {
-                                        if (!sValue) return "";
-                                        // If already a formatted string, return as is
-                                        if (typeof sValue === "string" && sValue.match(/^\d{4}-\d{2}-\d{2}/)) {
-                                            // Format YYYY-MM-DD to readable format
-                                            const oDate = new Date(sValue);
-                                            if (!isNaN(oDate.getTime())) {
-                                                return oDate.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-                                            }
-                                        }
-                                        // If it's a Date object, format it
-                                        if (sValue instanceof Date) {
-                                            return sValue.toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
-                                        }
-                                        // Return as is if already formatted
-                                        return sValue;
-                                    }
-                                };
-                            }
-                            
+                            // ✅ Regular text field
                             oField = new Field({
-                                value: oValueBinding,
+                                value: "{" + sPropertyName + "}",
                                 tooltip: "{" + sPropertyName + "}",
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],
@@ -461,13 +391,15 @@ sap.ui.define([
                             dataProperty: sPropertyName,
                             propertyKey: sPropertyName,
                             header: sLabel,
-                            template: oField
+                            template: oField,
+                            headerTooltip: sTooltip
                         });
 
                         console.log("[GenericDelegate] Column created via addItem:", sPropertyName);
                         resolve(oColumn);
                     }).catch(function(oError) {
-                        console.warn("[GenericDelegate] Error, using regular field:", oError);
+                        console.warn("[GenericDelegate] Error detecting association, using regular field:", oError);
+                        // Fallback to regular field
                         const oField = new Field({
                             value: "{" + sPropertyName + "}",
                             tooltip: "{" + sPropertyName + "}",
@@ -482,7 +414,8 @@ sap.ui.define([
                             dataProperty: sPropertyName,
                             propertyKey: sPropertyName,
                             header: sLabel,
-                            template: oField
+                            template: oField,
+                            headerTooltip: sTooltip
                         });
                         resolve(oColumn);
                     });

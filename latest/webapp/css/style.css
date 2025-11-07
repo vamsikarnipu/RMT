@@ -1,0 +1,39 @@
+/* Enter your custom styles here */
+.show-less .sapMListTblSubCnt{
+    display: none !important;
+}
+ 
+.Card {color: white;padding: 1rem;border-radius: 8px;box-shadow: 0 4px 8px rgba(0,0,0,0.2);margin:10px;width:33%;}
+.myCardTitle {font-size: 1.2rem;font-weight: bold;color:#FFF;}
+.myCardValue {font-size: 2rem;color:#fff;}
+ 
+/* Total Head Count */
+.totalHeadC {background: linear-gradient(45deg, #e7413c, #b31217) !important;color: #fff;}
+ 
+/* Allocated Count */
+.allocatedC {background: linear-gradient(45deg, #00796b, #004d40) !important;color: #fff;}
+ 
+/* Bench Count */
+.benchC  {background: linear-gradient(45deg, #f9a825, #f57f17) !important;color: #fff;}
+ 
+/* Unallocated Bench */
+.unallocatedBenchC {background: linear-gradient(45deg, #8e24aa, #5e35b1) !important;color: #fff;}
+ 
+/* Unproductive Bench */
+.unproductiveBenchC {background: linear-gradient(45deg, #5c6bc0, #303f9f) !important;color: #fff;}
+ 
+/* Net Bench */
+.netBenchC{background: linear-gradient(45deg, #f4511e, #bf360c) !important;color: #fff;}
+ 
+/* Demands Count */
+.demandsC {background: linear-gradient(45deg, #43a047, #2e7d32) !important;  color: #fff;}
+ 
+/* Yet To Join */
+.yetToJoinC {background: linear-gradient(45deg, #039be5, #0277bd) !important;color: #fff;}
+ 
+/* Projects Ending (In 2 Weeks) */
+.projectsEndingC {background: linear-gradient(45deg, #6d4c41, #4e342e) !important;color: #fff;}
+ 
+.sapMSplitContainerHideMode>.sapMSplitContainerDetail .sapUiResponsiveMargin, .sapUiResponsiveMargin{margin:0px !important;}
+.extraSpace {height:20px !important;}
+ 

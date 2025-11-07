@@ -1,0 +1,84 @@
+<core:FragmentDefinition xmlns:core="sap.ui.core"
+                         xmlns="sap.m"
+                         xmlns:f="sap.ui.layout.form"
+                         xmlns:mdc="sap.ui.mdc"
+                         xmlns:mdct="sap.ui.mdc.table">
+    <VBox class="sapUiSmallMargin">
+        <!-- Panel for Table -->
+        <Panel class="sapUiResponsiveMargin" expandable="false">
+            <Toolbar>
+                <Select
+                    id="allocationViewSelect"
+                    selectedKey="projects"
+                    change="onAllocationViewChange">
+                    <core:Item key="employees" text="Employees" />
+                    <core:Item key="projects" text="Projects" />
+                </Select>
+                <ToolbarSpacer />
+                <SearchField
+                    id="allocationSearchField"
+                    width="300px"
+                    placeholder="Search projects..."
+                    liveChange="onAllocationSearch"
+                    search="onAllocationSearch" />                                 
+            </Toolbar>
+            <ScrollContainer height="380px" vertical="true" horizontal="false">
+                <mdc:Table
+                    id="Allocations"
+                    header="Projects"
+                    class="verticalsTable rowDetailToggleTable"
+                    autoBindOnInit="false"
+                    busyIndicatorDelay="0"
+                    width="100%"
+                    p13nMode="Column,Sort,Filter,Group"
+                    selectionMode="Single"
+                    delegate='{
+                        "name": "glassboard/delegate/AllocationsTableDelegate",
+                        "payload": {
+                            "collectionPath": "Projects"
+                        }
+                    }'
+                    showRowCount="true"
+                    threshold="1000"
+                    enableExport="true"
+                    enableAutoColumnWidth="false"
+                    selectionChange="onSelectionChange">
+
+                    <mdc:type>
+                        <mdct:ResponsiveTableType />
+                    </mdc:type>
+
+                    <mdc:actions>
+                        <SegmentedButton 
+                            selectedKey="less"
+                            selectionChange="onToggleRowDetail"
+                            tooltip="Toggle Row Details">
+                            <items>
+                                <SegmentedButtonItem key="more" icon="sap-icon://detail-more" tooltip="Show More"/>
+                                <SegmentedButtonItem key="less" icon="sap-icon://detail-less" tooltip="Show Less"/>
+                            </items>
+                        </SegmentedButton>
+                        <Button icon="sap-icon://delete" id="btnDelete_alloc" tooltip="Delete" press="onDeletePress" enabled="false" />
+                        <Button text="Demand" id="demand_alloc" press="onDemandPress" enabled="false"/>
+                        <SplitButton
+                            id="allocationUpload"
+                            icon="sap-icon://upload"
+                            tooltip="Upload"
+                            type="Transparent"
+                            press="onUpload"
+                            arrowPress="onSplitButtonArrowPress"
+                        />
+                    </mdc:actions>
+                </mdc:Table>
+            </ScrollContainer>
+        </Panel>
+        <HBox width="100%" class="extraSpace"><ToolbarSpacer /></HBox>
+
+        <!-- Panel for Form -->
+        <Panel headerText="Project Allocation Details" class="sapUiResponsiveMargin" expandable="false">
+            <VBox class="sapUiSmallMargin">
+                <!-- Allocation details form can be added here if needed -->
+            </VBox>
+        </Panel>
+    </VBox>
+</core:FragmentDefinition>
