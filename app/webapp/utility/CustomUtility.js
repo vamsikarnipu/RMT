@@ -901,8 +901,9 @@ sap.ui.define([
                 this.byId("inputCity")?.setSelectedKey("");
             }
             // Status enum: backend uses A/I/P, form uses same keys now
-            this.byId("inputStatus")?.setSelectedKey(oObj.status || "A");
-            this.byId("inputVertical")?.setValue(oObj.vertical || "");
+            this.byId("inputStatus")?.setSelectedKey(oObj.status || "");
+            // ✅ FIXED: Vertical is a Select control, must use setSelectedKey() not setValue()
+            this.byId("inputVertical")?.setSelectedKey(oObj.vertical || "");
         },
 
         
@@ -1047,27 +1048,32 @@ sap.ui.define([
                             // All deletions successful
                             sap.m.MessageToast.show(`${sTableId} entries successfully deleted.`);
 
-                            // ✅ CRITICAL: Force immediate UI refresh for MDC tables
+                            // ✅ CRITICAL: Hard refresh table to get fresh data from DB
                             setTimeout(() => {
-                                // Immediately rebind MDC table (this is the key for MDC tables)
+                                // Immediately rebind MDC table (most reliable for MDC tables)
                                 if (oTable.rebind) {
                                     try {
                                         oTable.rebind();
+                                        console.log(`✅ Table ${sTableId} rebinded after delete`);
                                     } catch (e) {
-                                        console.log("Rebind error:", e);
+                                        console.log(`Rebind error for ${sTableId}:`, e);
                                     }
                                 }
                                 
-                                // Also try refresh methods as backup
+                                // Also refresh bindings to force fresh data from backend
                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                 const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
                                 
                                 if (oRowBinding) {
-                                    oRowBinding.refresh(true).catch(() => {});
+                                    oRowBinding.refresh().then(() => {
+                                        console.log(`✅ Table ${sTableId} row binding refreshed after delete`);
+                                    }).catch(() => {});
                                 } else if (oBinding) {
-                                    oBinding.refresh(true).catch(() => {});
+                                    oBinding.refresh().then(() => {
+                                        console.log(`✅ Table ${sTableId} binding refreshed after delete`);
+                                    }).catch(() => {});
                                 }
-                            }, 150); // Small delay to ensure batch is committed
+                            }, 200); // Small delay to ensure batch is committed
                         } else {
                             // Some deletions failed
                             console.error("Some deletions failed:", sErrorMessage);

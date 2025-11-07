@@ -828,6 +828,41 @@ sap.ui.define([
             }
         },
 
+        // ✅ REUSABLE: Hard refresh table after CRUD operations to get fresh data from DB
+        _hardRefreshTable: function (sTableId) {
+            const oTable = this.byId(sTableId);
+            if (!oTable) {
+                console.warn(`Table ${sTableId} not found for refresh`);
+                return;
+            }
+            
+            // ✅ STEP 1: Rebind MDC table (most reliable for MDC tables)
+            if (oTable.rebind) {
+                try {
+                    oTable.rebind();
+                    console.log(`✅ Table ${sTableId} rebinded`);
+                } catch (e) {
+                    console.log(`Rebind error for ${sTableId}:`, e);
+                }
+            }
+            
+            // ✅ STEP 2: Refresh all bindings to force fresh data from backend
+            setTimeout(() => {
+                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                
+                if (oRowBinding) {
+                    oRowBinding.refresh().then(() => {
+                        console.log(`✅ Table ${sTableId} row binding refreshed`);
+                    }).catch(() => {});
+                } else if (oBinding) {
+                    oBinding.refresh().then(() => {
+                        console.log(`✅ Table ${sTableId} binding refreshed`);
+                    }).catch(() => {});
+                }
+            }, 200); // Small delay to ensure batch is committed
+        },
+
         // ✅ NEW: Submit function that handles both Create and Update
         onSubmitCustomer: function () {
             const sCustId = this.byId("inputCustomerId").getValue(),
@@ -837,9 +872,29 @@ sap.ui.define([
                 sStatus = this.byId("inputStatus").getSelectedKey(),
                 sVertical = this.byId("inputVertical").getSelectedKey();
 
-            // Validation - Customer Name is required
+            // ✅ Validation - Check all required fields
             if (!sCustName || sCustName.trim() === "") {
                 sap.m.MessageBox.error("Customer Name is required!");
+                return;
+            }
+            
+            if (!sCountry || sCountry.trim() === "") {
+                sap.m.MessageBox.error("Country is required!");
+                return;
+            }
+            
+            if (!sState || sState.trim() === "") {
+                sap.m.MessageBox.error("City is required!");
+                return;
+            }
+            
+            if (!sStatus || sStatus.trim() === "") {
+                sap.m.MessageBox.error("Status is required!");
+                return;
+            }
+            
+            if (!sVertical || sVertical.trim() === "") {
+                sap.m.MessageBox.error("Vertical is required!");
                 return;
             }
 
@@ -881,28 +936,8 @@ sap.ui.define([
                                 // Success - refresh table and show message
                                 MessageToast.show("Customer updated successfully!");
                                 
-                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                // For MDC tables, rebind() is the most reliable way to refresh
-                                setTimeout(() => {
-                                    // Immediately rebind MDC table (this is the key for MDC tables)
-                                    if (oTable.rebind) {
-                                        try {
-                                            oTable.rebind();
-                                        } catch (e) {
-                                            console.log("Rebind error:", e);
-                                        }
-                                    }
-                                    
-                                    // Also try refresh methods as backup
-                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                    
-                                    if (oRowBinding) {
-                                        oRowBinding.refresh(true).catch(() => {});
-                                    } else if (oBinding) {
-                                        oBinding.refresh(true).catch(() => {});
-                                    }
-                                }, 150); // Small delay to ensure batch is committed
+                                // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                this._hardRefreshTable("Customers");
                                 
                                 this.onCancelForm(); // Clear form after successful update
                             })
@@ -1011,69 +1046,20 @@ sap.ui.define([
                                         
                                         MessageToast.show("Customer created successfully!");
                                         
-                                        // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                        setTimeout(() => {
-                                            // Immediately rebind MDC table (this is the key for MDC tables)
-                                            if (oTable.rebind) {
-                                                try {
-                                                    oTable.rebind();
-                                                } catch (e) {
-                                                    console.log("Rebind error:", e);
-                                                }
-                                            }
-                                            
-                                            // Also try refresh methods as backup
-                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                            
-                                            if (oRowBinding) {
-                                                oRowBinding.refresh(true).catch(() => {});
-                                            } else if (oBinding) {
-                                                oBinding.refresh(true).catch(() => {});
-                                            }
-                                        }, 150); // Small delay to ensure batch is committed
+                                        // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                        this._hardRefreshTable("Customers");
                                         
                                         this.onCancelForm(); // Clear form after successful create
                                     }).catch(() => {
                                         // If requestObject fails, still show success and refresh
                                         MessageToast.show("Customer created successfully!");
-                                        setTimeout(() => {
-                                            if (oTable.rebind) {
-                                                try {
-                                                    oTable.rebind();
-                                                } catch (e) {
-                                                    console.log("Rebind error:", e);
-                                                }
-                                            }
-                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                            if (oRowBinding) {
-                                                oRowBinding.refresh(true).catch(() => {});
-                                            } else if (oBinding) {
-                                                oBinding.refresh(true).catch(() => {});
-                                            }
-                                        }, 150);
+                                        this._hardRefreshTable("Customers");
                                         this.onCancelForm();
                                     });
                                 } else {
                                     // Fallback if requestObject not available
                                     MessageToast.show("Customer created successfully!");
-                                    setTimeout(() => {
-                                        if (oTable.rebind) {
-                                            try {
-                                                oTable.rebind();
-                                            } catch (e) {
-                                                console.log("Rebind error:", e);
-                                            }
-                                        }
-                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        if (oRowBinding) {
-                                            oRowBinding.refresh(true).catch(() => {});
-                                        } else if (oBinding) {
-                                            oBinding.refresh(true).catch(() => {});
-                                        }
-                                    }, 150);
+                                    this._hardRefreshTable("Customers");
                                     this.onCancelForm();
                                 }
                             })
@@ -1746,6 +1732,9 @@ sap.ui.define([
                     console.log("Selection cleared or method not available");
                 }
             }
+            
+            // ✅ CRITICAL: Disable Edit button when form is cleared (no row selected)
+            this.byId("editButton_cus")?.setEnabled(false);
         },
 
         // ✅ DEPRECATED: Old create function (kept for reference, can be removed)
@@ -1819,27 +1808,8 @@ sap.ui.define([
                         .then(() => {
                             MessageToast.show("Employee updated successfully!");
                             
-                            // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                            setTimeout(() => {
-                                // Immediately rebind MDC table (this is the key for MDC tables)
-                                if (oTable.rebind) {
-                                    try {
-                                        oTable.rebind();
-                                    } catch (e) {
-                                        console.log("Rebind error:", e);
-                                    }
-                                }
-                                
-                                // Also try refresh methods as backup
-                                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                
-                                if (oRowBinding) {
-                                    oRowBinding.refresh(true).catch(() => {});
-                                } else if (oBinding) {
-                                    oBinding.refresh(true).catch(() => {});
-                                }
-                            }, 150); // Small delay to ensure batch is committed
+                            // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                            this._hardRefreshTable("Employees");
                             
                             this.onCancelEmployeeForm();
                         })
@@ -1911,27 +1881,8 @@ sap.ui.define([
                                 console.log("Employee created successfully!");
                                 MessageToast.show("Employee created successfully!");
                                 
-                                // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                setTimeout(() => {
-                                    // Immediately rebind MDC table (this is the key for MDC tables)
-                                    if (oTable.rebind) {
-                                        try {
-                                            oTable.rebind();
-                                        } catch (e) {
-                                            console.log("Rebind error:", e);
-                                        }
-                                    }
-                                    
-                                    // Also try refresh methods as backup
-                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                    
-                                    if (oRowBinding) {
-                                        oRowBinding.refresh(true).catch(() => {});
-                                    } else if (oBinding) {
-                                        oBinding.refresh(true).catch(() => {});
-                                    }
-                                }, 150); // Small delay to ensure batch is committed
+                                // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                this._hardRefreshTable("Employees");
                                 
                                 this.onCancelEmployeeForm();
                             })
@@ -1971,27 +1922,8 @@ sap.ui.define([
                     console.log("Employee created successfully (direct):", oData);
                     MessageToast.show("Employee created successfully!");
                     
-                    // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                    setTimeout(() => {
-                        // Immediately rebind MDC table (this is the key for MDC tables)
-                        if (oTable.rebind) {
-                            try {
-                                oTable.rebind();
-                            } catch (e) {
-                                console.log("Rebind error:", e);
-                            }
-                        }
-                        
-                        // Also try refresh methods as backup
-                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                        
-                        if (oRowBinding) {
-                            oRowBinding.refresh(true).catch(() => {});
-                        } else if (oBinding) {
-                            oBinding.refresh(true).catch(() => {});
-                        }
-                    }, 150); // Small delay to ensure batch is committed
+                    // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                    this._hardRefreshTable("Employees");
                     
                     this.onCancelEmployeeForm();
                 },
@@ -2083,69 +2015,20 @@ sap.ui.define([
                                     
                                     MessageToast.show("Opportunity updated successfully!");
                                     
-                                    // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                    setTimeout(() => {
-                                        // Immediately rebind MDC table (this is the key for MDC tables)
-                                        if (oTable.rebind) {
-                                            try {
-                                                oTable.rebind();
-                                            } catch (e) {
-                                                console.log("Rebind error:", e);
-                                            }
-                                        }
-                                        
-                                        // Also try refresh methods as backup
-                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        
-                                        if (oRowBinding) {
-                                            oRowBinding.refresh(true).catch(() => {});
-                                        } else if (oBinding) {
-                                            oBinding.refresh(true).catch(() => {});
-                                        }
-                                    }, 150); // Small delay to ensure batch is committed
+                                    // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                    this._hardRefreshTable("Opportunities");
                                     
                                     this.onCancelOpportunityForm();
                                 }).catch(() => {
                                     // If requestObject fails, still show success and refresh
                                     MessageToast.show("Opportunity updated successfully!");
-                                    setTimeout(() => {
-                                        if (oTable.rebind) {
-                                            try {
-                                                oTable.rebind();
-                                            } catch (e) {
-                                                console.log("Rebind error:", e);
-                                            }
-                                        }
-                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        if (oRowBinding) {
-                                            oRowBinding.refresh(true).catch(() => {});
-                                        } else if (oBinding) {
-                                            oBinding.refresh(true).catch(() => {});
-                                        }
-                                    }, 150);
+                                    this._hardRefreshTable("Opportunities");
                                     this.onCancelOpportunityForm();
                                 });
                             } else {
                                 // Fallback if requestObject not available
                                 MessageToast.show("Opportunity updated successfully!");
-                                setTimeout(() => {
-                                    if (oTable.rebind) {
-                                        try {
-                                            oTable.rebind();
-                                        } catch (e) {
-                                            console.log("Rebind error:", e);
-                                        }
-                                    }
-                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                    if (oRowBinding) {
-                                        oRowBinding.refresh(true).catch(() => {});
-                                    } else if (oBinding) {
-                                        oBinding.refresh(true).catch(() => {});
-                                    }
-                                }, 150);
+                                this._hardRefreshTable("Opportunities");
                                 this.onCancelOpportunityForm();
                             }
                         })
@@ -2155,31 +2038,8 @@ sap.ui.define([
                                     const oCurrentData = oContext.getObject();
                                         if (oCurrentData && oCurrentData.opportunityName === oUpdateEntry.opportunityName) {
                                         MessageToast.show("Opportunity updated successfully!");
-                                        // ✅ Force refresh table to show updated data immediately
-                                        setTimeout(() => {
-                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                            
-                                            const fnRefresh = () => {
-                                                if (oRowBinding) {
-                                                    return oRowBinding.refresh(true);
-                                                } else if (oBinding) {
-                                                    return oBinding.refresh(true);
-                                                }
-                                                return Promise.resolve();
-                                            };
-                                            
-                                            fnRefresh().then(() => {
-                                                if (oTable.rebind) {
-                                                    oTable.rebind();
-                                                }
-                                            }).catch(() => {
-                                                if (oTable.rebind) {
-                                                    oTable.rebind();
-                                                }
-                                            });
-                                        }, 100);
-                                        
+                                        // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                        this._hardRefreshTable("Opportunities");
                                         this.onCancelOpportunityForm();
                                     } else {
                                         console.warn("Update may have failed:", oError.message || "Unknown error");
@@ -2252,69 +2112,20 @@ sap.ui.define([
                                         
                                         MessageToast.show("Opportunity created successfully!");
                                         
-                                        // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                        setTimeout(() => {
-                                            // Immediately rebind MDC table (this is the key for MDC tables)
-                                            if (oTable.rebind) {
-                                                try {
-                                                    oTable.rebind();
-                                                } catch (e) {
-                                                    console.log("Rebind error:", e);
-                                                }
-                                            }
-                                            
-                                            // Also try refresh methods as backup
-                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                            
-                                            if (oRowBinding) {
-                                                oRowBinding.refresh(true).catch(() => {});
-                                            } else if (oBinding) {
-                                                oBinding.refresh(true).catch(() => {});
-                                            }
-                                        }, 150); // Small delay to ensure batch is committed
+                                        // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                        this._hardRefreshTable("Opportunities");
                                         
                                         this.onCancelOpportunityForm(); // Clear form after successful create
                                     }).catch(() => {
                                         // If requestObject fails, still show success and refresh
                                         MessageToast.show("Opportunity created successfully!");
-                                        setTimeout(() => {
-                                            if (oTable.rebind) {
-                                                try {
-                                                    oTable.rebind();
-                                                } catch (e) {
-                                                    console.log("Rebind error:", e);
-                                                }
-                                            }
-                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                            if (oRowBinding) {
-                                                oRowBinding.refresh(true).catch(() => {});
-                                            } else if (oBinding) {
-                                                oBinding.refresh(true).catch(() => {});
-                                            }
-                                        }, 150);
+                                        this._hardRefreshTable("Opportunities");
                                         this.onCancelOpportunityForm();
                                     });
                                 } else {
                                     // Fallback if requestObject not available
                                     MessageToast.show("Opportunity created successfully!");
-                                    setTimeout(() => {
-                                        if (oTable.rebind) {
-                                            try {
-                                                oTable.rebind();
-                                            } catch (e) {
-                                                console.log("Rebind error:", e);
-                                            }
-                                        }
-                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        if (oRowBinding) {
-                                            oRowBinding.refresh(true).catch(() => {});
-                                        } else if (oBinding) {
-                                            oBinding.refresh(true).catch(() => {});
-                                        }
-                                    }, 150);
+                                    this._hardRefreshTable("Opportunities");
                                     this.onCancelOpportunityForm();
                                 }
                             })
@@ -2329,7 +2140,7 @@ sap.ui.define([
                                             // Create succeeded despite error
                                             console.log("✅ Create verified successful");
                                             MessageToast.show("Opportunity created successfully!");
-                                            oBinding.refresh();
+                                            this._hardRefreshTable("Opportunities");
                                             this.onCancelOpportunityForm();
                                         } else {
                                             // Actual failure - use direct model create as fallback
@@ -2361,32 +2172,8 @@ sap.ui.define([
                     console.log("Opportunity created successfully (direct):", oData);
                     MessageToast.show("Opportunity created successfully!");
                     
-                    // ✅ Force immediate UI refresh after create
-                    setTimeout(() => {
-                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                        
-                        const fnRefresh = () => {
-                            if (oRowBinding) {
-                                return oRowBinding.refresh(true); // Force refresh from server
-                            } else if (oBinding) {
-                                return oBinding.refresh(true); // Force refresh from server
-                            }
-                            return Promise.resolve();
-                        };
-                        
-                        fnRefresh().then(() => {
-                            // After refresh, rebind to ensure UI updates
-                            if (oTable.rebind) {
-                                oTable.rebind();
-                            }
-                        }).catch(() => {
-                            // If refresh fails, try rebind directly
-                            if (oTable.rebind) {
-                                oTable.rebind();
-                            }
-                        });
-                    }, 100); // Small delay to ensure batch is committed
+                    // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                    this._hardRefreshTable("Opportunities");
                     
                     this.onCancelOpportunityForm();
                 },
@@ -2446,6 +2233,9 @@ sap.ui.define([
                     console.log("Selection cleared or method not available");
                 }
             }
+            
+            // ✅ CRITICAL: Disable Edit button when form is cleared (no row selected)
+            this.byId("editButton_oppr")?.setEnabled(false);
         },
 
         // ✅ NEW: Initialize Opportunity ID field with next ID preview
@@ -2604,69 +2394,20 @@ sap.ui.define([
                                     
                                     MessageToast.show("Project updated successfully!");
                                     
-                                    // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                    setTimeout(() => {
-                                        // Immediately rebind MDC table (this is the key for MDC tables)
-                                        if (oTable.rebind) {
-                                            try {
-                                                oTable.rebind();
-                                            } catch (e) {
-                                                console.log("Rebind error:", e);
-                                            }
-                                        }
-                                        
-                                        // Also try refresh methods as backup
-                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        
-                                        if (oRowBinding) {
-                                            oRowBinding.refresh(true).catch(() => {});
-                                        } else if (oBinding) {
-                                            oBinding.refresh(true).catch(() => {});
-                                        }
-                                    }, 150); // Small delay to ensure batch is committed
+                                    // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                    this._hardRefreshTable("Projects");
                                     
                                     this.onCancelProjectForm();
                                 }).catch(() => {
                                     // If requestObject fails, still show success and refresh
                                     MessageToast.show("Project updated successfully!");
-                                    setTimeout(() => {
-                                        if (oTable.rebind) {
-                                            try {
-                                                oTable.rebind();
-                                            } catch (e) {
-                                                console.log("Rebind error:", e);
-                                            }
-                                        }
-                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        if (oRowBinding) {
-                                            oRowBinding.refresh(true).catch(() => {});
-                                        } else if (oBinding) {
-                                            oBinding.refresh(true).catch(() => {});
-                                        }
-                                    }, 150);
+                                    this._hardRefreshTable("Projects");
                                     this.onCancelProjectForm();
                                 });
                             } else {
                                 // Fallback if requestObject not available
                                 MessageToast.show("Project updated successfully!");
-                                setTimeout(() => {
-                                    if (oTable.rebind) {
-                                        try {
-                                            oTable.rebind();
-                                        } catch (e) {
-                                            console.log("Rebind error:", e);
-                                        }
-                                    }
-                                    const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                    const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                    if (oRowBinding) {
-                                        oRowBinding.refresh(true).catch(() => {});
-                                    } else if (oBinding) {
-                                        oBinding.refresh(true).catch(() => {});
-                                    }
-                                }, 150);
+                                this._hardRefreshTable("Projects");
                                 this.onCancelProjectForm();
                             }
                         })
@@ -2676,31 +2417,8 @@ sap.ui.define([
                                     const oCurrentData = oContext.getObject();
                                     if (oCurrentData && oCurrentData.projectName === oUpdateEntry.projectName) {
                                         MessageToast.show("Project updated successfully!");
-                                        // ✅ Force refresh table to show updated data immediately
-                                        setTimeout(() => {
-                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                            
-                                            const fnRefresh = () => {
-                                                if (oRowBinding) {
-                                                    return oRowBinding.refresh(true);
-                                                } else if (oBinding) {
-                                                    return oBinding.refresh(true);
-                                                }
-                                                return Promise.resolve();
-                                            };
-                                            
-                                            fnRefresh().then(() => {
-                                                if (oTable.rebind) {
-                                                    oTable.rebind();
-                                                }
-                                            }).catch(() => {
-                                                if (oTable.rebind) {
-                                                    oTable.rebind();
-                                                }
-                                            });
-                                        }, 100);
-                                        
+                                        // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                        this._hardRefreshTable("Projects");
                                         this.onCancelProjectForm();
                                     } else {
                                         console.warn("Update may have failed:", oError.message || "Unknown error");
@@ -2775,69 +2493,20 @@ sap.ui.define([
                                         
                                         MessageToast.show("Project created successfully!");
                                         
-                                        // ✅ CRITICAL: Force immediate UI refresh for MDC tables
-                                        setTimeout(() => {
-                                            // Immediately rebind MDC table (this is the key for MDC tables)
-                                            if (oTable.rebind) {
-                                                try {
-                                                    oTable.rebind();
-                                                } catch (e) {
-                                                    console.log("Rebind error:", e);
-                                                }
-                                            }
-                                            
-                                            // Also try refresh methods as backup
-                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                            
-                                            if (oRowBinding) {
-                                                oRowBinding.refresh(true).catch(() => {});
-                                            } else if (oBinding) {
-                                                oBinding.refresh(true).catch(() => {});
-                                            }
-                                        }, 150); // Small delay to ensure batch is committed
+                                        // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                                        this._hardRefreshTable("Projects");
                                         
                                         this.onCancelProjectForm(); // Clear form after successful create
                                     }).catch(() => {
                                         // If requestObject fails, still show success and refresh
                                         MessageToast.show("Project created successfully!");
-                                        setTimeout(() => {
-                                            if (oTable.rebind) {
-                                                try {
-                                                    oTable.rebind();
-                                                } catch (e) {
-                                                    console.log("Rebind error:", e);
-                                                }
-                                            }
-                                            const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                            const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                            if (oRowBinding) {
-                                                oRowBinding.refresh(true).catch(() => {});
-                                            } else if (oBinding) {
-                                                oBinding.refresh(true).catch(() => {});
-                                            }
-                                        }, 150);
+                                        this._hardRefreshTable("Projects");
                                         this.onCancelProjectForm();
                                     });
                                 } else {
                                     // Fallback if requestObject not available
                                     MessageToast.show("Project created successfully!");
-                                    setTimeout(() => {
-                                        if (oTable.rebind) {
-                                            try {
-                                                oTable.rebind();
-                                            } catch (e) {
-                                                console.log("Rebind error:", e);
-                                            }
-                                        }
-                                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                        if (oRowBinding) {
-                                            oRowBinding.refresh(true).catch(() => {});
-                                        } else if (oBinding) {
-                                            oBinding.refresh(true).catch(() => {});
-                                        }
-                                    }, 150);
+                                    this._hardRefreshTable("Projects");
                                     this.onCancelProjectForm();
                                 }
                             })
@@ -2884,32 +2553,8 @@ sap.ui.define([
                     console.log("Project created successfully (direct):", oData);
                     MessageToast.show("Project created successfully!");
                     
-                    // ✅ Force immediate UI refresh after create
-                    setTimeout(() => {
-                        const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
-                        const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                        
-                        const fnRefresh = () => {
-                            if (oRowBinding) {
-                                return oRowBinding.refresh(true); // Force refresh from server
-                            } else if (oBinding) {
-                                return oBinding.refresh(true); // Force refresh from server
-                            }
-                            return Promise.resolve();
-                        };
-                        
-                        fnRefresh().then(() => {
-                            // After refresh, rebind to ensure UI updates
-                            if (oTable.rebind) {
-                                oTable.rebind();
-                            }
-                        }).catch(() => {
-                            // If refresh fails, try rebind directly
-                            if (oTable.rebind) {
-                                oTable.rebind();
-                            }
-                        });
-                    }, 100); // Small delay to ensure batch is committed
+                    // ✅ CRITICAL: Hard refresh table to get fresh data from DB
+                    this._hardRefreshTable("Projects");
                     
                     this.onCancelProjectForm();
                 },
@@ -2985,6 +2630,9 @@ sap.ui.define([
                     console.log("Selection cleared or method not available");
                 }
             }
+            
+            // ✅ CRITICAL: Disable Edit button when form is cleared (no row selected)
+            this.byId("editButton_proj")?.setEnabled(false);
         },
 
         // ✅ NEW: Initialize Project ID field with next ID preview
@@ -3338,6 +2986,9 @@ sap.ui.define([
                     console.log("Selection cleared or method not available");
                 }
             }
+            
+            // ✅ CRITICAL: Disable Edit button when form is cleared (no row selected)
+            this.byId("editButton_emp")?.setEnabled(false);
         },
 
         // Include all methods from CustomUtility
@@ -3509,6 +3160,15 @@ sap.ui.define([
         onCustomerValueHelpCancel: function (oEvent) {
             const oDialog = this._oCustomerValueHelpDialog;
             if (oDialog) {
+                // Clear selection in the value help table before closing
+                const oDialogContent = oDialog.getContent()[0];
+                if (oDialogContent) {
+                    const aItems = oDialogContent.getItems();
+                    const oTable = aItems.find(item => item.getId && item.getId().includes("customerValueHelpTable"));
+                    if (oTable && oTable.clearSelection) {
+                        oTable.clearSelection();
+                    }
+                }
                 oDialog.close();
             }
         },
@@ -3516,6 +3176,15 @@ sap.ui.define([
         onOpportunityValueHelpCancel: function (oEvent) {
             const oDialog = this._oOpportunityValueHelpDialog;
             if (oDialog) {
+                // Clear selection in the value help table before closing
+                const oDialogContent = oDialog.getContent()[0];
+                if (oDialogContent) {
+                    const aItems = oDialogContent.getItems();
+                    const oTable = aItems.find(item => item.getId && item.getId().includes("opportunityValueHelpTable"));
+                    if (oTable && oTable.clearSelection) {
+                        oTable.clearSelection();
+                    }
+                }
                 oDialog.close();
             }
         },
@@ -3523,6 +3192,15 @@ sap.ui.define([
         onEmployeeValueHelpCancel: function (oEvent) {
             const oDialog = this._oEmployeeValueHelpDialog;
             if (oDialog) {
+                // Clear selection in the value help table before closing
+                const oDialogContent = oDialog.getContent()[0];
+                if (oDialogContent) {
+                    const aItems = oDialogContent.getItems();
+                    const oTable = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpTable"));
+                    if (oTable && oTable.clearSelection) {
+                        oTable.clearSelection();
+                    }
+                }
                 oDialog.close();
             }
         },
@@ -3545,36 +3223,138 @@ sap.ui.define([
             const aItems = oDialogContent.getItems();
             const oTable = aItems.find(item => item.getId && item.getId().includes("customerValueHelpTable"));
             
-            if (!oTable || !oTable.getSelectedItem) {
-                sap.m.MessageToast.show("Please select a customer");
+            if (!oTable) {
+                sap.m.MessageToast.show("Table not found");
                 return;
             }
             
+            // ✅ CRITICAL: Check if a row is actually selected
             const oSelectedItem = oTable.getSelectedItem();
             if (!oSelectedItem) {
                 sap.m.MessageToast.show("Please select a customer");
                 return;
             }
             
+            // Also check selected contexts as backup
+            const aSelectedContexts = oTable.getSelectedContexts ? oTable.getSelectedContexts() : [];
+            if (aSelectedContexts.length === 0) {
+                sap.m.MessageToast.show("Please select a customer");
+                return;
+            }
+            
             const oContext = oSelectedItem.getBindingContext();
-            if (oContext) {
-                const oCustomer = oContext.getObject();
-                if (oDialog._oInputField) {
-                    // Display customer name, but store ID in data attribute
-                    oDialog._oInputField.setValue(oCustomer.customerName || "");
-                    oDialog._oInputField.data("selectedId", oCustomer.SAPcustId);
+            if (!oContext) {
+                sap.m.MessageToast.show("Unable to get customer data");
+                if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                oDialog.close();
+                return;
+            }
+            
+            const oCustomer = oContext.getObject();
+            if (!oDialog._oInputField) {
+                sap.m.MessageToast.show("Input field not found");
+                if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                oDialog.close();
+                return;
+            }
+            
+            // Display customer name, but store ID in data attribute
+            oDialog._oInputField.setValue(oCustomer.customerName || "");
+            oDialog._oInputField.data("selectedId", oCustomer.SAPcustId);
+            
+            // Also update/create the model with the ID (for backend submission)
+            let oModel = this.getView().getModel("opportunityModel");
+            if (!oModel) {
+                oModel = new sap.ui.model.json.JSONModel({ customerId: oCustomer.SAPcustId });
+                this.getView().setModel(oModel, "opportunityModel");
+            } else {
+                oModel.setProperty("/customerId", oCustomer.SAPcustId);
+            }
+            
+            // ✅ CRITICAL: Close dialog FIRST before doing table updates
+            if (oTable && oTable.clearSelection) {
+                oTable.clearSelection();
+            }
+            oDialog.close();
+            
+            // ✅ CRITICAL: Update selected row in main table and refresh for instant UI update
+            const oMainTable = this.byId("Opportunities");
+            if (oMainTable) {
+                const aSelectedContexts = oMainTable.getSelectedContexts();
+                if (aSelectedContexts && aSelectedContexts.length > 0) {
+                    const oMainContext = aSelectedContexts[0];
+                    const oModel = oMainTable.getModel();
+                    const sPath = oMainContext.getPath();
                     
-                    // Also update/create the model with the ID (for backend submission)
-                    let oModel = this.getView().getModel("opportunityModel");
-                    if (!oModel) {
-                        oModel = new sap.ui.model.json.JSONModel({ customerId: oCustomer.SAPcustId });
-                        this.getView().setModel(oModel, "opportunityModel");
-                    } else {
-                        oModel.setProperty("/customerId", oCustomer.SAPcustId);
+                    // ✅ STEP 1: Update the context property immediately
+                    oMainContext.setProperty("customerId", oCustomer.SAPcustId);
+                    
+                    // ✅ STEP 2: Update the association data immediately for instant UI feedback
+                    if (oMainContext.getObject) {
+                        const oObj = oMainContext.getObject();
+                        if (oObj) {
+                            oObj.to_Customer = {
+                                SAPcustId: oCustomer.SAPcustId,
+                                customerName: oCustomer.customerName
+                            };
+                        }
+                    }
+                    
+                    // ✅ STEP 3: CRITICAL - Refresh the expanded association binding for this specific row
+                    // This forces the table to re-fetch the expanded association data
+                    if (sPath && oModel) {
+                        const oExpandedContext = oModel.bindContext(sPath + "/to_Customer", null, { deferred: true });
+                        oExpandedContext.execute().then(() => {
+                            const oAssocData = oExpandedContext.getObject();
+                            if (oAssocData && oMainContext.getObject) {
+                                const oMainObj = oMainContext.getObject();
+                                if (oMainObj) {
+                                    oMainObj.to_Customer = oAssocData;
+                                }
+                            }
+                            // Force UI refresh after expanded association is refreshed
+                            if (oModel && oModel.checkDataState) {
+                                oModel.checkDataState();
+                            }
+                            if (oMainContext.checkUpdate) {
+                                oMainContext.checkUpdate();
+                            }
+                        }).catch(() => {});
+                    }
+                    
+                    // ✅ STEP 4: Force immediate UI update by checking data state
+                    if (oModel && oModel.checkDataState) {
+                        oModel.checkDataState();
+                    }
+                    if (oMainContext.checkUpdate) {
+                        oMainContext.checkUpdate();
+                    }
+                    
+                    // ✅ STEP 5: Refresh the table binding to show updated value immediately
+                    const oRowBinding = oMainTable.getRowBinding && oMainTable.getRowBinding();
+                    const oBinding = oMainTable.getBinding("rows") || oMainTable.getBinding("items");
+                    if (oRowBinding) {
+                        oRowBinding.refresh().catch(() => {});
+                    } else if (oBinding) {
+                        oBinding.refresh().catch(() => {});
+                    }
+                    
+                    // ✅ STEP 6: Also try rebind for MDC tables (this refreshes expanded associations)
+                    if (oMainTable.rebind) {
+                        setTimeout(() => {
+                            try {
+                                oMainTable.rebind();
+                            } catch (e) {
+                                console.log("Rebind error:", e);
+                            }
+                        }, 100);
                     }
                 }
             }
-            oDialog.close();
         },
 
         // ✅ Value Help Dialog: Opportunity selection handler
@@ -3589,36 +3369,138 @@ sap.ui.define([
             const aItems = oDialogContent.getItems();
             const oTable = aItems.find(item => item.getId && item.getId().includes("opportunityValueHelpTable"));
             
-            if (!oTable || !oTable.getSelectedItem) {
-                sap.m.MessageToast.show("Please select an opportunity");
+            if (!oTable) {
+                sap.m.MessageToast.show("Table not found");
                 return;
             }
             
+            // ✅ CRITICAL: Check if a row is actually selected
             const oSelectedItem = oTable.getSelectedItem();
             if (!oSelectedItem) {
                 sap.m.MessageToast.show("Please select an opportunity");
                 return;
             }
             
+            // Also check selected contexts as backup
+            const aSelectedContexts = oTable.getSelectedContexts ? oTable.getSelectedContexts() : [];
+            if (aSelectedContexts.length === 0) {
+                sap.m.MessageToast.show("Please select an opportunity");
+                return;
+            }
+            
             const oContext = oSelectedItem.getBindingContext();
-            if (oContext) {
-                const oOpportunity = oContext.getObject();
-                if (oDialog._oInputField) {
-                    // Display opportunity name, but store ID in data attribute
-                    oDialog._oInputField.setValue(oOpportunity.opportunityName || "");
-                    oDialog._oInputField.data("selectedId", oOpportunity.sapOpportunityId);
+            if (!oContext) {
+                sap.m.MessageToast.show("Unable to get opportunity data");
+                if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                oDialog.close();
+                return;
+            }
+            
+            const oOpportunity = oContext.getObject();
+            if (!oDialog._oInputField) {
+                sap.m.MessageToast.show("Input field not found");
+                if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                oDialog.close();
+                return;
+            }
+            
+            // Display opportunity name, but store ID in data attribute
+            oDialog._oInputField.setValue(oOpportunity.opportunityName || "");
+            oDialog._oInputField.data("selectedId", oOpportunity.sapOpportunityId);
+            
+            // Also update/create the model with the ID (for backend submission)
+            let oModel = this.getView().getModel("projectModel");
+            if (!oModel) {
+                oModel = new sap.ui.model.json.JSONModel({ oppId: oOpportunity.sapOpportunityId });
+                this.getView().setModel(oModel, "projectModel");
+            } else {
+                oModel.setProperty("/oppId", oOpportunity.sapOpportunityId);
+            }
+            
+            // ✅ CRITICAL: Close dialog FIRST before doing table updates
+            if (oTable && oTable.clearSelection) {
+                oTable.clearSelection();
+            }
+            oDialog.close();
+            
+            // ✅ CRITICAL: Update selected row in main table and refresh for instant UI update
+            const oMainTable = this.byId("Projects");
+            if (oMainTable) {
+                const aSelectedContexts = oMainTable.getSelectedContexts();
+                if (aSelectedContexts && aSelectedContexts.length > 0) {
+                    const oMainContext = aSelectedContexts[0];
+                    const oModel = oMainTable.getModel();
+                    const sPath = oMainContext.getPath();
                     
-                    // Also update/create the model with the ID (for backend submission)
-                    let oModel = this.getView().getModel("projectModel");
-                    if (!oModel) {
-                        oModel = new sap.ui.model.json.JSONModel({ oppId: oOpportunity.sapOpportunityId });
-                        this.getView().setModel(oModel, "projectModel");
-                    } else {
-                        oModel.setProperty("/oppId", oOpportunity.sapOpportunityId);
+                    // ✅ STEP 1: Update the context property immediately
+                    oMainContext.setProperty("oppId", oOpportunity.sapOpportunityId);
+                    
+                    // ✅ STEP 2: Update the association data immediately for instant UI feedback
+                    if (oMainContext.getObject) {
+                        const oObj = oMainContext.getObject();
+                        if (oObj) {
+                            oObj.to_Opportunity = {
+                                sapOpportunityId: oOpportunity.sapOpportunityId,
+                                opportunityName: oOpportunity.opportunityName
+                            };
+                        }
+                    }
+                    
+                    // ✅ STEP 3: CRITICAL - Refresh the expanded association binding for this specific row
+                    // This forces the table to re-fetch the expanded association data
+                    if (sPath && oModel) {
+                        const oExpandedContext = oModel.bindContext(sPath + "/to_Opportunity", null, { deferred: true });
+                        oExpandedContext.execute().then(() => {
+                            const oAssocData = oExpandedContext.getObject();
+                            if (oAssocData && oMainContext.getObject) {
+                                const oMainObj = oMainContext.getObject();
+                                if (oMainObj) {
+                                    oMainObj.to_Opportunity = oAssocData;
+                                }
+                            }
+                            // Force UI refresh after expanded association is refreshed
+                            if (oModel && oModel.checkDataState) {
+                                oModel.checkDataState();
+                            }
+                            if (oMainContext.checkUpdate) {
+                                oMainContext.checkUpdate();
+                            }
+                        }).catch(() => {});
+                    }
+                    
+                    // ✅ STEP 4: Force immediate UI update by checking data state
+                    if (oModel && oModel.checkDataState) {
+                        oModel.checkDataState();
+                    }
+                    if (oMainContext.checkUpdate) {
+                        oMainContext.checkUpdate();
+                    }
+                    
+                    // ✅ STEP 5: Refresh the table binding to show updated value immediately
+                    const oRowBinding = oMainTable.getRowBinding && oMainTable.getRowBinding();
+                    const oBinding = oMainTable.getBinding("rows") || oMainTable.getBinding("items");
+                    if (oRowBinding) {
+                        oRowBinding.refresh().catch(() => {});
+                    } else if (oBinding) {
+                        oBinding.refresh().catch(() => {});
+                    }
+                    
+                    // ✅ STEP 6: Also try rebind for MDC tables (this refreshes expanded associations)
+                    if (oMainTable.rebind) {
+                        setTimeout(() => {
+                            try {
+                                oMainTable.rebind();
+                            } catch (e) {
+                                console.log("Rebind error:", e);
+                            }
+                        }, 100);
                     }
                 }
             }
-            oDialog.close();
         },
 
         // ✅ Value Help Dialog: Employee selection handler
@@ -3633,44 +3515,136 @@ sap.ui.define([
             const aItems = oDialogContent.getItems();
             const oTable = aItems.find(item => item.getId && item.getId().includes("employeeValueHelpTable"));
             
-            if (!oTable || !oTable.getSelectedItem) {
-                sap.m.MessageToast.show("Please select a supervisor");
+            if (!oTable) {
+                sap.m.MessageToast.show("Table not found");
                 return;
             }
             
+            // ✅ CRITICAL: Check if a row is actually selected
             const oSelectedItem = oTable.getSelectedItem();
             if (!oSelectedItem) {
                 sap.m.MessageToast.show("Please select a supervisor");
                 return;
             }
             
+            // Also check selected contexts as backup
+            const aSelectedContexts = oTable.getSelectedContexts ? oTable.getSelectedContexts() : [];
+            if (aSelectedContexts.length === 0) {
+                sap.m.MessageToast.show("Please select a supervisor");
+                return;
+            }
+            
             const oContext = oSelectedItem.getBindingContext();
-            if (oContext) {
-                const oEmployee = oContext.getObject();
-                if (oDialog._oInputField) {
-                    // Check if this is for GPM field or Supervisor field
-                    const bIsGPMField = oDialog._isGPMField === true;
-                    const sDisplayValue = oEmployee.fullName || oEmployee.ohrId || "";
-                    const sStoredId = oEmployee.ohrId || "";
+            if (!oContext) {
+                sap.m.MessageToast.show("Unable to get employee data");
+                if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                oDialog.close();
+                return;
+            }
+            
+            const oEmployee = oContext.getObject();
+            if (!oDialog._oInputField) {
+                sap.m.MessageToast.show("Input field not found");
+                if (oTable && oTable.clearSelection) {
+                    oTable.clearSelection();
+                }
+                oDialog.close();
+                return;
+            }
+            
+            // Check if this is for GPM field or Supervisor field
+            const bIsGPMField = oDialog._isGPMField === true;
+            const sDisplayValue = oEmployee.fullName || oEmployee.ohrId || "";
+            const sStoredId = oEmployee.ohrId || "";
+            
+            // Display name in UI, store ID in data attribute
+            oDialog._oInputField.setValue(sDisplayValue);
+            oDialog._oInputField.data("selectedId", sStoredId);
+            
+            // ✅ CRITICAL: Close dialog FIRST before doing table updates
+            if (oTable && oTable.clearSelection) {
+                oTable.clearSelection();
+            }
+            oDialog.close();
+            
+            // ✅ CRITICAL: Update selected row in main table and refresh for instant UI update
+            const oMainTable = bIsGPMField ? this.byId("Projects") : this.byId("Employees");
+            if (oMainTable) {
+                const aSelectedContexts = oMainTable.getSelectedContexts();
+                if (aSelectedContexts && aSelectedContexts.length > 0) {
+                    const oMainContext = aSelectedContexts[0];
+                    const sFieldName = bIsGPMField ? "gpm" : "supervisorOHR";
+                    const sAssocName = bIsGPMField ? "to_GPM" : "to_Supervisor";
+                    const oModel = oMainTable.getModel();
+                    const sPath = oMainContext.getPath();
                     
-                    // Display name in UI, store ID in data attribute
-                    oDialog._oInputField.setValue(sDisplayValue);
-                    oDialog._oInputField.data("selectedId", sStoredId);
+                    // ✅ STEP 1: Update the context property immediately
+                    oMainContext.setProperty(sFieldName, sStoredId);
                     
-                    // Update context and refresh table for instant UI update
-                    if (oContext.setProperty && sStoredId) {
-                        const sFieldName = bIsGPMField ? "gpm" : "supervisorOHR";
-                        oContext.setProperty(sFieldName, sStoredId);
-                        oContext.requestObject().then(() => {
-                            const oTable = bIsGPMField ? this.byId("Projects") : this.byId("Employees");
-                            if (oTable) {
-                                oTable.getBinding("rows")?.refresh();
+                    // ✅ STEP 2: Update the association data immediately for instant UI feedback
+                    if (oMainContext.getObject) {
+                        const oObj = oMainContext.getObject();
+                        if (oObj) {
+                            oObj[sAssocName] = {
+                                ohrId: sStoredId,
+                                fullName: sDisplayValue
+                            };
+                        }
+                    }
+                    
+                    // ✅ STEP 3: CRITICAL - Refresh the expanded association binding for this specific row
+                    // This forces the table to re-fetch the expanded association data
+                    if (sPath && oModel) {
+                        const oExpandedContext = oModel.bindContext(sPath + "/" + sAssocName, null, { deferred: true });
+                        oExpandedContext.execute().then(() => {
+                            const oAssocData = oExpandedContext.getObject();
+                            if (oAssocData && oMainContext.getObject) {
+                                const oMainObj = oMainContext.getObject();
+                                if (oMainObj) {
+                                    oMainObj[sAssocName] = oAssocData;
+                                }
+                            }
+                            // Force UI refresh after expanded association is refreshed
+                            if (oModel && oModel.checkDataState) {
+                                oModel.checkDataState();
+                            }
+                            if (oMainContext.checkUpdate) {
+                                oMainContext.checkUpdate();
                             }
                         }).catch(() => {});
                     }
+                    
+                    // ✅ STEP 4: Force immediate UI update by checking data state
+                    if (oModel && oModel.checkDataState) {
+                        oModel.checkDataState();
+                    }
+                    if (oMainContext.checkUpdate) {
+                        oMainContext.checkUpdate();
+                    }
+                    
+                    // ✅ STEP 5: Refresh the table binding to show updated value immediately
+                    const oRowBinding = oMainTable.getRowBinding && oMainTable.getRowBinding();
+                    const oBinding = oMainTable.getBinding("rows") || oMainTable.getBinding("items");
+                    if (oRowBinding) {
+                        oRowBinding.refresh().catch(() => {});
+                    } else if (oBinding) {
+                        oBinding.refresh().catch(() => {});
+                    }
+                    
+                    // ✅ STEP 6: Also try rebind for MDC tables (this refreshes expanded associations)
+                    if (oMainTable.rebind) {
+                        setTimeout(() => {
+                            try {
+                                oMainTable.rebind();
+                            } catch (e) {
+                                console.log("Rebind error:", e);
+                            }
+                        }, 100);
+                    }
                 }
             }
-            oDialog.close();
         },
 
         // ✅ Value Help Dialog: Search handlers

@@ -320,6 +320,13 @@ sap.ui.define([
                                 });
                             });
 
+                            // ✅ Create formatter to display label instead of key in display mode
+                            const fnEnumFormatter = function(sKey) {
+                                if (!sKey) return "";
+                                const iIndex = oEnumConfig.values.indexOf(sKey);
+                                return iIndex >= 0 ? oEnumConfig.labels[iIndex] : sKey;
+                            };
+
                             const oComboBox = new ComboBox({
                                 value: "{" + sPropertyName + "}",
                                 selectedKey: "{" + sPropertyName + "}",
@@ -328,7 +335,10 @@ sap.ui.define([
                             });
 
                             oField = new Field({
-                                value: "{" + sPropertyName + "}",
+                                value: {
+                                    path: sPropertyName,
+                                    formatter: fnEnumFormatter
+                                },
                                 contentEdit: oComboBox,
                                 editMode: {
                                     parts: [{ path: `edit>/${sTableId}/editingPath` }],
@@ -337,7 +347,7 @@ sap.ui.define([
                                 }
                             });
 
-                            console.log("[GenericDelegate] Enum field detected:", sPropertyName, "→ ComboBox");
+                            console.log("[GenericDelegate] Enum field detected:", sPropertyName, "→ ComboBox with formatter");
                         } else if (bIsAssoc) {
                             // ✅ METHOD 2: ASSOCIATION - ComboBox bound to OData (compatible with UI5 1.141.1)
                             const oModel = oTable.getModel();
