@@ -88,7 +88,7 @@ sap.ui.define([
         }
 
         // Simple fallback mapping for associations (can be enhanced with metadata later)
-        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Customers";
         
         const mAssociationFields = {
             "Opportunities": {
@@ -136,7 +136,7 @@ sap.ui.define([
         console.log("[GenericDelegate] MetaModel:", oMetaModel);
 
         // Get collection path from payload
-        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Customers";
         console.log("[GenericDelegate] Collection Path:", sCollectionPath);
 
         // Wait for metadata to be loaded
@@ -274,7 +274,7 @@ sap.ui.define([
             return new Promise(function (resolve) {
                 sap.ui.require(["sap/ui/mdc/table/Column"], function (Column) {
                     // ✅ FIXED: Get table ID from collectionPath for table-specific edit state
-                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Customers";
                     
                     // ✅ STEP 1: Check if enum field (fixed values)
                     const oEnumConfig = GenericTableDelegate._getEnumConfig(sTableId, sPropertyName);
@@ -458,7 +458,7 @@ sap.ui.define([
                     const oModel = oTable.getModel();
                     const oMetaModel = oModel && oModel.getMetaModel && oModel.getMetaModel();
                     if (oMetaModel) {
-                        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+                        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Customers";
                         const oProp = oMetaModel.getObject(`/${sCollectionPath}/${sName}`);
                         const sEdmType = oProp && oProp.$Type;
                         if (sEdmType === "Edm.Int16" || sEdmType === "Edm.Int32" || sEdmType === "Edm.Int64" || sEdmType === "Edm.Decimal") {

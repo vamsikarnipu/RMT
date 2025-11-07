@@ -35,7 +35,7 @@ sap.ui.define([
 
             const oProp = oEntityType[sKey];
 
-            //  EXCLUDE "CustomerID" PROPERTY FROM FILTERS
+            // EXCLUDE "CustomerID" PROPERTY FROM FILTERS
             if (sKey === "CustomerID") {
                 console.log(`[Delegate] Skipping excluded property: ${sKey}`);
                 continue;

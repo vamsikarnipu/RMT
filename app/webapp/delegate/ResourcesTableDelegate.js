@@ -94,8 +94,7 @@ sap.ui.define([
                 "customerId": { targetEntity: "Customers", displayField: "customerName", keyField: "SAPcustId" }
             },
             "Projects": {
-                "oppId": { targetEntity: "Opportunities", displayField: "opportunityName", keyField: "sapOpportunityId" },
-                "gpm": { targetEntity: "Employees", displayField: "fullName", keyField: "ohrId" }
+                "oppId": { targetEntity: "Opportunities", displayField: "opportunityName", keyField: "sapOpportunityId" }
             },
             "Demands": {
                 "skillId": { targetEntity: "Skills", displayField: "name", keyField: "id" },
@@ -220,8 +219,8 @@ sap.ui.define([
         // ✅ Expand associations to load related entity names
         const sCollectionPath = sPath.replace(/^\// , "");
         if (sCollectionPath === "Projects") {
-            // ✅ Expand Opportunity and GPM associations (like Supervisor in Employees)
-            oBindingInfo.parameters.$expand = "to_Opportunity,to_GPM";
+            // Expand Opportunity association for Project table
+            oBindingInfo.parameters.$expand = "to_Opportunity";
         }
 
         console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
@@ -355,9 +354,6 @@ sap.ui.define([
                                 sAssocPath = "to_Supervisor/fullName"; // Display supervisor name
                             } else if (sPropertyName === "oppId") {
                                 sAssocPath = "to_Opportunity/opportunityName"; // Display opportunity name
-                            } else if (sPropertyName === "gpm") {
-                                // ✅ GPM association - display employee name (like Supervisor)
-                                sAssocPath = "to_GPM/fullName"; // Display GPM employee name
                             } else {
                                 // Fallback: try to construct association path
                                 sAssocPath = sPropertyName.replace("Id", "").replace("OHR", "");
@@ -409,9 +405,6 @@ sap.ui.define([
                                         if (oRowData[sAssocEntity] && oRowData[sAssocEntity][sAssocField]) {
                                             return oRowData[sAssocEntity][sAssocField];
                                         }
-                                        
-                                        // ✅ GPM association should be expanded and available here
-                                        // If not expanded, fallback to ID will be used
                                     } catch (e) {
                                         // Association not expanded, will use fallback
                                     }

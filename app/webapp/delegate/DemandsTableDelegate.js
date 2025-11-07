@@ -94,8 +94,7 @@ sap.ui.define([
                 "customerId": { targetEntity: "Customers", displayField: "customerName", keyField: "SAPcustId" }
             },
             "Projects": {
-                "oppId": { targetEntity: "Opportunities", displayField: "opportunityName", keyField: "sapOpportunityId" },
-                "gpm": { targetEntity: "Employees", displayField: "fullName", keyField: "ohrId" }
+                "oppId": { targetEntity: "Opportunities", displayField: "opportunityName", keyField: "sapOpportunityId" }
             },
             "Demands": {
                 "skillId": { targetEntity: "Skills", displayField: "name", keyField: "id" },
@@ -219,13 +218,20 @@ sap.ui.define([
         
         // ✅ Expand associations to load related entity names
         const sCollectionPath = sPath.replace(/^\// , "");
-        if (sCollectionPath === "Projects") {
-            // ✅ Expand Opportunity and GPM associations (like Supervisor in Employees)
-            oBindingInfo.parameters.$expand = "to_Opportunity,to_GPM";
+        if (sCollectionPath === "Demands") {
+            // Expand Project and Skill associations for Demands table
+            oBindingInfo.parameters.$expand = "to_Project,to_Skill";
+            
+            // ✅ CRITICAL: Apply project filter if available (from controller)
+            // Note: Filter will be applied via binding.filter() in controller after initialization
+            // This ensures the filter persists even if table rebinds
+        } else if (sCollectionPath === "Projects") {
+            // Expand Opportunity association for Project table
+            oBindingInfo.parameters.$expand = "to_Opportunity";
         }
 
-        console.log("[GenericDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
-        console.log("[GenericDelegate] Table payload:", oTable.getPayload());
+        console.log("[DemandsTableDelegate] updateBindingInfo - path:", sPath, "bindingInfo:", oBindingInfo);
+        console.log("[DemandsTableDelegate] Expanded associations for Demands: to_Project,to_Skill");
     };
 
     GenericTableDelegate.addItem = function (oTable, sPropertyName, mPropertyBag) {
@@ -242,23 +248,33 @@ sap.ui.define([
             }
 
             // Format label
-            // const sLabel = sPropertyName
-            // // .replace(/([A-Z])/g, ' $1')
-            // .replace(/([a-z])([A-Z])/g, '$1 $2')
-            // .replace(/^./, function(str) { return str.toUpperCase(); })
-            // .trim();
-            // Custom header mapping for Projects table
-            const mCustomHeaders = {
-                "sapPId": "SAP PID",
-                "sfdcPId": "SFDC PID",
-                "projectName": "Project Name",
-                "startDate": "Start Date",
-                "endDate": "End Date",
-                "gpm": "GPM",
-                "projectType": "Project Type",
-                "oppId": "Opp Name",
-                "status": "Project Status"
-            };
+            // Custom header mapping - check table type first
+            const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Demands";
+            let mCustomHeaders = {};
+            
+            if (sTableId === "Demands") {
+                mCustomHeaders = {
+                    "sapPId": "Project Name",
+                    "skillId": "Skill",
+                    "skill": "Skill",
+                    "band": "Band",
+                    "quantity": "Quantity",
+                    "demandId": "Demand ID"
+                };
+            } else {
+                // Default headers for other tables
+                mCustomHeaders = {
+                    "sapPId": "SAP PID",
+                    "sfdcPId": "SFDC PID",
+                    "projectName": "Project Name",
+                    "startDate": "Start Date",
+                    "endDate": "End Date",
+                    "gpm": "GPM",
+                    "projectType": "Project Type",
+                    "oppId": "Opp Name",
+                    "status": "Project Status"
+                };
+            }
 
             // Smart header generation with better fallback
             let sLabel;
@@ -355,9 +371,10 @@ sap.ui.define([
                                 sAssocPath = "to_Supervisor/fullName"; // Display supervisor name
                             } else if (sPropertyName === "oppId") {
                                 sAssocPath = "to_Opportunity/opportunityName"; // Display opportunity name
-                            } else if (sPropertyName === "gpm") {
-                                // ✅ GPM association - display employee name (like Supervisor)
-                                sAssocPath = "to_GPM/fullName"; // Display GPM employee name
+                            } else if (sPropertyName === "sapPId") {
+                                sAssocPath = "to_Project/projectName"; // Display project name
+                            } else if (sPropertyName === "skillId") {
+                                sAssocPath = "to_Skill/name"; // Display skill name
                             } else {
                                 // Fallback: try to construct association path
                                 sAssocPath = sPropertyName.replace("Id", "").replace("OHR", "");
@@ -367,6 +384,10 @@ sap.ui.define([
                                     sAssocPath = "to_Opportunity/opportunityName";
                                 } else if (sAssocPath === "supervisor") {
                                     sAssocPath = "to_Supervisor/fullName";
+                                } else if (sAssocPath === "sapP" || sAssocPath === "project") {
+                                    sAssocPath = "to_Project/projectName";
+                                } else if (sAssocPath === "skill") {
+                                    sAssocPath = "to_Skill/name";
                                 } else {
                                     sAssocPath = sPropertyName; // Fallback to ID
                                 }
@@ -409,9 +430,6 @@ sap.ui.define([
                                         if (oRowData[sAssocEntity] && oRowData[sAssocEntity][sAssocField]) {
                                             return oRowData[sAssocEntity][sAssocField];
                                         }
-                                        
-                                        // ✅ GPM association should be expanded and available here
-                                        // If not expanded, fallback to ID will be used
                                     } catch (e) {
                                         // Association not expanded, will use fallback
                                     }

@@ -87,7 +87,7 @@ sap.ui.define([
             return Promise.resolve(null);
         }
 
-        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Opportunities";
+        const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Opportunities";
         
         const mAssociationFields = {
             "Opportunities": {
@@ -135,7 +135,7 @@ sap.ui.define([
         console.log("[GenericDelegate] MetaModel:", oMetaModel);
 
         // Get collection path from payload
-        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Customers";
         console.log("[GenericDelegate] Collection Path:", sCollectionPath);
 
         // Wait for metadata to be loaded
@@ -217,7 +217,7 @@ sap.ui.define([
         });
 
         // ✅ Expand associations to load related entity names
-        const sCollectionPath = sPath.replace(/^\//, "");
+        const sCollectionPath = sPath.replace(/^\// , "");
         if (sCollectionPath === "Opportunities") {
             // Expand Customer association for Opportunity table
             oBindingInfo.parameters.$expand = "to_Customer";
@@ -242,10 +242,10 @@ sap.ui.define([
 
             // Format label
             // const sLabel = sPropertyName
-            //     // .replace(/([A-Z])/g, ' $1')
-            //     .replace(/([a-z])([A-Z])/g, '$1 $2')
-            //     .replace(/^./, function(str) { return str.toUpperCase(); })
-            //     .trim();
+            // // .replace(/([A-Z])/g, ' $1')
+            // .replace(/([a-z])([A-Z])/g, '$1 $2')
+            // .replace(/^./, function(str) { return str.toUpperCase(); })
+            // .trim();
             // Custom header mapping for Opportunities table
             const mCustomHeaders = {
                 "sapOpportunityId": "SAP Opp. ID",
@@ -291,7 +291,7 @@ sap.ui.define([
             // Load the Column module and create column
             return new Promise(function (resolve) {
                 sap.ui.require(["sap/ui/mdc/table/Column"], function (Column) {
-                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Opportunities";
+                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Opportunities";
                     
                     const oEnumConfig = GenericTableDelegate._getEnumConfig(sTableId, sPropertyName);
                     const bIsEnum = !!oEnumConfig;
@@ -512,7 +512,7 @@ sap.ui.define([
                     const oModel = oTable.getModel();
                     const oMetaModel = oModel && oModel.getMetaModel && oModel.getMetaModel();
                     if (oMetaModel) {
-                        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+                        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Customers";
                         const oProp = oMetaModel.getObject(`/${sCollectionPath}/${sName}`);
                         const sEdmType = oProp && oProp.$Type;
                         if (sEdmType === "Edm.Int16" || sEdmType === "Edm.Int32" || sEdmType === "Edm.Int64" || sEdmType === "Edm.Decimal") {

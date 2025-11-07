@@ -7,8 +7,6 @@ sap.ui.define([
 ], function (Controller, StateUtil, JSONModel, MessageToast) {
     "use strict";
 
-    // Fixed syntax error - removed duplicate oData declarations
-    // Force refresh to clear browser cache
 
     return Controller.extend("glassboard.utility.CustomUtility", {
         onInit: function () {
@@ -22,7 +20,7 @@ sap.ui.define([
             // Lightweight view state model for button enablement
             const oViewState = new JSONModel({ hasSelected: false, hasPendingChanges: false });
             this.getView().setModel(oViewState, "model");
-            // ✅ FIXED: Model to track row-level inline editing - TABLE-SCOPED
+            // Model to track row-level inline editing - TABLE-SCOPED
             // Each table has its own edit state to prevent cross-table interference
             const oEditModel = new JSONModel({
                 Customers: { editingPath: "", mode: null },
@@ -30,7 +28,6 @@ sap.ui.define([
                 Opportunities: { editingPath: "", mode: null },
                 Projects: { editingPath: "", mode: null },
                 SAPIdStatuses: { editingPath: "", mode: null },
-                // ✅ REMOVED: Verticals: { editingPath: "", mode: null }, (Vertical is now an enum)
                 currentTable: null  // Track which table is currently being edited
             });
             this.getView().setModel(oEditModel, "edit");
@@ -163,18 +160,21 @@ sap.ui.define([
 
         // Toolbar actions
 
-        // //on selection change functionalities.
+        // // on selection change functionalities.
         onSelectionChange: function (oEvent) {
             const oTable = oEvent.getSource();
             const sTableId = oTable.getId().split("--").pop(); // Extract ID without view prefix
 
             const buttonMap = {
-                "Customers": { edit: "btnEdit_cus", delete: "btnDelete_cus", formEdit: "editButton_cus" },
-                "Employees": { edit: "Edit_emp", delete: "Delete_emp", formEdit: "editButton_emp" },
-                "Opportunities": { edit: "btnEdit_oppr", delete: "btnDelete_oppr", formEdit: "editButton_oppr" },
-                "Projects": { edit: "btnEdit_proj", delete: "btnDelete_proj", formEdit: "editButton_proj" },
-                "SAPIdStatuses": { edit: "btnEdit_sap", delete: "btnDelete_sap", formEdit: null }
-                // ✅ REMOVED: "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert" }
+                "Customers": { edit: "btnEdit_cus", delete: "btnDelete_cus" },
+                "Employees": { edit: "Edit_emp", delete: "Delete_emp" },
+                "Opportunities": { edit: "btnEdit_oppr", delete: "btnDelete_oppr" },
+                "Projects": { edit: "btnEdit_proj", delete: "btnDelete_proj" },
+                "SAPIdStatuses": { edit: "btnEdit_sap", delete: "btnDelete_sap" },
+                "Allocations": { demand: "demand_alloc", delete: "btnDelete_alloc" },
+                "Demands": { resources: "Resources_demand", delete: "btnDelete_demand" },
+                "Res": { allocate: "btnResAllocate", delete: "Delete_res1" },
+                "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert" }
             };
 
             const config = buttonMap[sTableId];
@@ -186,7 +186,7 @@ sap.ui.define([
             const aSelectedContexts = oTable.getSelectedContexts();
             const bHasSelection = aSelectedContexts.length > 0;
 
-            // ✅ DO NOT auto-populate forms on selection - user must click Edit button
+            // Don't auto-populate forms on selection - user must click Edit button
             // Only clear form if no selection
             if (!bHasSelection) {
                 // No selection - clear form
@@ -201,24 +201,42 @@ sap.ui.define([
                 }
             }
 
-            // Enable/disable table toolbar edit/delete buttons
+            // Enable Edit button in form (not table toolbar edit button)
+            if (sTableId === "Customers") {
+                this.byId("editButton_cus")?.setEnabled(bHasSelection);
+            } else if (sTableId === "Employees") {
+                this.byId("editButton_emp")?.setEnabled(bHasSelection);
+            } else if (sTableId === "Opportunities") {
+                this.byId("editButton_oppr")?.setEnabled(bHasSelection);
+            } else if (sTableId === "Projects") {
+                this.byId("editButton_proj")?.setEnabled(bHasSelection);
+            }
+
+            // Only enable edit/delete in table toolbar if they exist (some tables might not have them)
             if (config.edit) {
                 this.byId(config.edit)?.setEnabled(bHasSelection);
             }
             if (config.delete) {
                 this.byId(config.delete)?.setEnabled(bHasSelection);
             }
-            
-            // ✅ Enable/disable form Edit button based on selection
-            if (config.formEdit) {
-                this.byId(config.formEdit)?.setEnabled(bHasSelection);
+            // Enable Demand button for Allocations table when project is selected
+            if (config.demand) {
+                this.byId(config.demand)?.setEnabled(bHasSelection);
+            }
+            // Enable Resources button for Demands table when demand is selected
+            if (config.resources) {
+                this.byId(config.resources)?.setEnabled(bHasSelection);
+            }
+            // Enable Allocate button for Res table when employee is selected
+            if (config.allocate) {
+                this.byId(config.allocate)?.setEnabled(bHasSelection);
             }
         },
 
         /**
          * 
          */
-        // ✅ NEW: Employee form data handler
+        //  Employee form data handler
         _onEmpDialogData: function (aSelectedContexts) {
             if (!aSelectedContexts || aSelectedContexts.length === 0) {
                 // No selection - clear form for new entry
@@ -230,30 +248,26 @@ sap.ui.define([
                 } catch (e) {
                     console.log("Could not generate next Employee ID");
                 }
-                
-                this.byId("inputOHRId_emp")?.setValue("");
-                this.byId("inputOHRId_emp")?.setEnabled(true); // Employees need manual OHR ID entry
+
+                this.byId("inputOHRId_emp")?.setValue(sNextId);
+                this.byId("inputOHRId_emp")?.setEnabled(true); // Employees might need manual OHR ID entry
                 this.byId("inputFullName_emp")?.setValue("");
                 this.byId("inputMailId_emp")?.setValue("");
                 this.byId("inputGender_emp")?.setSelectedKey("");
                 this.byId("inputEmployeeType_emp")?.setSelectedKey("");
                 this.byId("inputDoJ_emp")?.setValue("");
                 this.byId("inputBand_emp")?.setSelectedKey("");
-                // Clear designation dropdown when clearing form
-                const oDesignationSelect = this.byId("inputRole_emp");
-                if (oDesignationSelect) {
-                    oDesignationSelect.removeAllItems();
-                    oDesignationSelect.setSelectedKey("");
-                }
+                this.byId("inputRole_emp")?.setSelectedKey("");
                 this.byId("inputLocation_emp")?.setValue("");
                 this.byId("inputCity_emp")?.setValue("");
                 this.byId("inputSupervisor_emp")?.setValue("");
+                this.byId("inputSupervisor_emp")?.data("selectedId", "");
                 this.byId("inputSkills_emp")?.setValue("");
                 this.byId("inputStatus_emp")?.setSelectedKey("");
                 this.byId("inputLWD_emp")?.setValue("");
                 return;
             }
-            
+
             // Row selected - populate form for update
             let oObj = aSelectedContexts[0].getObject();
             this.byId("inputOHRId_emp")?.setValue(oObj.ohrId || "");
@@ -263,128 +277,72 @@ sap.ui.define([
             this.byId("inputGender_emp")?.setSelectedKey(oObj.gender || "");
             this.byId("inputEmployeeType_emp")?.setSelectedKey(oObj.employeeType || "");
             this.byId("inputDoJ_emp")?.setValue(oObj.doj || "");
-                const sBand = oObj.band || "";
+            const sBand = oObj.band || "";
             this.byId("inputBand_emp")?.setSelectedKey(sBand);
-            
-            // ✅ Populate designation dropdown based on band
-            const oDesignationSelect = this.byId("inputRole_emp");
-            if (oDesignationSelect && sBand) {
-                // Mapping of Band to Designations
-                const mBandToDesignations = {
-                    "1": ["Senior Vice President"],
-                    "2": ["Vice President"],
-                    "3": ["Assistant Vice President"],
-                    "4A": ["Consultant", "Management Trainee"],
-                    "4B-C": ["Assistant Manager", "Consultant"],
-                    "4B-LC": ["Assistant Manager", "Lead Consultant"],
-                    "4C": ["Manager", "Principal Consultant", "Project Manager"],
-                    "4D": ["Senior Manager", "Senior Principal Consultant", "Senior Project Manager"],
-                    "5A": ["Process Associate"],
-                    "5B": ["Senior Associate", "Sr Associate", "Technical Associate"],
-                    "Subcon": ["Subcon"]
-                };
-                
-                // Also handle legacy band keys
-                mBandToDesignations["4A_1"] = ["Consultant", "Management Trainee"];
-                mBandToDesignations["4A_2"] = ["Consultant", "Management Trainee"];
-                mBandToDesignations["4B_C"] = ["Assistant Manager", "Consultant"];
-                mBandToDesignations["4B_LC"] = ["Assistant Manager", "Lead Consultant"];
-                
-                // Clear existing items
-                oDesignationSelect.removeAllItems();
-                
-                // Add placeholder item first
-                const oPlaceholderItem = new sap.ui.core.Item({
-                    key: "",
-                    text: "Select Designation..."
-                });
-                oDesignationSelect.addItem(oPlaceholderItem);
-                
-                // Get designations for selected band
-                const aDesignations = mBandToDesignations[sBand] || [];
-                
-                // Add items for each designation
-                aDesignations.forEach((sDesignation) => {
-                    const oItem = new sap.ui.core.Item({
-                        key: sDesignation,
-                        text: sDesignation
-                    });
-                    oDesignationSelect.addItem(oItem);
-                });
-                
-                // Set role after designations are populated
-                if (oObj.role && aDesignations.includes(oObj.role)) {
-                    oDesignationSelect.setSelectedKey(oObj.role);
-                } else {
-                    oDesignationSelect.setSelectedKey("");
-                }
-            } else if (oDesignationSelect) {
-                // No band selected - clear designation
-                oDesignationSelect.removeAllItems();
-                oDesignationSelect.setSelectedKey("");
-            }
-            this.byId("inputLocation_emp")?.setValue(oObj.location || "");
-            this.byId("inputCity_emp")?.setValue(oObj.city || "");
-            
-            // ✅ Supervisor field - display name but store OHR ID
-            const sSupervisorOHR = oObj.supervisorOHR || "";
-            const oSupervisorInput = this.byId("inputSupervisor_emp");
-            if (sSupervisorOHR && oSupervisorInput) {
-                // Load supervisor name from association or async
-                if (oObj.to_Supervisor && oObj.to_Supervisor.fullName) {
-                    // Association expanded - display name immediately
-                    oSupervisorInput.setValue(oObj.to_Supervisor.fullName);
-                    oSupervisorInput.data("selectedId", sSupervisorOHR);
-                    console.log("[Employee Form] ✅ Supervisor set from association:", oObj.to_Supervisor.fullName);
-                } else {
-                    // Association not expanded - load supervisor name asynchronously
-                    const oModel = this.getView().getModel();
-                    if (oModel) {
-                        // ✅ Use deferred binding for OData V4
-                        const oSupervisorContext = oModel.bindContext(`/Employees('${sSupervisorOHR}')`, null, {
-                            deferred: true
+
+            // Populate Designation dropdown based on Band selection
+            if (sBand && this.getView()) {
+                const oController = this.getView().getController();
+                if (oController && oController.mBandToDesignations) {
+                    const aDesignations = oController.mBandToDesignations[sBand] || [];
+                    const oDesignationSelect = this.byId("inputRole_emp");
+                    if (oDesignationSelect) {
+                        // Clear existing items (except placeholder)
+                        const aItems = oDesignationSelect.getItems();
+                        aItems.forEach((oItem, iIndex) => {
+                            if (iIndex > 0) {
+                                oDesignationSelect.removeItem(oItem);
+                            }
                         });
-                        oSupervisorContext.execute()
-                            .then(() => {
-                                const oSupervisor = oSupervisorContext.getObject();
-                                if (oSupervisor && oSupervisor.fullName) {
-                                    const oField = this.byId("inputSupervisor_emp");
-                                    if (oField) {
-                                        oField.setValue(oSupervisor.fullName);
-                                        oField.data("selectedId", sSupervisorOHR);
-                                        console.log("[Employee Form] ✅ Supervisor loaded:", oSupervisor.fullName);
-                                    }
-                                }
-                            })
-                            .catch((oError) => {
-                                console.error("[Employee Form] Error loading supervisor:", oError);
-                                // Fallback: display OHR ID
-                                const oField = this.byId("inputSupervisor_emp");
-                                if (oField) {
-                                    oField.setValue(sSupervisorOHR);
-                                    oField.data("selectedId", sSupervisorOHR);
-                                }
-                            });
-                    } else {
-                        // No model - just set OHR ID
-                        oSupervisorInput.setValue(sSupervisorOHR);
-                        oSupervisorInput.data("selectedId", sSupervisorOHR);
+                        // Add designations for selected band
+                        aDesignations.forEach((sDesignation) => {
+                            oDesignationSelect.addItem(new sap.ui.core.Item({
+                                key: sDesignation,
+                                text: sDesignation
+                            }));
+                        });
                     }
                 }
-            } else {
-                // No supervisor - clear field
-                if (oSupervisorInput) {
-                    oSupervisorInput.setValue("");
-                    oSupervisorInput.data("selectedId", "");
-                }
             }
-            
+            this.byId("inputRole_emp")?.setSelectedKey(oObj.role || "");
+            this.byId("inputLocation_emp")?.setValue(oObj.location || "");
+            this.byId("inputCity_emp")?.setValue(oObj.city || "");
+
+            // Supervisor field - display name from association, store ID
+            const sSupervisorId = oObj.supervisorOHR || "";
+            const oSupervisorInput = this.byId("inputSupervisor_emp");
+            if (sSupervisorId && oSupervisorInput) {
+                // First check association (same pattern as Customer, Opportunity, GPM)
+                if (oObj.to_Supervisor && oObj.to_Supervisor.fullName) {
+                    oSupervisorInput.setValue(oObj.to_Supervisor.fullName);
+                    oSupervisorInput.data("selectedId", sSupervisorId);
+                } else {
+                    // Load async if association not available
+                    oSupervisorInput.setValue(sSupervisorId);
+                    oSupervisorInput.data("selectedId", sSupervisorId);
+                    const oModel = this.getView().getModel();
+                    if (oModel && /^\d{6,10}$/.test(sSupervisorId.trim())) {
+                        const oEmployeeContext = oModel.bindContext(`/Employees('${sSupervisorId}')`, null, { deferred: true });
+                        oEmployeeContext.execute().then(() => {
+                            const oSupervisor = oEmployeeContext.getObject();
+                            if (oSupervisor && oSupervisor.fullName) {
+                                oSupervisorInput.setValue(oSupervisor.fullName);
+                                oSupervisorInput.data("selectedId", sSupervisorId);
+                            }
+                        }).catch(() => { });
+                    }
+                }
+            } else if (oSupervisorInput) {
+                oSupervisorInput.setValue("");
+                oSupervisorInput.data("selectedId", "");
+            }
+
             this.byId("inputSkills_emp")?.setValue(oObj.skills || "");
             this.byId("inputStatus_emp")?.setSelectedKey(oObj.status || "");
             this.byId("inputLWD_emp")?.setValue(oObj.lwd || "");
         },
 
-        // ✅ NEW: Opportunity form data handler
+        //  Opportunity form data handler
         _onOppDialogData: function (aSelectedContexts) {
             if (!aSelectedContexts || aSelectedContexts.length === 0) {
                 // No selection - clear form for new entry
@@ -398,7 +356,7 @@ sap.ui.define([
                 } catch (e) {
                     console.log("Could not generate next Opportunity ID, using default:", sNextId);
                 }
-                
+
                 this.byId("inputSapOppId_oppr")?.setValue(sNextId);
                 this.byId("inputSapOppId_oppr")?.setEnabled(false); // Always disabled - auto-generated
                 this.byId("inputSapOppId_oppr")?.setPlaceholder("Auto-generated");
@@ -416,11 +374,11 @@ sap.ui.define([
                 this.byId("inputCustomerId_oppr")?.data("selectedId", "");
                 return;
             }
-            
+
             // Row selected - populate form for update
-            // ✅ EXACT same pattern as Employee (which works perfectly)
+            // EXACT same pattern as Employee (which works perfectly)
             let oObj = aSelectedContexts[0].getObject();
-            
+
             // Update model first (fields are bound to model)
             let oOppModel = this.getView().getModel("opportunityModel");
             if (!oOppModel) {
@@ -439,7 +397,7 @@ sap.ui.define([
             oOppModel.setProperty("/expectedEnd", oObj.expectedEnd || "");
             oOppModel.setProperty("/tcv", oObj.tcv != null ? oObj.tcv : null);
             oOppModel.setProperty("/customerId", oObj.customerId || "");
-            
+
             // Also set values directly on controls
             this.byId("inputSapOppId_oppr")?.setValue(oObj.sapOpportunityId || "");
             this.byId("inputSapOppId_oppr")?.setEnabled(false);
@@ -454,8 +412,8 @@ sap.ui.define([
             this.byId("inputExpectedStart_oppr")?.setValue(oObj.expectedStart || "");
             this.byId("inputExpectedEnd_oppr")?.setValue(oObj.expectedEnd || "");
             this.byId("inputTCV_oppr")?.setValue(oObj.tcv != null ? String(oObj.tcv) : "");
-            
-            // ✅ Customer field - same pattern as Employee Supervisor
+
+            // Customer field - same pattern as Employee Supervisor
             const sCustomerId = oObj.customerId || "";
             const oCustomerInput = this.byId("inputCustomerId_oppr");
             if (sCustomerId && oCustomerInput) {
@@ -476,7 +434,7 @@ sap.ui.define([
                                 oCustomerInput.setValue(oCustomer.customerName);
                                 oCustomerInput.data("selectedId", sCustomerId);
                             }
-                        }).catch(() => {});
+                        }).catch(() => { });
                     }
                 }
             } else if (oCustomerInput) {
@@ -484,15 +442,12 @@ sap.ui.define([
                 oCustomerInput.data("selectedId", "");
             }
         },
-        
+
         // Helper to load customer name for opportunity field
-        _loadCustomerNameForOpportunity: function(sCustomerId) {
+        _loadCustomerNameForOpportunity: function (sCustomerId) {
             const oModel = this.getView().getModel();
             if (oModel) {
-                // ✅ Use deferred binding for OData V4
-                const oCustomerContext = oModel.bindContext(`/Customers('${sCustomerId}')`, null, {
-                    deferred: true
-                });
+                const oCustomerContext = oModel.bindContext(`/Customers('${sCustomerId}')`);
                 oCustomerContext.execute()
                     .then(() => {
                         const oCustomer = oCustomerContext.getObject();
@@ -534,9 +489,9 @@ sap.ui.define([
                     });
             }
         },
-        
+
         // Helper function for retry case (kept for backward compatibility)
-        _populateOpportunityFormDirect: function(oObj) {
+        _populateOpportunityFormDirect: function (oObj) {
             if (!oObj) return;
             this.byId("inputSapOppId_oppr")?.setValue(oObj.sapOpportunityId || "");
             this.byId("inputSapOppId_oppr")?.setEnabled(false);
@@ -550,9 +505,8 @@ sap.ui.define([
             this.byId("inputDeliverySPOC_oppr")?.setValue(oObj.deliverySPOC || "");
             this.byId("inputExpectedStart_oppr")?.setValue(oObj.expectedStart || "");
             this.byId("inputExpectedEnd_oppr")?.setValue(oObj.expectedEnd || "");
-            // ✅ Convert numeric field to string for Input control
-            this.byId("inputTCV_oppr")?.setValue(oObj.tcv != null ? String(oObj.tcv) : "");
-            
+            this.byId("inputTCV_oppr")?.setValue(oObj.tcv || "");
+
             // Handle customer field
             const sCustomerId = oObj.customerId || "";
             if (sCustomerId) {
@@ -576,7 +530,7 @@ sap.ui.define([
             }
         },
 
-        // ✅ NEW: Project form data handler
+        //  Project form data handler
         _onProjDialogData: function (aSelectedContexts) {
             if (!aSelectedContexts || aSelectedContexts.length === 0) {
                 // No selection - clear form for new entry
@@ -590,48 +544,46 @@ sap.ui.define([
                 } catch (e) {
                     console.log("Could not generate next Project ID, using default:", sNextId);
                 }
-                
+
+                // CRITICAL: Clear the model first (form fields are bound to model)
+                let oProjModel = this.getView().getModel("projectModel");
+                if (!oProjModel) {
+                    oProjModel = new sap.ui.model.json.JSONModel({});
+                    this.getView().setModel(oProjModel, "projectModel");
+                }
+                // Clear all model properties (no default values)
+                oProjModel.setData({
+                    sapPId: sNextId,
+                    sfdcPId: "",
+                    projectName: "",
+                    startDate: "",
+                    endDate: "",
+                    gpm: "",
+                    projectType: "",
+                    status: "",
+                    oppId: "",
+                    requiredResources: "",
+                    allocatedResources: "",
+                    toBeAllocated: "",
+                    SOWReceived: "",
+                    POReceived: ""
+                });
+
+                // Also set controls directly (for non-bound fields and data attributes)
                 this.byId("inputSapProjId_proj")?.setValue(sNextId);
                 this.byId("inputSapProjId_proj")?.setEnabled(false); // Always disabled - auto-generated
                 this.byId("inputSapProjId_proj")?.setPlaceholder("Auto-generated");
-                this.byId("inputSfdcProjId_proj")?.setValue("");
-                this.byId("inputProjectName_proj")?.setValue("");
-                this.byId("inputStartDate_proj")?.setValue("");
-                this.byId("inputEndDate_proj")?.setValue("");
-                this.byId("inputGPM_proj")?.setValue("");
-                this.byId("inputProjectType_proj")?.setSelectedKey("");
-                this.byId("inputStatus_proj")?.setSelectedKey("");
                 this.byId("inputOppId_proj")?.setValue("");
                 this.byId("inputOppId_proj")?.data("selectedId", "");
-                this.byId("inputRequiredResources_proj")?.setValue("");
-                this.byId("inputAllocatedResources_proj")?.setValue("");
-                this.byId("inputToBeAllocated_proj")?.setValue("");
-                this.byId("inputSOWReceived_proj")?.setSelectedKey("");
-                this.byId("inputPOReceived_proj")?.setSelectedKey("");
+                this.byId("inputGPM_proj")?.data("selectedId", "");
                 return;
             }
-            
+
             // Row selected - populate form for update
-            // ✅ EXACT same pattern as Employee (which works perfectly)
+            // EXACT same pattern as Employee (which works perfectly)
             let oObj = aSelectedContexts[0].getObject();
-            
-            // Set all fields directly (same as Employee)
-            this.byId("inputSapProjId_proj")?.setValue(oObj.sapPId || "");
-            this.byId("inputSapProjId_proj")?.setEnabled(false);
-            this.byId("inputSapProjId_proj")?.setPlaceholder("");
-            this.byId("inputSfdcProjId_proj")?.setValue(oObj.sfdcPId || "");
-            this.byId("inputProjectName_proj")?.setValue(oObj.projectName || "");
-            this.byId("inputStartDate_proj")?.setValue(oObj.startDate || "");
-            this.byId("inputEndDate_proj")?.setValue(oObj.endDate || "");
-            this.byId("inputProjectType_proj")?.setSelectedKey(oObj.projectType || "");
-            this.byId("inputStatus_proj")?.setSelectedKey(oObj.status || "");
-            this.byId("inputSOWReceived_proj")?.setSelectedKey(oObj.SOWReceived || "");
-            this.byId("inputPOReceived_proj")?.setSelectedKey(oObj.POReceived || "");
-            this.byId("inputRequiredResources_proj")?.setValue(oObj.requiredResources != null ? String(oObj.requiredResources) : "");
-            this.byId("inputAllocatedResources_proj")?.setValue(oObj.allocatedResources != null ? String(oObj.allocatedResources) : "");
-            this.byId("inputToBeAllocated_proj")?.setValue(oObj.toBeAllocated != null ? String(oObj.toBeAllocated) : "");
-            
-            // Update model
+
+            // Update model first (fields are bound to model)
             let oProjModel = this.getView().getModel("projectModel");
             if (!oProjModel) {
                 oProjModel = new sap.ui.model.json.JSONModel({});
@@ -642,6 +594,7 @@ sap.ui.define([
             oProjModel.setProperty("/projectName", oObj.projectName || "");
             oProjModel.setProperty("/startDate", oObj.startDate || "");
             oProjModel.setProperty("/endDate", oObj.endDate || "");
+            oProjModel.setProperty("/gpm", oObj.gpm || "");
             oProjModel.setProperty("/projectType", oObj.projectType || "");
             oProjModel.setProperty("/status", oObj.status || "");
             oProjModel.setProperty("/requiredResources", oObj.requiredResources != null ? oObj.requiredResources : null);
@@ -650,59 +603,67 @@ sap.ui.define([
             oProjModel.setProperty("/SOWReceived", oObj.SOWReceived || "");
             oProjModel.setProperty("/POReceived", oObj.POReceived || "");
             oProjModel.setProperty("/oppId", oObj.oppId || "");
-            oProjModel.setProperty("/gpm", oObj.gpm || "");
-            
-            // ✅ Value helpers - same pattern as Employee Supervisor
+
+            // Also set values directly on controls
+            this.byId("inputSapProjId_proj")?.setValue(oObj.sapPId || "");
+            this.byId("inputSapProjId_proj")?.setEnabled(false);
+            this.byId("inputSapProjId_proj")?.setPlaceholder("");
+            this.byId("inputSfdcProjId_proj")?.setValue(oObj.sfdcPId || "");
+            this.byId("inputProjectName_proj")?.setValue(oObj.projectName || "");
+            this.byId("inputStartDate_proj")?.setValue(oObj.startDate || "");
+            this.byId("inputEndDate_proj")?.setValue(oObj.endDate || "");
+            this.byId("inputProjectType_proj")?.setSelectedKey(oObj.projectType || "");
+            this.byId("inputStatus_proj")?.setSelectedKey(oObj.status || "");
+            this.byId("inputRequiredResources_proj")?.setValue(oObj.requiredResources != null ? String(oObj.requiredResources) : "");
+            this.byId("inputAllocatedResources_proj")?.setValue(oObj.allocatedResources != null ? String(oObj.allocatedResources) : "");
+            this.byId("inputToBeAllocated_proj")?.setValue(oObj.toBeAllocated != null ? String(oObj.toBeAllocated) : "");
+            this.byId("inputSOWReceived_proj")?.setSelectedKey(oObj.SOWReceived || "");
+            this.byId("inputPOReceived_proj")?.setSelectedKey(oObj.POReceived || "");
+
+            // GPM field - same pattern as Employee Supervisor
             const sGPMId = oObj.gpm || "";
             const oGPMInput = this.byId("inputGPM_proj");
             if (sGPMId && oGPMInput) {
-                // ✅ First check if association is expanded (like Supervisor)
+                // First check association (same as Supervisor)
                 if (oObj.to_GPM && oObj.to_GPM.fullName) {
-                    // Association expanded - display name immediately
                     oGPMInput.setValue(oObj.to_GPM.fullName);
                     oGPMInput.data("selectedId", sGPMId);
-                    console.log("[Project Form] ✅ GPM set from association:", oObj.to_GPM.fullName);
                 } else {
-                    // Association not expanded - load employee name asynchronously (same as Supervisor)
-                    // ✅ Set ID temporarily while loading name
+                    // Load async (same as Supervisor)
                     oGPMInput.setValue(sGPMId);
                     oGPMInput.data("selectedId", sGPMId);
                     const oModel = this.getView().getModel();
                     if (oModel && /^\d{6,10}$/.test(sGPMId.trim())) {
-                        console.log("[Project Form] Loading GPM name async for OHR ID:", sGPMId);
                         const oEmployeeContext = oModel.bindContext(`/Employees('${sGPMId}')`, null, { deferred: true });
                         oEmployeeContext.execute().then(() => {
                             const oEmployee = oEmployeeContext.getObject();
-                            console.log("[Project Form] GPM Employee loaded:", oEmployee);
                             if (oEmployee && oEmployee.fullName) {
                                 oGPMInput.setValue(oEmployee.fullName);
                                 oGPMInput.data("selectedId", sGPMId);
-                                console.log("[Project Form] ✅ GPM field updated with name:", oEmployee.fullName);
                             }
-                        }).catch((oError) => {
-                            console.warn("[Project Form] Error loading GPM employee name:", oError);
-                        });
+                        }).catch(() => { });
                     }
                 }
             } else if (oGPMInput) {
                 oGPMInput.setValue("");
                 oGPMInput.data("selectedId", "");
             }
-            
+
+            // Opportunity field - same pattern as Employee Supervisor
             const sOppId = oObj.oppId || "";
             const oOppInput = this.byId("inputOppId_proj");
-            console.log("[Project Form] Opportunity field - oppId:", sOppId, "to_Opportunity:", oObj.to_Opportunity);
+            console.log("[Project Form] Opportunity field - oppId:", sOppId, "to_Opportunity:", oObj.to_Opportunity, "oOppInput exists:", !!oOppInput);
             if (sOppId && oOppInput) {
-                // ✅ Set immediately with ID first (like GPM)
+                // Set immediately with ID first (like GPM)
                 oOppInput.setValue(sOppId);
                 oOppInput.data("selectedId", sOppId);
-                
-                // First check association (same as Employee Supervisor)
+
+                // First check association (same as Supervisor)
                 if (oObj.to_Opportunity && oObj.to_Opportunity.opportunityName) {
                     // Association expanded - update with name immediately
                     oOppInput.setValue(oObj.to_Opportunity.opportunityName);
                     oOppInput.data("selectedId", sOppId);
-                    console.log("[Project Form] ✅ Opportunity field set from association:", oObj.to_Opportunity.opportunityName);
+                    console.log("[Project Form] ✅ Opportunity set from association:", oObj.to_Opportunity.opportunityName);
                 } else {
                     // Load async (same as Supervisor)
                     console.log("[Project Form] Loading Opportunity name async for ID:", sOppId);
@@ -727,15 +688,12 @@ sap.ui.define([
                 oOppInput.data("selectedId", "");
             }
         },
-        
+
         // Helper to load opportunity name for project field
-        _loadOpportunityNameForProject: function(sOppId) {
+        _loadOpportunityNameForProject: function (sOppId) {
             const oModel = this.getView().getModel();
             if (oModel) {
-                // ✅ Use deferred binding for OData V4
-                const oOppContext = oModel.bindContext(`/Opportunities('${sOppId}')`, null, {
-                    deferred: true
-                });
+                const oOppContext = oModel.bindContext(`/Opportunities('${sOppId}')`);
                 oOppContext.execute()
                     .then(() => {
                         const oOpportunity = oOppContext.getObject();
@@ -777,9 +735,9 @@ sap.ui.define([
                     });
             }
         },
-        
+
         // Helper function for retry case
-        _populateProjectFormDirect: function(oObj) {
+        _populateProjectFormDirect: function (oObj) {
             if (!oObj) return;
             this.byId("inputSapProjId_proj")?.setValue(oObj.sapPId || "");
             this.byId("inputSapProjId_proj")?.setEnabled(false);
@@ -788,39 +746,47 @@ sap.ui.define([
             this.byId("inputProjectName_proj")?.setValue(oObj.projectName || "");
             this.byId("inputStartDate_proj")?.setValue(oObj.startDate || "");
             this.byId("inputEndDate_proj")?.setValue(oObj.endDate || "");
-            // For GPM field - load employee name if GPM (OHR ID) exists
+
+            // GPM field - display name from association, store ID
             const sGPMId = oObj.gpm || "";
-            if (sGPMId) {
-                // ✅ FIRST: Try to get name from expanded association (if available)
-                if (oObj.to_Employee && oObj.to_Employee.fullName) {
-                    this.byId("inputGPM_proj")?.setValue(oObj.to_Employee.fullName);
-                    this.byId("inputGPM_proj")?.data("selectedId", sGPMId);
-                    // Update model for backend submission
-                    let oProjModel = this.getView().getModel("projectModel");
-                    if (!oProjModel) {
-                        oProjModel = new sap.ui.model.json.JSONModel({ gpm: sGPMId });
-                        this.getView().setModel(oProjModel, "projectModel");
-                    } else {
-                        oProjModel.setProperty("/gpm", sGPMId);
-                    }
+            const oGPMInput = this.byId("inputGPM_proj");
+            if (sGPMId && oGPMInput) {
+                // First check association (same pattern as Supervisor)
+                if (oObj.to_GPM && oObj.to_GPM.fullName) {
+                    oGPMInput.setValue(oObj.to_GPM.fullName);
+                    oGPMInput.data("selectedId", sGPMId);
                 } else {
-                    // If association not expanded, just set the ID (will be resolved by value help or async load)
-                    this.byId("inputGPM_proj")?.setValue(sGPMId);
-                    this.byId("inputGPM_proj")?.data("selectedId", sGPMId);
+                    // Load async if association not available
+                    oGPMInput.setValue(sGPMId);
+                    oGPMInput.data("selectedId", sGPMId);
+                    const oModel = this.getView().getModel();
+                    if (oModel && /^\d{6,10}$/.test(sGPMId.trim())) {
+                        const oEmployeeContext = oModel.bindContext(`/Employees('${sGPMId}')`, null, { deferred: true });
+                        oEmployeeContext.execute().then(() => {
+                            const oGPM = oEmployeeContext.getObject();
+                            if (oGPM && oGPM.fullName) {
+                                oGPMInput.setValue(oGPM.fullName);
+                                oGPMInput.data("selectedId", sGPMId);
+                            }
+                        }).catch(() => { });
+                    }
                 }
-            } else {
-                this.byId("inputGPM_proj")?.setValue("");
-                this.byId("inputGPM_proj")?.data("selectedId", "");
+            } else if (oGPMInput) {
+                oGPMInput.setValue("");
+                oGPMInput.data("selectedId", "");
             }
+
             this.byId("inputProjectType_proj")?.setSelectedKey(oObj.projectType || "");
             this.byId("inputStatus_proj")?.setSelectedKey(oObj.status || "");
-            
-            // Handle opportunity field
+
+            // Opportunity field - display name from association, store ID
             const sOppId = oObj.oppId || "";
-            if (sOppId) {
+            const oOppInput = this.byId("inputOppId_proj");
+            if (sOppId && oOppInput) {
+                // First check association (same pattern as Customer)
                 if (oObj.to_Opportunity && oObj.to_Opportunity.opportunityName) {
-                    this.byId("inputOppId_proj")?.setValue(oObj.to_Opportunity.opportunityName);
-                    this.byId("inputOppId_proj")?.data("selectedId", sOppId);
+                    oOppInput.setValue(oObj.to_Opportunity.opportunityName);
+                    oOppInput.data("selectedId", sOppId);
                     let oProjModel = this.getView().getModel("projectModel");
                     if (!oProjModel) {
                         oProjModel = new sap.ui.model.json.JSONModel({ oppId: sOppId });
@@ -829,18 +795,29 @@ sap.ui.define([
                         oProjModel.setProperty("/oppId", sOppId);
                     }
                 } else {
-                    this.byId("inputOppId_proj")?.setValue(sOppId);
-                    this.byId("inputOppId_proj")?.data("selectedId", sOppId);
+                    // Load async if association not available
+                    oOppInput.setValue(sOppId);
+                    oOppInput.data("selectedId", sOppId);
+                    const oModel = this.getView().getModel();
+                    if (oModel) {
+                        const oOppContext = oModel.bindContext(`/Opportunities('${sOppId}')`, null, { deferred: true });
+                        oOppContext.execute().then(() => {
+                            const oOpportunity = oOppContext.getObject();
+                            if (oOpportunity && oOpportunity.opportunityName) {
+                                oOppInput.setValue(oOpportunity.opportunityName);
+                                oOppInput.data("selectedId", sOppId);
+                            }
+                        }).catch(() => { });
+                    }
                 }
-            } else {
-                this.byId("inputOppId_proj")?.setValue("");
-                this.byId("inputOppId_proj")?.data("selectedId", "");
+            } else if (oOppInput) {
+                oOppInput.setValue("");
+                oOppInput.data("selectedId", "");
             }
-            
-            // ✅ Convert numeric fields to strings for Input controls
-            this.byId("inputRequiredResources_proj")?.setValue(oObj.requiredResources != null ? String(oObj.requiredResources) : "");
-            this.byId("inputAllocatedResources_proj")?.setValue(oObj.allocatedResources != null ? String(oObj.allocatedResources) : "");
-            this.byId("inputToBeAllocated_proj")?.setValue(oObj.toBeAllocated != null ? String(oObj.toBeAllocated) : "");
+
+            this.byId("inputRequiredResources_proj")?.setValue(oObj.requiredResources || "");
+            this.byId("inputAllocatedResources_proj")?.setValue(oObj.allocatedResources || "");
+            this.byId("inputToBeAllocated_proj")?.setValue(oObj.toBeAllocated || "");
             this.byId("inputSOWReceived_proj")?.setSelectedKey(oObj.SOWReceived || "");
             this.byId("inputPOReceived_proj")?.setSelectedKey(oObj.POReceived || "");
         },
@@ -872,107 +849,76 @@ sap.ui.define([
                 }
                 this.byId("inputCustomerName")?.setValue("");
                 this.byId("inputCountry")?.setSelectedKey("");
-                // ✅ Clear and reset City dropdown
-                const oCitySelect = this.byId("inputCity");
-                if (oCitySelect) {
-                    oCitySelect.removeAllItems();
-                    oCitySelect.addItem(new sap.ui.core.Item({ key: "", text: "Select City..." }));
-                    oCitySelect.setSelectedKey("");
-                }
+                this.byId("inputCity")?.setSelectedKey("");
                 this.byId("inputStatus")?.setSelectedKey("");
                 this.byId("inputVertical")?.setSelectedKey("");
                 return;
             }
-            
+
             // Row selected - populate form for update
             let oObj = aSelectedContexts[0].getObject();
             this.byId("inputCustomerId")?.setValue(oObj.SAPcustId || "");
             this.byId("inputCustomerId")?.setEnabled(false); // Always disabled - key field cannot be changed
             this.byId("inputCustomerId")?.setPlaceholder("");
             this.byId("inputCustomerName")?.setValue(oObj.customerName || "");
-            
-            // ✅ Set Country first, then populate City dropdown based on country (same pattern as Band-Designation)
+
             const sCountry = oObj.country || "";
+            const sState = oObj.state || "";
+
+            // Set Country first
             this.byId("inputCountry")?.setSelectedKey(sCountry);
-            
-            // ✅ Populate City dropdown based on selected country, then match state to city
-            const oCitySelect = this.byId("inputCity");
-            if (oCitySelect && sCountry) {
-                // Get cities for the country from controller mapping
+
+            // Populate City dropdown based on Country and match state to city format
+            if (sCountry && this.getView()) {
                 const oController = this.getView().getController();
-                const mCountryToCities = oController && oController._mCountryToCities ? oController._mCountryToCities : {};
-                
-                // Clear existing items
-                oCitySelect.removeAllItems();
-                
-                // Add placeholder item first
-                const oPlaceholderItem = new sap.ui.core.Item({
-                    key: "",
-                    text: "Select City..."
-                });
-                oCitySelect.addItem(oPlaceholderItem);
-                
-                // Get cities for the selected country
-                const aCities = mCountryToCities[sCountry] || [];
-                
-                // Add items for each city
-                aCities.forEach((sCity) => {
-                    const oItem = new sap.ui.core.Item({
-                        key: sCity,
-                        text: sCity
-                    });
-                    oCitySelect.addItem(oItem);
-                });
-                
-                // ✅ Match state from database to find corresponding city in dropdown
-                // Database has state field, we need to find city that contains this state
-                const sStateFromDB = oObj.state || "";
-                let sMatchingCity = "";
-                
-                if (sStateFromDB) {
-                    // Try to find city that contains this state in parentheses
-                    // Example: state = "Karnataka" -> match "Bangalore (Karnataka)"
-                    for (let i = 0; i < aCities.length; i++) {
-                        const sCity = aCities[i];
-                        // Check if city contains state in parentheses: "City (State)"
-                        if (sCity.includes(`(${sStateFromDB})`)) {
-                            sMatchingCity = sCity;
-                            break;
-                        }
-                        // Also check if city name itself matches state (for single-city countries)
-                        if (sCity === sStateFromDB) {
-                            sMatchingCity = sCity;
-                            break;
-                        }
-                        // Check if state is in parentheses without exact match
-                        const oStateMatch = sCity.match(/\(([^)]+)\)/);
-                        if (oStateMatch && oStateMatch[1] && oStateMatch[1].trim() === sStateFromDB) {
-                            sMatchingCity = sCity;
-                            break;
+                if (oController && oController._mCountryToCities) {
+                    const aCities = oController._mCountryToCities[sCountry] || [];
+                    const oCitySelect = this.byId("inputCity");
+                    if (oCitySelect) {
+                        // Clear existing items (except placeholder)
+                        const aItems = oCitySelect.getItems();
+                        aItems.forEach((oItem, iIndex) => {
+                            if (iIndex > 0) {
+                                oCitySelect.removeItem(oItem);
+                            }
+                        });
+                        // Add cities for selected country
+                        aCities.forEach((sCity) => {
+                            oCitySelect.addItem(new sap.ui.core.Item({
+                                key: sCity,
+                                text: sCity
+                            }));
+                        });
+
+                        // Match state to city format (e.g., "Karnataka" -> "Bangalore (Karnataka)")
+                        if (sState) {
+                            const oMatchedCity = aCities.find((sCity) => {
+                                // Extract state from city format "City (State)"
+                                const sMatch = sCity.match(/\(([^)]+)\)/);
+                                return sMatch && sMatch[1] === sState;
+                            });
+                            if (oMatchedCity) {
+                                this.byId("inputCity")?.setSelectedKey(oMatchedCity);
+                            } else {
+                                // Fallback: try to find city that contains state
+                                const oFallbackCity = aCities.find((sCity) => sCity.includes(sState));
+                                if (oFallbackCity) {
+                                    this.byId("inputCity")?.setSelectedKey(oFallbackCity);
+                                }
+                            }
                         }
                     }
                 }
-                
-                // Set the matched city value
-                if (sMatchingCity) {
-                    oCitySelect.setSelectedKey(sMatchingCity);
-                } else {
-                    oCitySelect.setSelectedKey("");
-                }
             } else {
-                // No country selected - clear city dropdown
-                if (oCitySelect) {
-                    oCitySelect.removeAllItems();
-                    oCitySelect.addItem(new sap.ui.core.Item({ key: "", text: "Select City..." }));
-                    oCitySelect.setSelectedKey("");
-                }
+                this.byId("inputCity")?.setSelectedKey("");
             }
             // Status enum: backend uses A/I/P, form uses same keys now
             this.byId("inputStatus")?.setSelectedKey(oObj.status || "");
+            // FIXED: Vertical is a Select control, must use setSelectedKey() not setValue()
             this.byId("inputVertical")?.setSelectedKey(oObj.vertical || "");
         },
 
-        
+
 
 
         // delete functionalities
@@ -983,7 +929,7 @@ sap.ui.define([
                 "Opportunities": { edit: "btnEdit_oppr", delete: "btnDelete_oppr" },
                 "Projects": { edit: "btnEdit_proj", delete: "btnDelete_proj" },
                 "SAPIdStatuses": { edit: "btnEdit_sap", delete: "btnDelete_sap" }
-                // ✅ REMOVED: "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert" }
+ "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert" }
             };
 
             // Determine which button triggered the event
@@ -1114,53 +1060,51 @@ sap.ui.define([
                             // All deletions successful
                             sap.m.MessageToast.show(`${sTableId} entries successfully deleted.`);
 
-                            // ✅ Force refresh table to show updated data immediately
+                            // CRITICAL: Hard refresh table to get fresh data from DB
                             setTimeout(() => {
+                                // Immediately rebind MDC table (most reliable for MDC tables)
+                                if (oTable.rebind) {
+                                    try {
+                                        oTable.rebind();
+                                        console.log(`✅ Table ${sTableId} rebinded after delete`);
+                                    } catch (e) {
+                                        console.log(`Rebind error for ${sTableId}:`, e);
+                                    }
+                                }
+
+                                // Also refresh bindings to force fresh data from backend
                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                 const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                
-                                const fnRefresh = () => {
-                                    // ✅ OData V4 doesn't support refresh(true) - use refresh() without parameter
-                                    if (oRowBinding) {
-                                        return oRowBinding.refresh();
-                                    } else if (oBinding) {
-                                        return oBinding.refresh();
-                                    }
-                                    return Promise.resolve();
-                                };
-                                
-                                fnRefresh().then(() => {
-                                    // After refresh, rebind to ensure UI updates
-                                    if (oTable.rebind) {
-                                        oTable.rebind();
-                                    }
-                                }).catch(() => {
-                                    // If refresh fails, try rebind directly
-                                    if (oTable.rebind) {
-                                        oTable.rebind();
-                                    }
-                                });
-                            }, 100); // Small delay to ensure batch is committed
+
+                                if (oRowBinding) {
+                                    oRowBinding.refresh().then(() => {
+                                        console.log(`✅ Table ${sTableId} row binding refreshed after delete`);
+                                    }).catch(() => { });
+                                } else if (oBinding) {
+                                    oBinding.refresh().then(() => {
+                                        console.log(`✅ Table ${sTableId} binding refreshed after delete`);
+                                    }).catch(() => { });
+                                }
+                            }, 200); // Small delay to ensure batch is committed
                         } else {
                             // Some deletions failed
                             console.error("Some deletions failed:", sErrorMessage);
                             sap.m.MessageBox.error("Some entries could not be deleted. Check console for details.");
 
-                            // ✅ Force refresh table even if some failed
+                            // Force immediate UI refresh after delete (even if some failed)
                             setTimeout(() => {
                                 const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
                                 const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
-                                
+
                                 const fnRefresh = () => {
-                                    // ✅ OData V4 doesn't support refresh(true) - use refresh() without parameter
                                     if (oRowBinding) {
-                                        return oRowBinding.refresh();
+                                        return oRowBinding.refresh(true); // Force refresh from server
                                     } else if (oBinding) {
-                                        return oBinding.refresh();
+                                        return oBinding.refresh(true); // Force refresh from server
                                     }
                                     return Promise.resolve();
                                 };
-                                
+
                                 fnRefresh().then(() => {
                                     // After refresh, rebind to ensure UI updates
                                     if (oTable.rebind) {
@@ -1214,7 +1158,7 @@ sap.ui.define([
                 "Opportunities": { edit: "btnEdit_oppr", delete: "btnDelete_oppr", save: "saveButton_oppr", cancel: "cancelButton_oppr", add: "btnAdd_oppr" },
                 "Projects": { edit: "btnEdit_proj", delete: "btnDelete_proj", save: "saveButton_proj", cancel: "cancelButton_proj", add: "btnAdd_proj" },
                 "SAPIdStatuses": { edit: "btnEdit_sap", delete: "btnDelete_sap", save: "saveButton_sap", cancel: "cancelButton_sap", add: "btnAdd_sap" }
-                // ✅ REMOVED: "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert", save: "saveButton_vert", cancel: "cancelButton_vert", add: "btnAdd_vert" }
+ "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert", save: "saveButton_vert", cancel: "cancelButton_vert", add: "btnAdd_vert" }
             };
 
             // Determine which table this edit is for
@@ -1231,8 +1175,8 @@ sap.ui.define([
                 sap.m.MessageToast.show("Please select one or more rows to edit.");
                 return;
             }
-            
-            // ✅ CRITICAL: For Opportunities and Projects, populate form fields when Edit button is clicked
+
+            // CRITICAL: For Opportunities and Projects, populate form fields when Edit button is clicked
             // This ensures all fields populate immediately when Edit is pressed, avoiding lag
             if (sTableId === "Opportunities" && aSelectedContexts.length > 0) {
                 // Populate Opportunity form with selected row data
@@ -1294,7 +1238,7 @@ sap.ui.define([
                 console.log(`[MULTI-EDIT] Row ${index + 1}: ${oContext.getPath()}`);
             });
 
-            // ✅ FIXED: Track editing paths in TABLE-SPECIFIC edit model
+            // FIXED: Track editing paths in TABLE-SPECIFIC edit model
             const oEditModel = this.getView().getModel("edit");
             const sEditingPaths = aEditingPaths.join(",");
             oEditModel.setProperty(`/${sTableId}/editingPath`, sEditingPaths);
@@ -1324,7 +1268,7 @@ sap.ui.define([
 
             sap.m.MessageToast.show(`${aSelectedContexts.length} rows are now in edit mode.`);
         },
-        // ✅ NEW: Internal method to perform the actual cancel operation (can skip confirmation)
+        //  Internal method to perform the actual cancel operation (can skip confirmation)
         _performCancelOperation: function (sTableId, bSkipConfirmation) {
             const self = this; // Store reference to this
 
@@ -1335,7 +1279,7 @@ sap.ui.define([
                 "Opportunities": { edit: "btnEdit_oppr", delete: "btnDelete_oppr", save: "saveButton_oppr", cancel: "cancelButton_oppr", add: "btnAdd_oppr" },
                 "Projects": { edit: "btnEdit_proj", delete: "btnDelete_proj", save: "saveButton_proj", cancel: "cancelButton_proj", add: "btnAdd_proj" },
                 "SAPIdStatuses": { edit: "btnEdit_sap", delete: "btnDelete_sap", save: "saveButton_sap", cancel: "cancelButton_sap", add: "btnAdd_sap" }
-                // ✅ REMOVED: "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert", save: "saveButton_vert", cancel: "cancelButton_vert", add: "btnAdd_vert" }
+ "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert", save: "saveButton_vert", cancel: "cancelButton_vert", add: "btnAdd_vert" }
             };
 
             // Execute cancel logic directly (without confirmation dialog)
@@ -1345,7 +1289,7 @@ sap.ui.define([
             const oView = self.getView();
             const oModel = oView.getModel(); // OData V4 model
             const oEditModel = oView.getModel("edit");
-            // ✅ FIXED: Get edit state for THIS specific table only
+            // FIXED: Get edit state for THIS specific table only
             const sPath = oEditModel.getProperty(`/${sTableId}/editingPath`) || "";
             const sMode = oEditModel.getProperty(`/${sTableId}/mode`);
 
@@ -1358,11 +1302,11 @@ sap.ui.define([
                 return;
             }
 
-            // ✅ FIXED: Cancel only SELECTED rows, not all rows in editingPath
+            // FIXED: Cancel only SELECTED rows, not all rows in editingPath
             let aContextsToCancel = [];
             const aSelectedContexts = oTable.getSelectedContexts();
 
-            // ✅ Always prioritize selected rows - if user selected specific rows, only cancel those
+            // Always prioritize selected rows - if user selected specific rows, only cancel those
             if (aSelectedContexts && aSelectedContexts.length > 0) {
                 // User has selected specific rows - only cancel those
                 aContextsToCancel = aSelectedContexts.filter(ctx => {
@@ -1409,7 +1353,7 @@ sap.ui.define([
                 console.log("Mode:", sMode);
 
                 // 2. Do not reset all model changes here; cancel is scoped per-context
-                //    We only delete the transient context or restore the single edited context below
+                // We only delete the transient context or restore the single edited context below
 
                 // 3. Process ALL contexts to cancel
                 aContextsToCancel.forEach((oContext, index) => {
@@ -1419,7 +1363,7 @@ sap.ui.define([
                     try {
                         const oData = oContext.getObject();
 
-                        // ✅ FIXED: Better detection of truly new unsaved rows
+                        // FIXED: Better detection of truly new unsaved rows
                         // A new row that hasn't been saved will have:
                         // 1. Path starting with '$' (e.g., '$3') OR
                         // 2. _isNew flag set AND it's in "add" mode
@@ -1433,7 +1377,7 @@ sap.ui.define([
                             bIsTransient = oContext.isTransient();
                         }
 
-                        // ✅ Only delete if it's a truly new unsaved row (not an existing saved row being edited)
+                        // Only delete if it's a truly new unsaved row (not an existing saved row being edited)
                         if (bIsNewRow && bIsTransient && bIsInAddMode) {
                             try {
                                 oContext.delete();
@@ -1444,7 +1388,7 @@ sap.ui.define([
                             return; // Skip to next row
                         }
 
-                        // ✅ For existing rows (saved or being edited), restore original data
+                        // For existing rows (saved or being edited), restore original data
                         console.log(`[MULTI-CANCEL] Row ${index + 1} is existing row, restoring original data...`);
                         console.log(`[MULTI-CANCEL] Row ${index + 1} original data exists:`, !!oData._originalData);
 
@@ -1475,7 +1419,7 @@ sap.ui.define([
 
                             console.log(`[MULTI-CANCEL] Restored original data for row ${index + 1}`);
                         } else {
-                            // ✅ If no _originalData, this might be a saved row being edited for the first time
+                            // If no _originalData, this might be a saved row being edited for the first time
                             // In this case, just clear the edit flags but don't delete
                             console.log(`[MULTI-CANCEL] No original data found for row ${index + 1}, clearing edit flags only`);
                             delete oData.isEditable;
@@ -1487,7 +1431,7 @@ sap.ui.define([
                     }
                 });
 
-                // ✅ FIXED: Update editingPath to remove canceled rows, keep others
+                // FIXED: Update editingPath to remove canceled rows, keep others
                 const aCanceledPaths = aContextsToCancel.map(ctx => ctx.getPath()).filter(Boolean);
                 let sRemainingPath = sPath;
 
@@ -1554,7 +1498,7 @@ sap.ui.define([
                 const config = buttonMap[sTableId];
 
                 // Check if there are still rows in edit mode after canceling
-                // ✅ FIXED: Reuse the sRemainingPath variable or read from model directly
+                // FIXED: Reuse the sRemainingPath variable or read from model directly
                 const sRemainingPathAfterCancel = oEditModel.getProperty(`/${sTableId}/editingPath`) || "";
                 const bHasRemainingRows = sRemainingPathAfterCancel && sRemainingPathAfterCancel.length > 0;
 
@@ -1684,9 +1628,9 @@ sap.ui.define([
             }
         },
 
-        // ✅ Public method: Cancel button press (shows confirmation dialog)
+        //  Public method: Cancel button press (shows confirmation dialog)
         onCancelButtonPress: function (oEvent) {
-            // ✅ FIXED: Store reference to this (which is the controller when delegated)
+            // FIXED: Store reference to this (which is the controller when delegated)
             // When called from fragment via controller delegation, 'this' is the controller instance
             const oController = this;
 
@@ -1697,7 +1641,7 @@ sap.ui.define([
                 "Opportunities": { edit: "btnEdit_oppr", delete: "btnDelete_oppr", save: "saveButton_oppr", cancel: "cancelButton_oppr", add: "btnAdd_oppr" },
                 "Projects": { edit: "btnEdit_proj", delete: "btnDelete_proj", save: "saveButton_proj", cancel: "cancelButton_proj", add: "btnAdd_proj" },
                 "SAPIdStatuses": { edit: "btnEdit_sap", delete: "btnDelete_sap", save: "saveButton_sap", cancel: "cancelButton_sap", add: "btnAdd_sap" }
-                // ✅ REMOVED: "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert", save: "saveButton_vert", cancel: "cancelButton_vert", add: "btnAdd_vert" }
+ "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert", save: "saveButton_vert", cancel: "cancelButton_vert", add: "btnAdd_vert" }
             };
 
             // Determine which table this cancel is for
@@ -1715,7 +1659,7 @@ sap.ui.define([
                     actions: [sap.m.MessageBox.Action.YES, sap.m.MessageBox.Action.NO],
                     onClose: function (sAction) {
                         if (sAction === sap.m.MessageBox.Action.YES) {
-                            // ✅ FIXED: Call _performCancelOperation on the controller instance
+                            // FIXED: Call _performCancelOperation on the controller instance
                             // The method is exposed in Home.controller.js, so it's available on the controller
                             oController._performCancelOperation(sTableId, false);
                         }
@@ -1787,7 +1731,7 @@ sap.ui.define([
                 "Opportunities": { edit: "btnEdit_oppr", delete: "btnDelete_oppr", save: "saveButton_oppr", cancel: "cancelButton_oppr", add: "btnAdd_oppr" },
                 "Projects": { edit: "btnEdit_proj", delete: "btnDelete_proj", save: "saveButton_proj", cancel: "cancelButton_proj", add: "btnAdd_proj" },
                 "SAPIdStatuses": { edit: "btnEdit_sap", delete: "btnDelete_sap", save: "saveButton_sap", cancel: "cancelButton_sap", add: "btnAdd_sap" }
-                // ✅ REMOVED: "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert", save: "saveButton_vert", cancel: "cancelButton_vert", add: "btnAdd_vert" }
+ "Verticals": { edit: "btnEdit_vert", delete: "btnDelete_vert", save: "saveButton_vert", cancel: "cancelButton_vert", add: "btnAdd_vert" }
             };
 
             // Determine which table this save is for
@@ -1797,7 +1741,7 @@ sap.ui.define([
                 sTableId = Object.keys(buttonMap).find(tableId => buttonMap[tableId].save === sButtonId) || "Customers";
             }
 
-            // ✅ FIXED: Use table-specific group ID (no hyphens - OData V4 requirement)
+            // FIXED: Use table-specific group ID (no hyphens - OData V4 requirement)
             // Ensure no hyphens - replace any that might exist
             let sSafeTableId = sTableId.replace(/-/g, ""); // Remove any hyphens
             const GROUP_ID = `changesGroup${sSafeTableId}`;
@@ -1807,7 +1751,7 @@ sap.ui.define([
             const oView = this.getView();
             const oModel = oView.getModel(); // OData V4 model
             const oEditModel = oView.getModel("edit");
-            // ✅ FIXED: Get edit state for THIS specific table only
+            // FIXED: Get edit state for THIS specific table only
             const sPath = oEditModel.getProperty(`/${sTableId}/editingPath`) || "";
             const sMode = oEditModel.getProperty(`/${sTableId}/mode`);
 
@@ -1862,10 +1806,10 @@ sap.ui.define([
                         console.log(`[MULTI-SAVE] Processing row ${index + 1}: ${sContextPath}, IsNew: ${bIsNewRow}`);
 
                         if (bIsNewRow) {
-                            // ✅ NEW ROW: Properties are set during cell edits (they automatically use "changesGroup")
-                            // ✅ CRITICAL: New rows are created with "changesGroup" from manifest.json
-                            // ✅ DO NOT call setProperty again - it causes group mismatch errors
-                            // ✅ The properties are already set when user edits cells in the table
+                            // NEW ROW: Properties are set during cell edits (they automatically use "changesGroup")
+                            // CRITICAL: New rows are created with "changesGroup" from manifest.json
+                            // DO NOT call setProperty again - it causes group mismatch errors
+                            // The properties are already set when user edits cells in the table
                             console.log(`[MULTI-SAVE] New row ${index + 1} - properties already set during editing, skipping setProperty calls`);
 
                             // Remove client-side properties
@@ -1876,7 +1820,7 @@ sap.ui.define([
                                 delete oData._originalData;
                             }
                         } else {
-                            // ✅ EXISTING ROW: Update properties from table cells
+                            // EXISTING ROW: Update properties from table cells
                             const oRow = aItems.find(item => {
                                 const ctx = item.getBindingContext();
                                 return ctx && ctx.getPath() === sContextPath;
@@ -1888,7 +1832,7 @@ sap.ui.define([
                                     if (oBinding?.getPath && cell.getValue) {
                                         const sProp = oBinding.getPath();
                                         const vVal = cell.getValue();
-                                        // ✅ Use GROUP_ID without hyphen (OData V4 requirement)
+                                        // Use GROUP_ID without hyphen (OData V4 requirement)
                                         oContext.setProperty(sProp, vVal, GROUP_ID);
                                     }
                                 });
@@ -1906,16 +1850,16 @@ sap.ui.define([
                     });
                 }
 
-                // ✅ FIXED: For new rows, use the default "changesGroup" from manifest
-                // ✅ For existing rows, use table-specific GROUP_ID
-                // ✅ Check if we have new rows - if so, submit both groups
+                // FIXED: For new rows, use the default "changesGroup" from manifest
+                // For existing rows, use table-specific GROUP_ID
+                // Check if we have new rows - if so, submit both groups
                 const aNewRows = aContextsToSave.filter(ctx => {
                     const oData = ctx.getObject();
                     return oData && (oData._isNew || (typeof ctx.isTransient === "function" && ctx.isTransient()));
                 });
 
                 if (aNewRows.length > 0) {
-                    // ✅ New rows exist - submit with default "changesGroup"
+                    // New rows exist - submit with default "changesGroup"
                     console.log(`[MULTI-SAVE] Submitting ${aNewRows.length} new rows with default group "changesGroup"`);
                     await oModel.submitBatch("changesGroup");
 
@@ -1926,7 +1870,7 @@ sap.ui.define([
                         await oModel.submitBatch(GROUP_ID);
                     }
                 } else {
-                    // ✅ Only existing rows - use table-specific group
+                    // Only existing rows - use table-specific group
                     console.log(`[MULTI-SAVE] Submitting ${aContextsToSave.length} existing rows with group ${GROUP_ID}`);
                     await oModel.submitBatch(GROUP_ID);
                 }
@@ -1947,7 +1891,7 @@ sap.ui.define([
                 // 🔹 Refresh table
                 oTable.getBinding("items")?.refresh();
 
-                // ✅ FIXED: Reset edit state for THIS table only
+                // FIXED: Reset edit state for THIS table only
                 oEditModel.setProperty(`/${sTableId}/editingPath`, "");
                 oEditModel.setProperty(`/${sTableId}/mode`, null);
                 if (oEditModel.getProperty("/currentTable") === sTableId) {
@@ -1994,7 +1938,7 @@ sap.ui.define([
                     else if (sButtonId.includes("oppr") || sButtonId === "btnAdd_oppr") sTableId = "Opportunities";
                     else if (sButtonId.includes("proj") || sButtonId === "btnAdd_proj") sTableId = "Projects";
                     else if (sButtonId.includes("sap") || sButtonId === "btnAdd_sap") sTableId = "SAPIdStatuses";
-                    // ✅ REMOVED: else if (sButtonId.includes("vert") || sButtonId == "btnAdd_vert") sTableId = "Verticals";
+                    else if (sButtonId.includes("vert") || sButtonId == "btnAdd_vert") sTableId = "Verticals";
                 }
 
                 console.log("Table ID:", sTableId);
@@ -2090,9 +2034,9 @@ sap.ui.define([
                 // const oNewContext = oBinding.create(oNewRowData);
 
                 // if (!oNewContext) {
-                //     console.error("Failed to create new context");
-                //     sap.m.MessageBox.error("Failed to create new row.");
-                //     return;
+                // console.error("Failed to create new context");
+                // sap.m.MessageBox.error("Failed to create new row.");
+                // return;
                 // }
 
                 // console.log("New context created:", oNewContext.getPath());
@@ -2115,9 +2059,9 @@ sap.ui.define([
                     console.warn(`Failed to generate ID for ${sTableId}`, e);
                 }
 
-                // ✅ FIXED: Create new context with default "changesGroup" (from manifest)
-                // ✅ New rows must use the same group as configured in manifest.json
-                // ✅ This ensures consistency - new rows are created and saved with "changesGroup"
+                // FIXED: Create new context with default "changesGroup" (from manifest)
+                // New rows must use the same group as configured in manifest.json
+                // This ensures consistency - new rows are created and saved with "changesGroup"
                 const oNewContext = oBinding.create(oNewRowData, "changesGroup");
 
                 // 🚨 Add client-side properties AFTER context creation (not in the data sent to server)
@@ -2140,7 +2084,7 @@ sap.ui.define([
                     this.getView().setModel(new sap.ui.model.json.JSONModel(oEditModelData), "edit");
                 }
 
-                // ✅ FIXED: Get edit state for THIS specific table
+                // FIXED: Get edit state for THIS specific table
                 const oEditModelFinal = this.getView().getModel("edit");
                 const sExistingPaths = oEditModelFinal.getProperty(`/${sTableId}/editingPath`) || "";
                 const sNewPath = oNewContext.getPath();
@@ -2207,51 +2151,54 @@ sap.ui.define([
                 // oEmptyData.segment = ""; // Optional, user can fill
                 oEmptyData.state = ""; // Optional, user can fill
                 oEmptyData.country = ""; // User will fill this
-                oEmptyData.status = ""; // User will fill this
-                oEmptyData.vertical = ""; // User will fill this
+                oEmptyData.status = ""; // No default
+                oEmptyData.vertical = ""; // No default
             } else if (sTableId === "Employees") {
                 oEmptyData.ohrId = ""; // Will be auto-generated
                 oEmptyData.mailid = ""; // User will fill this
                 oEmptyData.fullName = ""; // User will fill this
                 // oEmptyData.lastName = ""; // User will fill this
-                oEmptyData.gender = ""; // User will fill this
-                oEmptyData.employeeType = ""; // User will fill this
-                oEmptyData.doj = ""; // User will fill this
-                oEmptyData.band = ""; // User will fill this
+                oEmptyData.gender = ""; // No default
+                oEmptyData.employeeType = ""; // No default
+                oEmptyData.doj = ""; // No default
+                oEmptyData.band = ""; // User will fill this (EmployeeBandEnum)
                 oEmptyData.role = ""; // User will fill this
                 oEmptyData.location = ""; // User will fill this
                 oEmptyData.supervisorOHR = ""; // User will fill this
                 oEmptyData.skills = ""; // User will fill this
                 oEmptyData.city = ""; // User will fill this
-                oEmptyData.lwd = ""; // User will fill this
-                oEmptyData.status = ""; // User will fill this
+                oEmptyData.lwd = ""; // Optional, user can fill
+                oEmptyData.status = ""; // No default value
             } else if (sTableId === "Opportunities") {
                 oEmptyData.sapOpportunityId = ""; // Will be auto-generated
                 oEmptyData.sfdcOpportunityId = ""; // User will fill this
                 oEmptyData.opportunityName = ""; // User will fill this
                 oEmptyData.businessUnit = ""; // User will fill this
-                oEmptyData.probability = ""; // User will fill this
+                oEmptyData.probability = ""; // No default value
                 oEmptyData.salesSPOC = ""; // User will fill this
                 oEmptyData.deliverySPOC = ""; // User will fill this
-                oEmptyData.expectedStart = ""; // User will fill this
-                oEmptyData.expectedEnd = ""; // User will fill this
-                oEmptyData.Stage = ""; // User will fill this
-                oEmptyData.customerId = ""; // User will fill this
+                oEmptyData.expectedStart = ""; // No default date
+                oEmptyData.expectedEnd = ""; // No default date
+                // oEmptyData.estimatedRevenue = "0.00"; // Default revenue
+                oEmptyData.Stage = ""; // No default value
+                oEmptyData.customerId = ""; // Default customer ID
             }
             else if (sTableId === "Projects") {
                 oEmptyData.sapPId = ""; // Will be auto-generated
                 oEmptyData.sfdcPId = ""; // User will fill this
                 oEmptyData.projectName = ""; // User will fill this
-                oEmptyData.startDate = ""; // User will fill this
-                oEmptyData.endDate = ""; // User will fill this
+                oEmptyData.startDate = ""; // No default date
+                oEmptyData.endDate = ""; // No default date
                 oEmptyData.gpm = ""; // User will fill this
-                oEmptyData.projectType = ""; // User will fill this
-                oEmptyData.oppId = ""; // User will fill this
-                oEmptyData.status = ""; // User will fill this
+                oEmptyData.projectType = ""; // No default value
+                oEmptyData.oppId = ""; // Default opportunity ID
+                oEmptyData.status = ""; // No default value
+                oEmptyData.SOWReceived = ""; // No default value
+                oEmptyData.POReceived = ""; // No default value
             }
             // else if (sTableId === "SAPIdStatuses") {
-            //     oEmptyData.id = ""; // Will be auto-generated
-            //     oEmptyData.status = "A"; // Default to Allocated
+            // oEmptyData.id = ""; // Will be auto-generated
+            // oEmptyData.status = "A"; // Default to Allocated
             // }
 
             // 🚨 DON'T add client-side properties to the data that goes to server
@@ -2263,7 +2210,7 @@ sap.ui.define([
             const sKey = oEvent.getParameters("key").item.mProperties.key;
 
             // Detect which table is currently visible
-            const aTableIds = ["Opportunities", "Employees", "Customers", "Projects", "SAPIdStatuses"]; // ✅ REMOVED: "Verticals"
+            const aTableIds = ["Opportunities", "Employees", "Customers", "Projects", "SAPIdStatuses"];
             aTableIds.forEach((sTableId) => {
                 const oTable = this.byId(sTableId);
                 if (oTable && oTable.getVisible()) {
@@ -2357,7 +2304,7 @@ sap.ui.define([
                 "employeeFilterBar": "Employees",
                 "opportunityFilterBar": "Opportunities",
                 "projectsFilterBar": "Projects"
-                // ✅ REMOVED: "verticalsFilterBar": "Verticals"
+ "verticalsFilterBar": "Verticals"
                 // Add more mappings as needed
             };
 
@@ -2438,7 +2385,7 @@ sap.ui.define([
         },
         _onFileUploadChange: function (oEvent) {
             const oMessageManager = sap.ui.getCore().getMessageManager();
-            oMessageManager.removeAllMessages(); //  Clear old messages first
+            oMessageManager.removeAllMessages(); // Clear old messages first
             const oFileUploader = oEvent.getSource();
             const oFile = oFileUploader.oFileUpload.files[0];
             const that = this;
@@ -2476,7 +2423,7 @@ sap.ui.define([
                     return;
                 }
 
-                //new validation
+                // new validation
                 if (aLines.length < 2) {
                     sap.m.MessageBox.error("CSV must have header and at least one data row.");
                     return;
@@ -2496,7 +2443,7 @@ sap.ui.define([
                     "opportunityUpload": [
                         "opportunityName", "sfdcOpportunityId", "businessUnit", "probability",
                         "salesSPOC", "expectedStart", "expectedEnd", "deliverySPOC",
-                        "Stage", "tcv", "customerId",
+                        "Stage",
                     ],
                     "employeeUpload": [
                         "ohrId", "mailid", "fullName", "gender", "employeeType", "doj", "band", "role", "location", "supervisorOHR", "skills", "city", "lwd", "status",
@@ -2547,7 +2494,7 @@ sap.ui.define([
                     return;
                 }
 
-                //new validation
+                // new validation
                 if (aMissingHeaders.length > 0 || aExtraHeaders.length > 0) {
                     sap.m.MessageBox.error(
                         `Invalid CSV template for ${mExpectedMessage[sButtonId]}`,
@@ -2560,7 +2507,7 @@ sap.ui.define([
                 }
 
 
-                // ✅ Parse CSV if headers are valid
+                // Parse CSV if headers are valid
                 const aPayloadArray = [];
                 for (let i = 1; i < aLines.length; i++) {
                     if (!aLines[i].trim()) continue;
@@ -2644,7 +2591,7 @@ sap.ui.define([
                 const oTokenRes = await fetch(sServiceUrl, {
                     method: "GET",
                     headers: { "X-CSRF-Token": "Fetch" },
-                    //  headers: sEmail ? { "X-onbehalfof-User": sEmail } : {},
+                    // headers: sEmail ? { "X-onbehalfof-User": sEmail } : {},
                     credentials: "same-origin"
                 });
                 sCsrfToken = oTokenRes.headers.get("x-csrf-token");
@@ -2655,7 +2602,7 @@ sap.ui.define([
             let iSuccessCount = 0, iFailureCount = 0;
             const aMessages = [];
 
-            // ✅ Close the dialog before starting upload
+            // Close the dialog before starting upload
             if (this._pDialog) {
                 this._pDialog.then(function (oDialog) {
                     oDialog.close();
@@ -2747,18 +2694,18 @@ sap.ui.define([
                     const sType = oLastMessage.type;
 
                     if (sType === "Error") {
-                        oButton.setIcon("sap-icon://error");
+                        oButton.setIcon("sap-icon:// error");
                         oButton.setType("Negative");
                     } else if (sType === "Success") {
-                        oButton.setIcon("sap-icon://sys-enter-2");
+                        oButton.setIcon("sap-icon:// sys-enter-2");
                         oButton.setType("Success");
                     } else {
-                        oButton.setIcon("sap-icon://alert");
+                        oButton.setIcon("sap-icon:// alert");
                         oButton.setType("Default");
                     }
                 } else {
                     // Reset when there are no messages
-                    oButton.setIcon("sap-icon://message-popup");
+                    oButton.setIcon("sap-icon:// message-popup");
                     oButton.setType("Default");
                 }
             }
@@ -2787,8 +2734,9 @@ sap.ui.define([
                 "projectUpload": [
                     "sfdcPId", "projectName", "startDate",
                     "endDate", "gpm", "projectType",
-                    "oppId", "status", "requiredResources", "allocatedResources",
-                    "toBeAllocated", "SOWReceived", "POReceived",
+                    "oppId", "status", "requiredResources",
+                    "allocatedResources", "toBeAllocated",
+                    "SOWReceived", "POReceived",
                 ],
                 "verticalUpload": [
                     "id", "verticalName"
@@ -2829,8 +2777,128 @@ sap.ui.define([
             document.body.removeChild(oLink);
         },
 
+        // ============================================
+        // UTILITY FUNCTIONS - Table Management
+        // ============================================
 
+        // Hard refresh table after CRUD operations to get fresh data from DB
+        _hardRefreshTable: function (sTableId) {
+            const oTable = this.byId(sTableId);
+            if (!oTable) {
+                console.warn(`Table ${sTableId} not found for refresh`);
+                return;
+            }
+            
+            // Rebind MDC table (most reliable for MDC tables)
+            if (oTable.rebind) {
+                try {
+                    oTable.rebind();
+                    console.log(`Table ${sTableId} rebinded`);
+                } catch (e) {
+                    console.log(`Rebind error for ${sTableId}:`, e);
+                }
+            }
+            
+            // Refresh all bindings to force fresh data from backend
+            setTimeout(() => {
+                const oRowBinding = oTable.getRowBinding && oTable.getRowBinding();
+                const oBinding = oTable.getBinding("rows") || oTable.getBinding("items");
+                
+                if (oRowBinding) {
+                    oRowBinding.refresh().then(() => {
+                        console.log(`Table ${sTableId} row binding refreshed`);
+                    }).catch(() => {});
+                } else if (oBinding) {
+                    oBinding.refresh().then(() => {
+                        console.log(`Table ${sTableId} binding refreshed`);
+                    }).catch(() => {});
+                }
+            }, 200); // Small delay to ensure batch is committed
+        },
 
+        // Reset all tables to "show-less" state
+        _resetAllTablesToShowLess: function () {
+            const aTableIds = ["Customers", "Opportunities", "Projects", "SAPIdStatuses", "Employees", "Allocations"];
+
+            aTableIds.forEach((sTableId) => {
+                const oTable = this.byId(sTableId);
+                if (oTable) {
+                    // Remove "show-more" class and add "show-less" class
+                    oTable.removeStyleClass("show-more");
+                    oTable.addStyleClass("show-less");
+                    console.log(`[Navigation] Reset table ${sTableId} to show-less state`);
+                }
+            });
+
+            // Reset all segmented buttons to "less" state
+            this._resetAllSegmentedButtons();
+        },
+
+        // Reset all segmented buttons to "less" state
+        _resetAllSegmentedButtons: function () {
+            // Find all segmented buttons in the view
+            const oView = this.getView();
+            const aSegmentedButtons = oView.findAggregatedObjects(true, function (oControl) {
+                return oControl.getMetadata().getName() === "sap.m.SegmentedButton";
+            });
+
+            aSegmentedButtons.forEach((oSegmentedButton) => {
+                if (oSegmentedButton) {
+                    oSegmentedButton.setSelectedKey("less");
+                    console.log(`[Navigation] Reset segmented button to "less" state`);
+                }
+            });
+        },
+
+        // Reset segmented button for a specific fragment
+        _resetSegmentedButtonForFragment: function (sTableId) {
+            // Find segmented button within the specific table's fragment
+            const oTable = this.byId(sTableId);
+            if (oTable) {
+                const oParent = oTable.getParent();
+                if (oParent) {
+                    const aSegmentedButtons = oParent.findAggregatedObjects(true, function (oControl) {
+                        return oControl.getMetadata().getName() === "sap.m.SegmentedButton";
+                    });
+
+                    aSegmentedButtons.forEach((oSegmentedButton) => {
+                        if (oSegmentedButton) {
+                            oSegmentedButton.setSelectedKey("less");
+                            console.log(`[Fragment] Reset segmented button for ${sTableId} to "less" state`);
+                        }
+                    });
+                }
+            }
+        },
+
+        // Populate Country dropdown when Customers fragment is loaded
+        // Note: Requires _mCountryToCities mapping to be initialized in controller
+        _populateCountryDropdown: function () {
+            const oCountrySelect = this.byId("inputCountry");
+            // Access _mCountryToCities from controller instance (when called via .call(this))
+            const mCountryToCities = this._mCountryToCities;
+            if (!oCountrySelect || !mCountryToCities) {
+                return;
+            }
+            
+            const aCountries = Object.keys(mCountryToCities).sort();
+            const aItems = oCountrySelect.getItems();
+            
+            // Clear existing items (except placeholder)
+            aItems.forEach((oItem, iIndex) => {
+                if (iIndex > 0) { // Keep first placeholder item
+                    oCountrySelect.removeItem(oItem);
+                }
+            });
+            
+            // Add country items
+            aCountries.forEach((sCountry) => {
+                oCountrySelect.addItem(new sap.ui.core.Item({
+                    key: sCountry,
+                    text: sCountry
+                }));
+            });
+        }
 
     });
 });

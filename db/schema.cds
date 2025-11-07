@@ -229,14 +229,14 @@ entity Employee {
         mailid            : String;
         gender            : GenderEnum;
         employeeType      : EmployeeTypeEnum;
-        doj               : String;           // ✅ FIXED: Changed from String to Date
+        doj               : Date;
         band              : EmployeeBandEnum;
         role              : String;
         location          : String;
         supervisorOHR     : String;
         skills            : String;         // Keep for backward compatibility/display
         city              : String;
-        lwd               : String;          // ✅ FIXED: Changed from String to Date
+        lwd               : Date;
         status            : EmployeeStatusEnum;
     
     // ✅ NEW: Self-referential associations

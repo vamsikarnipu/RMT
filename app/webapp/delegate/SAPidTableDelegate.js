@@ -30,7 +30,7 @@ sap.ui.define([
         console.log("[GenericDelegate] MetaModel:", oMetaModel);
 
         // Get collection path from payload
-        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Customers";
         console.log("[GenericDelegate] Collection Path:", sCollectionPath);
 
         // Wait for metadata to be loaded
@@ -138,13 +138,13 @@ sap.ui.define([
             // Load the Column module and create column
             return new Promise(function (resolve) {
                 sap.ui.require(["sap/ui/mdc/table/Column"], function (Column) {
-                    // ✅ FIXED: Get table ID from collectionPath for table-specific edit state
-                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "SAPIdStatuses";
+                    // Get table ID from collectionPath for table-specific edit state
+                    const sTableId = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "SAPIdStatuses";
                     const oField = new Field({
                         value: "{" + sPropertyName + "}",
                         tooltip: "{" + sPropertyName + "}",
                         editMode: {
-                            // ✅ FIXED: Use table-specific editingPath
+                            // Use table-specific editingPath
                             parts: [{ path: `edit>/${sTableId}/editingPath` }],
                             mode:"TwoWay",
                             formatter: function (sPath) {
@@ -212,7 +212,7 @@ sap.ui.define([
                     const oModel = oTable.getModel();
                     const oMetaModel = oModel && oModel.getMetaModel && oModel.getMetaModel();
                     if (oMetaModel) {
-                        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\//, "") || "Customers";
+                        const sCollectionPath = oTable.getPayload()?.collectionPath?.replace(/^\// , "") || "Customers";
                         const oProp = oMetaModel.getObject(`/${sCollectionPath}/${sName}`);
                         const sEdmType = oProp && oProp.$Type;
                         if (sEdmType === "Edm.Int16" || sEdmType === "Edm.Int32" || sEdmType === "Edm.Int64" || sEdmType === "Edm.Decimal") {
